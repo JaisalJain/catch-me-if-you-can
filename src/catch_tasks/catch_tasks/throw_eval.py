@@ -60,7 +60,7 @@ def crossing(p0, v0, t_ref, z):
 
 
 class Eval:
-    def __init__(self, args):
+    def __init__(self, args, record=True):
         self.args = args
         self.node = rclpy.create_node("throw_eval", parameter_overrides=[rclpy.parameter.Parameter("use_sim_time", value=True)])
         ex = MultiThreadedExecutor()
@@ -70,8 +70,9 @@ class Eval:
         assert self.sk.mi.wait_ready(60)
         self.lock = threading.Lock()
         self.cube, self.js, self.rec, self.det = [], [], False, None
-        self.node.create_subscription(FreeJointStateArray, "/free_joint_state_publisher/free_joint_states", self.on_fj, 100)
-        self.node.create_subscription(JointState, "/joint_states", self.on_js, 100)
+        if record:     # 200 + 500 Hz in rclpy: only for the throw evaluation itself
+            self.node.create_subscription(FreeJointStateArray, "/free_joint_state_publisher/free_joint_states", self.on_fj, 100)
+            self.node.create_subscription(JointState, "/joint_states", self.on_js, 100)
         self.node.create_subscription(CubeDetectionArray, "/perception/overhead_a/cubes",
                                       lambda m: setattr(self, "det", m), 1)
         self.throw = ActionClient(self.node, Throw, "/throw")

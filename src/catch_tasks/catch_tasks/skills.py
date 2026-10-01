@@ -43,6 +43,33 @@ def cube_rotations():
 CUBE_ROT = cube_rotations()
 
 
+def place_tcp_pose(cfg, scene, slot, T_tcp_cube, R_current, slot_yaw=0.0):
+    """TCP pose that puts a cube held with in-hand transform T_tcp_cube (cube in the TCP frame) square into the
+    slot whose resting cube centre is `slot`: of the 24 equivalent cube orientations (yaw = slot_yaw) take the one
+    needing the least tilt of the tool from straight down (then the least wrist turn from R_current). The cube is
+    released at the lowest height where its bottom clears the pallet by place_clearance and the lowest fingertip
+    clears the slot borders by border_margin. Returns (R_tcp, p_tcp, cube centre target, tilt [rad])."""
+    from catch_kinematics.transforms import rotation_angle
+    edge = scene["cube"]["edge"]
+    R_tc, p_tc = T_tcp_cube[:3, :3], T_tcp_cube[:3, 3]
+    best = None
+    for S in CUBE_ROT:
+        Rt = rot_z(slot_yaw) @ S @ R_tc.T
+        tilt = float(np.arccos(np.clip(-Rt[2, 2], -1, 1)))
+        score = tilt + 0.1 * rotation_angle(R_current, Rt)
+        if best is None or score < best[0]:
+            best = (score, Rt, tilt)
+    _, Rt, tilt = best
+    surface = slot[2] - edge / 2
+    fx, fw = cfg["finger_half_span"], cfg["finger_half_width"]
+    tips = np.array([[sx * fx, sy * fw, cfg["pad_reach"]] for sx in (-1, 1) for sy in (-1, 1)])
+    tip_rel = float(np.min((Rt @ tips.T)[2])) - float((Rt @ p_tc)[2])     # lowest fingertip - cube centre (z)
+    cz = max(surface + edge / 2 + cfg["place_clearance"],
+             surface + scene["pallets"]["border_height"] + cfg["border_margin"] - tip_rel)
+    target = np.array([slot[0], slot[1], cz])
+    return Rt, target - Rt @ p_tc, target, tilt
+
+
 def load_skill_cfg():
     with open(os.path.join(get_package_share_directory("catch_tasks"), "config", "skills.yaml")) as f:
         return yaml.safe_load(f)
@@ -207,40 +234,26 @@ class Skills:
         return SkillResult(ok, "placed" if ok else f"retreat failed: {msg}")
 
     def place_plan(self, robot, slot_color, pallet, T_tcp_cube, slot_yaw=0.0):
-        """TCP pose that puts a cube held with in-hand transform T_tcp_cube (cube in the TCP frame) square into the
-        slot: of the 24 equivalent cube orientations (yaw = slot_yaw) take the one needing the least tilt of the
-        tool from straight down (then the least wrist turn). The cube is released at the lowest height where its
-        bottom clears the pallet by place_clearance and the lowest fingertip clears the slot borders.
-        Returns (R_tcp, p_tcp, cube centre target, tilt [rad])."""
-        from catch_kinematics.transforms import rotation_angle
-        c = self.cfg
-        R_tc, p_tc = T_tcp_cube[:3, :3], T_tcp_cube[:3, 3]
-        cur = self._current_R(robot)
-        best = None
-        for S in CUBE_ROT:
-            Rt = rot_z(slot_yaw) @ S @ R_tc.T
-            tilt = float(np.arccos(np.clip(-Rt[2, 2], -1, 1)))
-            score = tilt + 0.1 * rotation_angle(cur, Rt)
-            if best is None or score < best[0]:
-                best = (score, Rt, tilt)
-        _, Rt, tilt = best
-        slot = slot_position(self.scene, pallet, slot_color)
-        surface = slot[2] - self.edge / 2
-        fx, fw = c["finger_half_span"], c["finger_half_width"]
-        tips = np.array([[sx * fx, sy * fw, c["pad_reach"]] for sx in (-1, 1) for sy in (-1, 1)])
-        tip_rel = float(np.min((Rt @ tips.T)[2])) - float((Rt @ p_tc)[2])     # lowest fingertip - cube centre (z)
-        cz = max(surface + self.edge / 2 + c["place_clearance"],
-                 surface + self.scene["pallets"]["border_height"] + c["border_margin"] - tip_rel)
-        target = np.array([slot[0], slot[1], cz])
-        return Rt, target - Rt @ p_tc, target, tilt
+        """See place_tcp_pose; uses the current wrist orientation as the tie-breaker."""
+        return place_tcp_pose(self.cfg, self.scene, slot_position(self.scene, pallet, slot_color), T_tcp_cube,
+                              self._current_R(robot), slot_yaw)
 
-    def place_held(self, robot, slot_color, pallet, T_tcp_cube, cube_id="cube", slot_yaw=0.0) -> SkillResult:
-        """Place a cube whose pose in the hand is known (e.g. estimated from the wrist camera after a catch)."""
+    def place_held(self, robot, slot_color, pallet, T_tcp_cube, cube_id="cube", slot_yaw=0.0, via=None,
+                   attempts=2) -> SkillResult:
+        """Place a cube whose pose in the hand is known (e.g. estimated from the wrist camera after a catch).
+        via: optional joint configuration to pass through first (B: home, from the cup pose)."""
         c = self.cfg
+        self._vs()
+        if via is not None:
+            ok, msg = self.mi.move_joints(robot, via)
+            if not ok:
+                return SkillResult(False, f"carry to the via pose failed: {msg}")
         Rt, p_tcp, target, tilt = self.place_plan(robot, slot_color, pallet, T_tcp_cube, slot_yaw)
         above = p_tcp + [0, 0, c["approach_height"]]
-        self._vs()
-        ok, msg = self.move_to_pose(robot, Rt, above)
+        for _ in range(attempts):                      # OMPL is randomised: a second request often succeeds
+            ok, msg = self.move_to_pose(robot, Rt, above)
+            if ok:
+                break
         if not ok:
             self.detach_cube(robot, cube_id)
             return SkillResult(False, f"pre-place failed: {msg}")

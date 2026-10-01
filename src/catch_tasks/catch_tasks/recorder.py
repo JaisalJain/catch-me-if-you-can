@@ -18,26 +18,51 @@ def stamp(h):
 
 
 class Recorder:
+    """Subscribes only while recording (rclpy is slow: /joint_states and the palm wrench arrive at 500 Hz, the
+    ground truth at 200 Hz). Outside recordings, cube() takes one fresh ground-truth sample on demand."""
+
     def __init__(self, node):
+        self.node = node
         self.lock = threading.Lock()
         self.active = False
         self.js_names = None
+        self.subs = []
         self.clear()
-        self.last_cubes = {}          # latest ground truth, always updated: name -> (t, pos[3], quat_wxyz[4], vel[3])
-        node.create_subscription(JointState, "/joint_states", self._on_js, 100)
-        node.create_subscription(FreeJointStateArray, "/free_joint_state_publisher/free_joint_states", self._on_fj, 100)
-        node.create_subscription(WrenchStamped, "/b_palm_ft_broadcaster/wrench", self._on_ft, 100)
+        self.last_cubes = {}          # latest ground truth: name -> (t, pos[3], quat_wxyz[4], vel[3])
+
+    def _subscribe(self, with_rates=True):
+        n = self.node
+        subs = [n.create_subscription(FreeJointStateArray, "/free_joint_state_publisher/free_joint_states", self._on_fj, 100)]
+        if with_rates:
+            subs += [n.create_subscription(JointState, "/joint_states", self._on_js, 100),
+                     n.create_subscription(WrenchStamped, "/b_palm_ft_broadcaster/wrench", self._on_ft, 100)]
+        return subs
+
+    def _unsubscribe(self, subs):
+        for s in subs:
+            self.node.destroy_subscription(s)
 
     def clear(self):
         with self.lock:
             self.js, self.cubes, self.ft = [], [], []
 
-    def start(self):
+    def start(self, wait=3.0):
+        """Subscribe and wait (wall time) until every stream delivers (new subscriptions need DDS discovery)."""
+        import time
         self.clear()
         self.active = True
+        self.subs = self._subscribe()
+        t0 = time.monotonic()
+        while time.monotonic() - t0 < wait:
+            with self.lock:
+                if self.js and self.cubes and self.ft:
+                    break
+            time.sleep(0.01)
 
     def stop(self):
         self.active = False
+        self._unsubscribe(self.subs)
+        self.subs = []
 
     def _on_js(self, m):
         if not self.active:
@@ -80,8 +105,23 @@ class Recorder:
         a.update(extra)
         np.savez_compressed(path, **a)
 
-    def cube(self, color):
-        """Latest ground-truth (pos, R, vel) of cube_<color>, or None."""
+    def fresh(self, timeout=2.0):
+        """Wait for a ground-truth sample newer than now (one-shot subscription when not recording)."""
+        import time
+        t_req = self.node.get_clock().now().nanoseconds * 1e-9
+        subs = [] if self.active else self._subscribe(with_rates=False)
+        t0 = time.monotonic()
+        while time.monotonic() - t0 < timeout:
+            c = self.last_cubes.get(CUBES[0])
+            if c is not None and c[0] >= t_req:
+                break
+            time.sleep(0.005)
+        self._unsubscribe(subs)
+
+    def cube(self, color, fresh=True):
+        """Ground-truth (pos, R, vel) of cube_<color> (a new sample unless fresh=False), or None."""
+        if fresh:
+            self.fresh()
         c = self.last_cubes.get(f"cube_{color}")
         if c is None:
             return None
@@ -90,3 +130,37 @@ class Recorder:
                       [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
                       [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)]])
         return np.array(c[1]), R, np.array(c[3])
+
+
+def main():
+    """Standalone recorder (own process, so it does not load the state machine's executor):
+        ros2 run catch_tasks record_run --out log/m6/run_seed1.npz      (stop with SIGINT / SIGTERM)"""
+    import argparse
+    import signal
+    import time
+
+    import rclpy
+    from rclpy.executors import MultiThreadedExecutor
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--out", required=True)
+    args, _ = ap.parse_known_args()
+    rclpy.init()
+    node = rclpy.create_node("record_run", parameter_overrides=[rclpy.parameter.Parameter("use_sim_time", value=True)])
+    rec = Recorder(node)
+    ex = MultiThreadedExecutor()
+    ex.add_node(node)
+    import threading
+    threading.Thread(target=ex.spin, daemon=True).start()
+    stop = threading.Event()
+    signal.signal(signal.SIGTERM, lambda *_: stop.set())
+    signal.signal(signal.SIGINT, lambda *_: stop.set())
+    rec.start()
+    while not stop.is_set():
+        time.sleep(0.1)
+    rec.stop()
+    import os
+    os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
+    rec.save(args.out)
+    a = rec.arrays()
+    print(f"saved {args.out}: {len(a['t_js'])} joint-state samples, {len(a['cubes'])} ground-truth samples", flush=True)
+    ex.shutdown()

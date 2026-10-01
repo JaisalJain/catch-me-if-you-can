@@ -18,4 +18,5 @@
   <exec_depend>python3-yaml</exec_depend>
   <test_depend>python3-pytest</test_depend>
   <export><build_type>ament_python</build_type></export>
+  <exec_depend>rcl_interfaces</exec_depend>
 </package>

@@ -6,7 +6,7 @@ fully open); the cube is launched with the throw plan's release state; the gripp
 sensor exceeds a threshold (after an emulated detection+command latency), or — baseline — at a fixed predicted
 time. Success: cube held between the pads, at rest, 1 s after closing.
 
-    env -u PYTHONPATH .venv/bin/python tools/catch_study.py [--pose] [--sweep]
+    env -u PYTHONPATH .venv/bin/python tools/catch_study.py [--sweep] [--envelope]
 """
 import argparse
 import os
@@ -165,6 +165,7 @@ def _rx(a):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--sweep", action="store_true")
+    ap.add_argument("--envelope", action="store_true")
     args = ap.parse_args()
     sim = Sim()
     p_r, v_r, spin, R_r, T, c = throw_state()
@@ -179,6 +180,22 @@ def main():
     print("chosen catch pose", np.round(q_b, 4).tolist())
     print("force trigger:", sim.run(q_b))
     print("time trigger (+5 ms after predicted arrival):", sim.run(q_b, trigger="time", t_close_pred=0.005))
+    if args.envelope:
+        # release-velocity error envelope (in the throw plane): held / not held, force trigger, 6 ms latency
+        rng = np.arange(-0.15, 0.151, 0.025)
+        grid = np.zeros((len(rng), len(rng)), bool)
+        for i, dvz in enumerate(rng):
+            for j, dvx in enumerate(rng):
+                grid[i, j] = sim.run(q_b, dv=np.array([dvx, 0.0, dvz]))["held"]
+        print("held map (rows: dv_z, cols: dv_x, m/s):")
+        print("        " + " ".join(f"{v:+.3f}"[:6].rjust(6) for v in rng))
+        for i, dvz in enumerate(rng):
+            print(f"{dvz:+.3f}  " + " ".join(("  held" if g else "  ----") for g in grid[i]))
+        out = os.path.join(REPO, "docs", "m5", "catch_envelope.json")
+        os.makedirs(os.path.dirname(out), exist_ok=True)
+        import json
+        json.dump(dict(dv=rng.round(3).tolist(), held=grid.tolist(), note="rows dv_z, cols dv_x; force trigger, 6 ms latency"),
+                  open(out, "w"))
     if args.sweep:
         for lat in (0.002, 0.006, 0.012, 0.025):
             print("latency", lat, sim.run(q_b, latency=lat))

@@ -1,0 +1,11 @@
+# Full-loop state machine (catch_tasks/state_machine.py). Seconds, metres.
+seed: 1                      # random cube choice (overridable: --seed)
+max_attempts_per_cube: 3      # give up on a cube after this many attempts (it is then left on A's pallet)
+max_pick_tries: 2
+detect_timeout: 5.0          # s to wait for a fresh overhead detection
+detect_min_confidence: 0.5
+reseat_settle: 0.4           # s with the grip loosened at palm_up so the cube drops onto the palm insert
+verify_tolerance: 0.006      # m: detected cube centre within this of its slot centre counts as sorted
+fault_t_loosen: 0.26         # only with --fault-throw N: late grip loosen on throw N (recovery-path test)
+verify_frames: 3             # fresh overhead-B frames tried before VERIFY declares a failure
+verify_min_confidence: 0.25  # a cube touching its same-colored slot border has a smaller visible core

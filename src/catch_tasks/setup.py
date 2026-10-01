@@ -18,5 +18,7 @@ setup(
         "pickplace_test = catch_tasks.pickplace_test:main",
         "throw_eval = catch_tasks.throw_eval:main",
         "catch_eval = catch_tasks.catch_eval:main",
+        "run_demo = catch_tasks.state_machine:main",
+        "record_run = catch_tasks.recorder:main",
     ]},
 )

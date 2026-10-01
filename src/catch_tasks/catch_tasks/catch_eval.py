@@ -46,7 +46,7 @@ def rest_pose_errors(R):
 
 class CatchEval(Eval):
     def __init__(self, args):
-        super().__init__(args)
+        super().__init__(args, record=False)
         n = self.node
         self.recorder = Recorder(n)
         self.catch = ActionClient(n, Catch, "/catch")
@@ -65,9 +65,12 @@ class CatchEval(Eval):
         return inv_tf(self.tcp_b()) @ make_tf(R, p), v
 
     def gt_held(self, color):
+        """Ground truth: cube centre < 20 mm from B's TCP, at rest, AND the fingers closed on it (knuckle in the
+        in-hand range) — a cube lying in the open cup is not a catch."""
         T, v = self.cube_in_tcp(color)
-        rel = T[:3, 3]
-        return bool(np.linalg.norm(rel) < 0.02 and np.linalg.norm(v) < 0.05), T
+        lo, hi = self.sk.cfg["in_hand_knuckle"]
+        k = self.sk.mi.gripper_position("b")
+        return bool(np.linalg.norm(T[:3, 3]) < 0.02 and np.linalg.norm(v) < 0.05 and lo <= k <= hi), T
 
     # ------------------------------------------------------------------ one trial
     def one(self, i):
@@ -173,7 +176,7 @@ class CatchEval(Eval):
             T_est = make_tf(p=[0, 0, 0])
         T_use = T_est if not a.no_correction else make_tf(p=[0, 0, T_est[2, 3]])
         sk.attach_cube("b", color, offset_z=float(T_use[2, 3]))
-        r = sk.place_held("b", seen, "b", T_use, cube_id=color)
+        r = sk.place_held("b", seen, "b", T_use, cube_id=color, via=self.poses["b"]["home"])
         row["place_msg"] = r.message
         self.sleep_sim(0.5)
         p, R, _ = self.recorder.cube(color)
@@ -182,8 +185,10 @@ class CatchEval(Eval):
         e = p - slot
         in_slot = bool(abs(e[0]) < (sk.scene["pallets"]["slot_inner"] - sk.edge) / 2 and
                        abs(e[1]) < (sk.scene["pallets"]["slot_inner"] - sk.edge) / 2 and abs(e[2]) < 0.003)
-        row.update(place_err_mm=(1000 * e).round(2).tolist(), place_yaw_deg=round(float(np.degrees(yaw)), 2),
-                   place_tilt_deg=round(float(np.degrees(tilt)), 2), in_slot=in_slot)
+        row.update(place_ok=r.ok, final_err_mm=(1000 * e).round(2).tolist(), in_slot=in_slot)
+        if r.ok:     # place error statistics only for completed place motions
+            row.update(place_err_mm=(1000 * e).round(2).tolist(), place_yaw_deg=round(float(np.degrees(yaw)), 2),
+                       place_tilt_deg=round(float(np.degrees(tilt)), 2))
         sk.mi.move_joints("b", self.poses["b"]["home"])
         ok = r.ok and in_slot and row["color_ok"]
         row.update(ok=ok, stage="placed" if ok else "place", why="" if ok else (r.message if not r.ok else "not in slot"))
@@ -212,7 +217,7 @@ def summarize(rows):
     out["inhand_angle_err_deg"] = stat([e["angle_err_deg"] for e in est])
     out["inhand_yz_err_mm"] = stat([e["yz_err_mm"] for e in est])
     placed = [r for r in caught if "place_err_mm" in r]
-    out["placed_in_slot"] = f"{sum(1 for r in placed if r['in_slot'])}/{len(placed)}"
+    out["placed_in_slot"] = f"{sum(1 for r in caught if r.get('in_slot'))}/{len([r for r in caught if 'in_slot' in r])}"
     out["color_ok"] = f"{sum(1 for r in placed if r.get('color_ok'))}/{len([r for r in caught if 'color_ok' in r])}"
     out["place_err_mm"] = stat([r["place_err_mm"] for r in placed])
     out["place_yaw_deg"] = stat([r["place_yaw_deg"] for r in placed])

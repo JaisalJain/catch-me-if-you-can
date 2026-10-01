@@ -63,8 +63,8 @@ class Catcher(Node):
         self.live_plan = None
         self.create_subscription(ThrowPlan, "/throw_plan", self.on_plan,
                                  QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL), callback_group=cb)
-        self.create_subscription(WrenchStamped, "/b_palm_ft_broadcaster/wrench", self.on_wrench, 50,
-                                 callback_group=self.force_cb)
+        self.wrench_sub = None   # created per catch goal (500 Hz in rclpy)
+        self.n_wrench = 0
         self.arm = None          # dict while armed: baseline samples, threshold, trigger state
         ActionServer(self, Catch, "/catch", self.execute, callback_group=cb)
 
@@ -77,6 +77,7 @@ class Catcher(Node):
         return self.get_clock().now().nanoseconds * 1e-9
 
     def on_wrench(self, msg):
+        self.n_wrench += 1
         a = self.arm
         if a is None:
             return
@@ -94,6 +95,12 @@ class Catcher(Node):
             self._close()
             a["t_cmd"] = self.now()
             a["t_trig"] = t          # set last: the action thread proceeds as soon as it sees t_trig
+
+    def _disarm(self):
+        self.arm = None
+        if self.wrench_sub is not None:
+            self.destroy_subscription(self.wrench_sub)
+            self.wrench_sub = None
 
     def _close(self):
         g = GripperCommand.Goal()
@@ -129,15 +136,29 @@ class Catcher(Node):
             res.message = "no reachable intercept"
             return res
         res.intercept = Point(x=float(ic.p[0]), y=float(ic.p[1]), z=float(ic.p[2]))
+        # palm force stream: subscribe now (DDS discovery of a new subscription can take a while) and require
+        # samples before reporting "ready"; unsubscribed again after the catch (500 Hz is costly in rclpy)
+        self.n_wrench = 0
+        self.wrench_sub = self.create_subscription(WrenchStamped, "/b_palm_ft_broadcaster/wrench", self.on_wrench, 50,
+                                                   callback_group=self.force_cb)
         gh.publish_feedback(Catch.Feedback(phase="moving"))
         self.mi.wait_ready(30)
         self._open()
         ok, msg = self.mi.move_joints("b", ic.q)
         if not ok:
+            self._disarm()
             gh.abort()
             res.message = f"could not reach the cup pose: {msg}"
             return res
         self._open()
+        t0 = time.monotonic()
+        while self.n_wrench < 50 and time.monotonic() - t0 < 10.0:
+            time.sleep(0.01)
+        if self.n_wrench < 50:
+            self._disarm()
+            gh.abort()
+            res.message = "no palm force data (b_palm_ft_broadcaster)"
+            return res
         with self.lock:
             self.live_plan = None
         t_goal = self.now()
@@ -154,6 +175,7 @@ class Catcher(Node):
                 break
             time.sleep(0.005)
         if live is None:
+            self._disarm()
             gh.abort()
             res.message = "no live throw plan"
             return res
@@ -176,7 +198,7 @@ class Catcher(Node):
                 time.sleep(0.001)
         a = self.arm
         if a["t_trig"] is None:
-            self.arm = None
+            self._disarm()
             gh.abort()
             res.message = "no contact detected"
             res.peak_force = a["peak"]
@@ -185,7 +207,7 @@ class Catcher(Node):
         t_end = a["t_cmd"] + self.cfg["settle_time"]
         while self.now() < t_end:
             time.sleep(0.005)
-        self.arm = None
+        self._disarm()
         lo, hi = self.cfg["gripper"]["in_hand_knuckle"]
         k = self.mi.gripper_position("b")
         res.success = bool(lo <= k <= hi)
