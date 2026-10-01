@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro" name="spike">
+  <xacro:arg name="mjcf" default=""/>
+  <xacro:arg name="headless" default="true"/>
+  <xacro:include filename="$(find ur_description)/urdf/ur_macro.xacro"/>
+  <xacro:include filename="$(find robotiq_description)/urdf/robotiq_2f_85_macro.urdf.xacro"/>
+  <xacro:property name="cfg" value="$(find ur_description)/config/ur5e"/>
+  <link name="world"/>
+  <xacro:macro name="arm" params="p x yaw">
+    <xacro:ur_robot name="${p}ur" tf_prefix="${p}" parent="world"
+      joint_limits_parameters_file="${cfg}/joint_limits.yaml" kinematics_parameters_file="${cfg}/default_kinematics.yaml"
+      physical_parameters_file="${cfg}/physical_parameters.yaml" visual_parameters_file="${cfg}/visual_parameters.yaml">
+      <origin xyz="${x} 0 0.75" rpy="0 0 ${yaw}"/>
+    </xacro:ur_robot>
+    <xacro:robotiq_gripper name="${p}gripper" prefix="${p}" parent="${p}tool0" include_ros2_control="false">
+      <origin xyz="0 0 0.0108" rpy="0 0 0"/>
+    </xacro:robotiq_gripper>
+  </xacro:macro>
+  <xacro:arm p="a_" x="-0.8" yaw="0"/>
+  <xacro:arm p="b_" x="0.8" yaw="${pi}"/>
+  <xacro:macro name="arm_joints" params="p">
+    <xacro:property name="init" value="${dict(shoulder_pan_joint=0.0, shoulder_lift_joint=-1.5708, elbow_joint=1.5708, wrist_1_joint=-1.5708, wrist_2_joint=-1.5708, wrist_3_joint=0.0)}"/>
+    <xacro:macro name="j" params="n">
+      <joint name="${p}${n}">
+        <command_interface name="effort"/>
+        <state_interface name="position"><param name="initial_value">${init[n]}</param></state_interface>
+        <state_interface name="velocity"/>
+        <state_interface name="effort"/>
+      </joint>
+    </xacro:macro>
+    <xacro:j n="shoulder_pan_joint"/><xacro:j n="shoulder_lift_joint"/><xacro:j n="elbow_joint"/>
+    <xacro:j n="wrist_1_joint"/><xacro:j n="wrist_2_joint"/><xacro:j n="wrist_3_joint"/>
+    <joint name="${p}robotiq_85_left_knuckle_joint">
+      <command_interface name="position"/>
+      <state_interface name="position"><param name="initial_value">0.0</param></state_interface>
+      <state_interface name="velocity"/>
+    </joint>
+  </xacro:macro>
+  <ros2_control name="MujocoSystem" type="system">
+    <hardware>
+      <plugin>mujoco_ros2_control/MujocoSystemInterface</plugin>
+      <param name="mujoco_model">$(arg mjcf)</param>
+      <param name="headless">$(arg headless)</param>
+    </hardware>
+    <xacro:arm_joints p="a_"/>
+    <xacro:arm_joints p="b_"/>
+  </ros2_control>
+</robot>

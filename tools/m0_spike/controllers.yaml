@@ -1,0 +1,60 @@
+controller_manager:
+  ros__parameters:
+    update_rate: 500
+
+joint_state_broadcaster:
+  ros__parameters:
+    type: joint_state_broadcaster/JointStateBroadcaster
+
+arm_a_controller:
+  ros__parameters:
+    type: joint_trajectory_controller/JointTrajectoryController
+    joints: [a_shoulder_pan_joint, a_shoulder_lift_joint, a_elbow_joint, a_wrist_1_joint, a_wrist_2_joint, a_wrist_3_joint]
+    command_interfaces: [effort]
+    state_interfaces: [position, velocity]
+    gains:
+      a_shoulder_pan_joint: {p: 3000.0, d: 150.0, i: 0.0, ff_velocity_scale: 0.0}
+      a_shoulder_lift_joint: {p: 3000.0, d: 150.0, i: 0.0, ff_velocity_scale: 0.0}
+      a_elbow_joint: {p: 3000.0, d: 150.0, i: 0.0, ff_velocity_scale: 0.0}
+      a_wrist_1_joint: {p: 300.0, d: 15.0, i: 0.0, ff_velocity_scale: 0.0}
+      a_wrist_2_joint: {p: 300.0, d: 15.0, i: 0.0, ff_velocity_scale: 0.0}
+      a_wrist_3_joint: {p: 300.0, d: 15.0, i: 0.0, ff_velocity_scale: 0.0}
+
+gripper_a_controller:
+  ros__parameters:
+    type: position_controllers/GripperActionController
+    joint: a_robotiq_85_left_knuckle_joint
+
+arm_b_controller:
+  ros__parameters:
+    type: joint_trajectory_controller/JointTrajectoryController
+    joints: [b_shoulder_pan_joint, b_shoulder_lift_joint, b_elbow_joint, b_wrist_1_joint, b_wrist_2_joint, b_wrist_3_joint]
+    command_interfaces: [effort]
+    state_interfaces: [position, velocity]
+    gains:
+      b_shoulder_pan_joint: {p: 3000.0, d: 150.0, i: 0.0, ff_velocity_scale: 0.0}
+      b_shoulder_lift_joint: {p: 3000.0, d: 150.0, i: 0.0, ff_velocity_scale: 0.0}
+      b_elbow_joint: {p: 3000.0, d: 150.0, i: 0.0, ff_velocity_scale: 0.0}
+      b_wrist_1_joint: {p: 300.0, d: 15.0, i: 0.0, ff_velocity_scale: 0.0}
+      b_wrist_2_joint: {p: 300.0, d: 15.0, i: 0.0, ff_velocity_scale: 0.0}
+      b_wrist_3_joint: {p: 300.0, d: 15.0, i: 0.0, ff_velocity_scale: 0.0}
+
+gripper_b_controller:
+  ros__parameters:
+    type: position_controllers/GripperActionController
+    joint: b_robotiq_85_left_knuckle_joint
+
+/**:
+  ros__parameters:
+    mujoco_plugins:
+      free_joint_state_publisher:
+        type: "mujoco_ros2_control_plugins/FreeJointStatePublisherPlugin"
+        frame_id: ""
+        publish_rate: 100.0
+      mujoco_camera_plugin:
+        type: "mujoco_ros2_control_plugins/CameraPlugin"
+        camera_publish_rate: 5.0
+# 0.1.1 bug (fixed upstream in 0.1.2, #291): FreeJointStatePublisherPlugin reads un-prefixed params
+mujoco_ros2_control_node:
+  ros__parameters:
+    publish_rate: 100.0
