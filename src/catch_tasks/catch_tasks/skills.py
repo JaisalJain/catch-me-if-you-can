@@ -43,12 +43,14 @@ def cube_rotations():
 CUBE_ROT = cube_rotations()
 
 
-def place_tcp_pose(cfg, scene, slot, T_tcp_cube, R_current, slot_yaw=0.0):
+def place_tcp_pose(cfg, scene, slot, T_tcp_cube, R_current, slot_yaw=0.0, closing_axis=None):
     """TCP pose that puts a cube held with in-hand transform T_tcp_cube (cube in the TCP frame) square into the
     slot whose resting cube centre is `slot`: of the 24 equivalent cube orientations (yaw = slot_yaw) take the one
     needing the least tilt of the tool from straight down (then the least wrist turn from R_current). The cube is
     released at the lowest height where its bottom clears the pallet by place_clearance and the lowest fingertip
-    clears the slot borders by border_margin. Returns (R_tcp, p_tcp, cube centre target, tilt [rad])."""
+    clears the slot borders by border_margin. closing_axis: if given, the closing axis (tool x) must lie along it
+    (up to sign; e.g. world y for B, whose wrist camera sits on that axis). Returns (R_tcp, p_tcp, cube centre
+    target, tilt [rad])."""
     from catch_kinematics.transforms import rotation_angle
     edge = scene["cube"]["edge"]
     R_tc, p_tc = T_tcp_cube[:3, :3], T_tcp_cube[:3, 3]
@@ -57,6 +59,8 @@ def place_tcp_pose(cfg, scene, slot, T_tcp_cube, R_current, slot_yaw=0.0):
         Rt = rot_z(slot_yaw) @ S @ R_tc.T
         tilt = float(np.arccos(np.clip(-Rt[2, 2], -1, 1)))
         score = tilt + 0.1 * rotation_angle(R_current, Rt)
+        if closing_axis is not None:          # required direction of the closing axis (tool x), up to sign
+            score += 10.0 * (1.0 - abs(float(Rt[:, 0] @ np.asarray(closing_axis, float))))
         if best is None or score < best[0]:
             best = (score, Rt, tilt)
     _, Rt, tilt = best
@@ -131,12 +135,12 @@ class Skills:
         q = self.mi.gripper_position(robot)
         return lo <= q <= hi, q
 
-    def _down_rotation(self, robot, cube_yaw):
-        """Top-down orientation whose finger axis is aligned with a cube face; of the 4 equivalent yaws pick the
-        one needing the least wrist rotation from the current TCP orientation."""
+    def _down_rotation(self, robot, cube_yaw, ks=range(4)):
+        """Top-down orientation whose finger axis is aligned with a cube face; of the equivalent yaws (k * 90 deg,
+        k in ks) pick the one needing the least wrist rotation from the current TCP orientation."""
         best, best_ang = None, np.inf
         cur = self._current_R(robot)
-        for k in range(4):
+        for k in ks:
             R = rot_z(cube_yaw + k * np.pi / 2) @ R_DOWN
             ang = np.arccos(np.clip((np.trace(cur.T @ R) - 1) / 2, -1, 1))
             if ang < best_ang:
@@ -217,7 +221,9 @@ class Skills:
         bh = self.scene["pallets"]["border_height"]
         clearance = max(c["place_clearance"], tip_below + bh + c["border_margin"])
         target = slot_position(self.scene, pallet, slot_color) + [0, 0, clearance]   # cube centre at release
-        R = self._down_rotation(robot, slot_yaw)
+        # B carries a wrist camera on the closing axis: keep the closing axis along world y when placing, so the
+        # camera housing hangs beside the pallet, not over the neighbouring slots
+        R = self._down_rotation(robot, slot_yaw, ks=(0, 2) if robot == "b" else range(4))
         tcp_at = target + [0, 0, held_offset]          # cube centre sits held_offset below the TCP (tool z down)
         above = tcp_at + [0, 0, c["approach_height"]]
         self._vs()
@@ -234,9 +240,10 @@ class Skills:
         return SkillResult(ok, "placed" if ok else f"retreat failed: {msg}")
 
     def place_plan(self, robot, slot_color, pallet, T_tcp_cube, slot_yaw=0.0):
-        """See place_tcp_pose; uses the current wrist orientation as the tie-breaker."""
+        """See place_tcp_pose; uses the current wrist orientation as the tie-breaker. B keeps its closing axis
+        (and so its wrist camera) along world y."""
         return place_tcp_pose(self.cfg, self.scene, slot_position(self.scene, pallet, slot_color), T_tcp_cube,
-                              self._current_R(robot), slot_yaw)
+                              self._current_R(robot), slot_yaw, closing_axis=(0, 1, 0) if robot == "b" else None)
 
     def place_held(self, robot, slot_color, pallet, T_tcp_cube, cube_id="cube", slot_yaw=0.0, via=None,
                    attempts=2) -> SkillResult:

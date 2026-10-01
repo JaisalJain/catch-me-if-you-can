@@ -35,6 +35,13 @@ def fold45(a):
     return (a + np.pi / 4) % (np.pi / 2) - np.pi / 4
 
 
+def closing_axis_angle(R):
+    """Rotation of a held cube about the closing axis (tool x), folded to +-45 deg. R = cube in the TCP frame.
+    Uses the cube axis closest to tool y (the cube may sit in the hand rotated by any multiple of 90 deg)."""
+    k = int(np.argmax(np.abs(R[1])))
+    return float(fold45(np.arctan2(R[2, k], R[1, k])))
+
+
 def rest_pose_errors(R):
     """(tilt, yaw folded to +-45 deg) of a cube rotation: tilt = angle between world z and the nearest cube axis."""
     k = int(np.argmax(np.abs(R[2])))                      # cube axis closest to world z (column of R)
@@ -77,7 +84,7 @@ class CatchEval(Eval):
         a = self.args
         color = COLORS[i % 3]
         self.color = color
-        row = dict(i=i, color=color, trigger=a.trigger)
+        row = dict(i=i, color=color, trigger=a.trigger, cup_offset=a.cup_offset, correction=not a.no_correction)
         sk = self.sk
         _wait(self.reset.call_async(ResetScene.Request()), 10)
         sk._grip("b", 0.0)
@@ -91,7 +98,7 @@ class CatchEval(Eval):
         pv = _wait(self.preview.call_async(GetThrowPlan.Request()), 10)
         self.catch.wait_for_server(timeout_sec=10)
         self.phase = None
-        goal = Catch.Goal(plan=pv.plan, trigger=a.trigger, time_offset=a.time_offset)
+        goal = Catch.Goal(plan=pv.plan, trigger=a.trigger, time_offset=a.time_offset, cup_offset=a.cup_offset)
         ch = _wait(self.catch.send_goal_async(goal, feedback_callback=lambda f: setattr(self, "phase", f.feedback.phase)), 10)
         t0 = time.monotonic()
         while self.phase != "ready" and time.monotonic() - t0 < 60:
@@ -113,7 +120,7 @@ class CatchEval(Eval):
                    peak_force=round(res.peak_force, 1) if res else None, knuckle=round(res.knuckle, 3) if res else None,
                    node_says_held=bool(res and res.success), held=held,
                    inhand_gt=dict(p_mm=(1000 * T_gt[:3, 3]).round(1).tolist(),
-                                  angle_deg=round(float(np.degrees(fold45(np.arctan2(T_gt[2, 1], T_gt[1, 1])))), 2)))
+                                  angle_deg=round(float(np.degrees(closing_axis_angle(T_gt[:3, :3]))), 2)))
         arr = self.recorder.arrays()
         row["min_cube_tcp_mm"] = self.min_cube_tcp(arr, color)
         if a.rec_dir:
@@ -164,9 +171,14 @@ class CatchEval(Eval):
             sk._grip("b", 0.0)
             return row
         ri = _wait(self.in_hand.call_async(GetInHandPose.Request(color=seen)), 10)
+        # compare with the ground truth at the time of the estimate: a cube gripped off-centre keeps pivoting
+        # about the pad axis after the catch, so the in-hand pose 1 s after the catch can be stale
+        T_gt, _ = self.cube_in_tcp(color)
+        row["inhand_gt_at_estimate"] = dict(p_mm=(1000 * T_gt[:3, 3]).round(1).tolist(),
+                                            angle_deg=round(float(np.degrees(closing_axis_angle(T_gt[:3, :3]))), 2))
         if ri and ri.success:
             T_est = make_tf(rot_x(ri.angle), [ri.pose.position.x, ri.pose.position.y, ri.pose.position.z])
-            ang_gt = np.arctan2(T_gt[2, 1], T_gt[1, 1])
+            ang_gt = closing_axis_angle(T_gt[:3, :3])
             row["inhand_est"] = dict(p_mm=(1000 * T_est[:3, 3]).round(1).tolist(), angle_deg=round(float(np.degrees(ri.angle)), 2),
                                      fit_rms_mm=round(1000 * ri.fit_rms, 2),
                                      angle_err_deg=round(float(np.degrees(fold45(ri.angle - ang_gt))), 2),
@@ -234,6 +246,8 @@ def main():
     ap.add_argument("--hold-check", type=float, default=1.0, help="s after the catch result before judging 'held'")
     ap.add_argument("--no-place", action="store_true")
     ap.add_argument("--no-correction", action="store_true", help="place assuming the cube is square in the hand")
+    ap.add_argument("--cup-offset", type=float, default=0.0,
+                    help="EXPERIMENT: shift B's cup pose along tool y [m] (off-centre impact -> cube rotated in the hand)")
     ap.add_argument("--out", default="")
     ap.add_argument("--rec-dir", default="log/m5")
     ap.add_argument("--from-pallet", action="store_true")

@@ -77,7 +77,9 @@ class Demo:
         share = get_package_share_directory("catch_tasks")
         self.cfg = yaml.safe_load(open(os.path.join(share, "config", "demo.yaml")))
         self.seed = self.cfg["seed"] if seed is None else seed
-        self.rng = random.Random(self.seed)
+        # string seed (hashed): small integer seeds give near-identical first draws in Python's Mersenne Twister
+        # (seeds 1, 2, 3 all picked blue, green, red)
+        self.rng = random.Random(f"catch-demo-{self.seed}")
         self.sk = Skills(self.node)
         self.mi = self.sk.mi
         self.poses = yaml.safe_load(open(get_package_share_directory("catch_description") + "/config/poses.yaml"))

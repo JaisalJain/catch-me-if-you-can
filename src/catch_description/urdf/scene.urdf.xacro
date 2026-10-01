@@ -122,11 +122,11 @@
     <parent link="b_tcp"/><child link="b_wrist_cam_optical"/>
     <origin xyz="${wc[1]} ${-wc[0]} ${wc_dz}" rpy="${atan2(-cos(wc_phi), -sin(wc_phi))} 0 ${pi / 2}"/>
   </joint>
-  <!-- camera housing (MJCF: visual only); a collision box here keeps MoveIt conservative around it -->
+  <!-- camera housing (MJCF: visual only, 24 x 30 x 24 mm); collision box 1 mm larger per side for MoveIt -->
   <link name="b_wrist_cam_housing">
     <visual><geometry><box size="0.024 0.030 0.024"/></geometry>
       <material name="b_wrist_cam_mat"><color rgba="0.1 0.1 0.1 1"/></material></visual>
-    <collision><geometry><box size="0.030 0.036 0.030"/></geometry></collision>
+    <collision><geometry><box size="0.026 0.032 0.026"/></geometry></collision>
   </link>
   <joint name="b_wrist_cam_housing_joint" type="fixed">
     <parent link="b_wrist_cam_optical"/><child link="b_wrist_cam_housing"/>

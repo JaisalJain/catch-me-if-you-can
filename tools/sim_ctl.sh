@@ -20,6 +20,9 @@ kill_sim() {
 case "$cmd" in
   start)
     kill_sim
+    # FastDDS shared-memory segments of killed processes make discovery fail for new ones
+    # ("open_and_lock_file failed", action servers never seen); remove the ones no live process holds
+    (source /opt/ros/jazzy/setup.bash; fastdds shm clean > /dev/null 2>&1)
     mkdir -p "$REPO/log"
     source "$REPO/tools/nv_env.sh"; source /opt/ros/jazzy/setup.bash; source "$REPO/install/setup.bash"
     if [ $# -eq 0 ]; then set -- catch_sim sim.launch.py headless:=true; fi

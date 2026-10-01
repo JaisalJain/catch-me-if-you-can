@@ -32,3 +32,10 @@ def test_corrected_place_puts_the_cube_square_and_clear(th_deg, dy, dz):
     tips = [[sx * CFG["finger_half_span"], sy * CFG["finger_half_width"], CFG["pad_reach"]] for sx in (-1, 1) for sy in (-1, 1)]
     z_tips = (Rt @ np.array(tips).T)[2] + p_tcp[2]
     assert z_tips.min() >= surface + SCENE["pallets"]["border_height"] + CFG["border_margin"] - 1e-9
+
+
+def test_closing_axis_preference_keeps_b_camera_beside_the_pallet():
+    T = make_tf(rot_x(np.radians(5)), [0, 0.01, 0.004])
+    R_cur = R_DOWN @ np.array([[0, -1, 0], [1, 0, 0], [0, 0, 1.0]])       # current wrist: fingers along world x
+    Rt, *_ = place_tcp_pose(CFG, SCENE, SLOT, T, R_cur, closing_axis=(0, 1, 0))
+    assert abs(abs(Rt[1, 0]) - 1) < 0.01                                   # tool x (closing axis) along world y

@@ -4,6 +4,8 @@ ThrowPlan plan
 string trigger          # "force" (default: palm force rises above its pre-throw baseline) | "time" (baseline)
 float64 time_offset     # time trigger only: close at predicted arrival + time_offset [s]
 float64 timeout         # s to wait for the live /throw_plan after "ready" (0 = default)
+float64 cup_offset      # EXPERIMENT ONLY (default 0): shift the cup pose along tool y [m] -> off-centre impact,
+                        # the cube ends up rotated in the hand (tests the in-hand pose correction of the place)
 ---
 bool success            # cube held between the pads after the settle time
 string message

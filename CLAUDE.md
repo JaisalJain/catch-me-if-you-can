@@ -6,7 +6,8 @@
 - M2 scene/bringup ✅ (docs/m2_scene_bringup.md)
 - M3 perception + pick/place ✅ (docs/m3_perception_pick_place.md)
 - M4 throw ✅ (docs/m4_throw.md)
-- M5 catch, M6 full loop — next (follow-up prompt)
+- M5 catch ✅ (docs/m5_catch.md)
+- M6 full loop + demo ✅ (docs/m6_full_loop.md, README.md)
 
 - Progress log: `docs/progress.md`
 
@@ -44,6 +45,12 @@
 - M2 checks: `ros2 run catch_tasks jog_test`, `ros2 run catch_tasks grasp_test --robot a`
 - M3 checks: `ros2 run catch_perception eval_detection`, `ros2 run catch_tasks pickplace_test`
 - M4: `ros2 run catch_tasks throw_eval --throws 20 [--from-pallet] [--out docs/m4/throws_20.json]`; plots `tools/plot_throws.py`
+- M5: `ros2 run catch_tasks catch_eval --throws 30 [--trigger time] [--no-place] [--no-correction] [--cup-offset 0.015]
+  [--out docs/m5/x.json] [--rec-dir log/m5/x]`; plots `tools/plot_catch.py`; offline `tools/catch_study.py [--sweep|--envelope]`
+- M6: `ros2 run catch_tasks run_demo --seed 1 [--fault-throw N] [--out docs/m6/run.json]`; recorded batch
+  `log/run_m6.sh 1 2 3`-style (record with `install/catch_tasks/lib/catch_tasks/record_run --out x.npz`, stop with SIGINT)
+- Clips / video (venv): `tools/render_replay.py rec.npz --out x.mp4 [--view catch|throw|overview]`,
+  `tools/render_demo.py rec.npz run.json --out docs/media/demo.mp4`
 - After changing throw.yaml (except `release:`), scene.yaml or physics.yaml: `env -u PYTHONPATH .venv/bin/python tools/throw_feedforward.py`
 - Venv integration tests (ROS sourced): `env -u PYTHONPATH .venv/bin/python -m pytest src/catch_description/test/test_fk_agreement.py src/catch_description/test/test_mjcf_up_to_date.py`
 - After changing the URDF/SRDF-relevant geometry: `env -u PYTHONPATH .venv/bin/python tools/gen_srdf.py`
@@ -53,6 +60,17 @@
 - /joint_states lags the free-joint ground truth by ~2.5 ms; the GT topic itself has ~1-2 ms stamp jitter.
 - Don't activate .venv in ROS terminals (colcon/ROS would pick up the venv python); call .venv/bin/python explicitly.
 - Temporary files: use log/ (gitignored).
+- rclpy is slow: every Python node with use_sim_time processes /clock at 1 kHz. Subscribe to 500 Hz topics
+  (/joint_states, wrench) only while needed, with deep queues (the catcher's palm-force queue is 1000: a lagging
+  executor once dropped the 2 ms impact spike). Never time actuation with Python sleeps on the sim clock: the grip
+  loosen is a time-stamped trajectory on gripper_a_controller (a JTC); a Python-timed loosen was up to 97 ms late.
+- Gripper A is a JointTrajectoryController (position, interpolate_from_desired_state), gripper B a
+  GripperActionController. MoveItClient.gripper() hides the difference.
+- New subscriptions need DDS discovery time: subscribe before you need the data (catcher: at goal start).
+- Don't `pkill -f`/`pgrep -f` with a pattern that also appears in your own command line (kills your shell);
+  kill by PID.
+- B's wrist camera frame `b_wrist_cam_optical` is in the URDF (tested against the MJCF camera); perception nodes
+  use a /tf_static-only buffer (a full TransformListener drowns rclpy in 500 Hz /tf).
 
 ## Offline tools / tests
 - Regenerate MJCF after editing `src/catch_description/config/{scene,physics}.yaml`:

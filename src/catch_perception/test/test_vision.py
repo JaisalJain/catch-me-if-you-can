@@ -95,8 +95,9 @@ def _render_face(K, T, cy, cz, th, edge=0.04, occluder_px=18):
     # knuckle: a wider dark block covering the palm-side part of the face
     vk = int(K[1, 2] + 0.55 * K[1, 1] * edge / T[0, 3])
     img[vk:, int(uc - 2.2 * occluder_px):int(uc + 2.2 * occluder_px)] = (30, 30, 32)
-    # a same-colored slot border far below the hand
-    img[215:222, 250:300] = (200, 30, 30)
+    # a same-colored slot border in the background, just below the hand (like B's red slot border in the real view)
+    img[195:203, 205:240] = (200, 30, 30)
+    img[203:212, 205:211] = (200, 30, 30)
     return img
 
 

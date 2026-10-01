@@ -128,8 +128,9 @@ def in_hand_pose(rgb: np.ndarray, spec: dict, K: np.ndarray, T_tcp_cam: np.ndarr
     """Cube pose in the TCP frame from B's wrist camera, which looks along the closing axis (tool x).
 
     The near cube face lies in the plane x_tcp = +edge/2 (the pads centre the cube on the closing axis). Its
-    pixels are back-projected onto that plane; pixels farther than max_offset from the TCP (in y or z) are dropped
-    (e.g. a slot border of the same color in the background); a square of known edge is fitted in (y, z) using the
+    pixels are back-projected onto that plane; points outside the physically possible face region (|y| > max_offset,
+    below the palm surface or > 20 mm beyond the cube) are dropped (e.g. a slot border of the same color in the
+    background); a square of known edge is fitted in (y, z) using the
     two lateral edges and the fingertip-side edge (the palm-side edge is hidden by the knuckle). Returns
     dict(p=[x, y, z] cube centre, angle=rotation about tool x [rad], rms, inlier_frac, n_px) or None."""
     mask = color_mask(rgb, spec)
@@ -152,7 +153,10 @@ def in_hand_pose(rgb: np.ndarray, spec: dict, K: np.ndarray, T_tcp_cam: np.ndarr
         return (t[:, None] + s * d)[1:].T                                         # (y, z) on the face plane
 
     face, bnd = to_plane(keep), to_plane(boundary)
-    near = lambda q: np.all(np.abs(q) < max_offset, axis=1)      # drop same-colored things away from the hand
+    # physical gate on the face plane (TCP frame): the cube rests on the palm (bottom face at z = -edge/2) and the
+    # pads hold it near the closing axis. Rays from same-colored things *behind* the hand (a slot border on the
+    # pallet) hit this plane too, but below the palm surface or far to the side, so they are dropped here.
+    near = lambda q: (np.abs(q[:, 0]) < max_offset) & (q[:, 1] > -edge / 2 - 0.004) & (q[:, 1] < edge / 2 + 0.02)
     face, bnd = face[near(face)], bnd[near(bnd)]
     if len(face) < min_px:
         return None

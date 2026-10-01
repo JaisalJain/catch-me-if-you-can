@@ -139,7 +139,7 @@ class ColorCheck(Node):
 
     def on_req(self, req, res):
         cam = req.camera or self.cc["camera"]
-        msg = self.latest.get(cam)
+        msg = self.fresh_image(cam)
         if msg is None:
             res.success, res.message = False, f"no image from {cam}"
             return res
@@ -154,8 +154,20 @@ class ColorCheck(Node):
         return res
 
 
+    def fresh_image(self, cam, timeout=1.5):
+        """Latest image of `cam` rendered after this request (the camera publishes at 10 Hz)."""
+        import time
+        t_req = self.get_clock().now().nanoseconds * 1e-9
+        t0 = time.monotonic()
+        while time.monotonic() - t0 < timeout:
+            msg = self.latest.get(cam)
+            if msg is not None and msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9 >= t_req:
+                return msg
+            time.sleep(0.01)
+        return None
+
     def on_in_hand(self, req, res):
-        msg = self.latest.get("b_wrist")
+        msg = self.fresh_image("b_wrist")
         if msg is None or self.info is None:
             res.success, res.message = False, "no wrist image / camera_info"
             return res
@@ -168,6 +180,10 @@ class ColorCheck(Node):
         T[:3, :3] = _quat_to_R(tf.transform.rotation)
         T[:3, 3] = [tf.transform.translation.x, tf.transform.translation.y, tf.transform.translation.z]
         rgb = to_rgb(msg)
+        if self.ih.get("debug_dir"):
+            import cv2
+            os.makedirs(self.ih["debug_dir"], exist_ok=True)
+            cv2.imwrite(os.path.join(self.ih["debug_dir"], "in_hand_last.png"), rgb[..., ::-1])
         color = req.color or dominant_color(rgb, self.colors, self.cc["roi"])[0]
         r = in_hand_pose(rgb, self.colors[color], np.array(self.info.k).reshape(3, 3), T, self.edge,
                          self.ih["min_px"])

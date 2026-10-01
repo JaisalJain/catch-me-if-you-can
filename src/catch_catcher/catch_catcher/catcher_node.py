@@ -135,6 +135,16 @@ class Catcher(Node):
             gh.abort()
             res.message = "no reachable intercept"
             return res
+        if g.cup_offset:
+            from .intercept import cup_ik
+            p_off = ic.p + ic.R[:, 1] * g.cup_offset
+            _, q_off = cup_ik(self.robot, p_off, ic.v, ic.q, min_margin=ic_cfg["min_joint_margin"])
+            if q_off is None:
+                gh.abort()
+                res.message = "no IK for the offset cup pose"
+                return res
+            self.get_logger().warn(f"EXPERIMENT: cup pose shifted {1000 * g.cup_offset:+.1f} mm along tool y")
+            ic.q = q_off
         res.intercept = Point(x=float(ic.p[0]), y=float(ic.p[1]), z=float(ic.p[2]))
         # palm force stream: subscribe now (DDS discovery of a new subscription can take a while) and require
         # samples before reporting "ready"; unsubscribed again after the catch (500 Hz is costly in rclpy)

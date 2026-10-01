@@ -151,7 +151,8 @@ class Sim:
         # in-hand rotation about the closing axis (tool x) relative to the TCP frame, folded to +-45 deg
         Rc = d.xmat[self.cube].reshape(3, 3)
         Rrel = d.site_xmat[self.tcp].reshape(3, 3).T @ Rc
-        ang = np.degrees(np.arctan2(Rrel[2, 1], Rrel[1, 1]))
+        k = int(np.argmax(np.abs(Rrel[1])))           # cube axis closest to tool y (any 90 deg symmetry)
+        ang = np.degrees(np.arctan2(Rrel[2, k], Rrel[1, k]))
         ang = (ang + 45) % 90 - 45
         return dict(held=held, t_hit=None if t_hit is None else round(t_hit - T, 4), peak_force=round(peak_f, 1),
                     knuckle=round(float(knuckle), 3), rel_mm=(1000 * rel).round(1).tolist(), inhand_rot_deg=round(float(ang), 1))

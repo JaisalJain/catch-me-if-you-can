@@ -132,35 +132,48 @@ class Recorder:
         return np.array(c[1]), R, np.array(c[3])
 
 
-def main():
-    """Standalone recorder (own process, so it does not load the state machine's executor):
-        ros2 run catch_tasks record_run --out log/m6/run_seed1.npz      (stop with SIGINT / SIGTERM)"""
-    import argparse
-    import signal
-    import time
 
-    import rclpy
-    from rclpy.executors import MultiThreadedExecutor
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--out", required=True)
-    args, _ = ap.parse_known_args()
-    rclpy.init()
-    node = rclpy.create_node("record_run", parameter_overrides=[rclpy.parameter.Parameter("use_sim_time", value=True)])
-    rec = Recorder(node)
-    ex = MultiThreadedExecutor()
-    ex.add_node(node)
-    import threading
-    threading.Thread(target=ex.spin, daemon=True).start()
-    stop = threading.Event()
-    signal.signal(signal.SIGTERM, lambda *_: stop.set())
-    signal.signal(signal.SIGINT, lambda *_: stop.set())
-    rec.start()
-    while not stop.is_set():
-        time.sleep(0.1)
-    rec.stop()
-    import os
-    os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
-    rec.save(args.out)
+TOPICS = ["/joint_states", "/free_joint_state_publisher/free_joint_states", "/b_palm_ft_broadcaster/wrench"]
+
+
+def bag_to_npz():
+    """Long runs are recorded with `ros2 bag record` (C++; an rclpy recorder cannot keep up with 500 + 500 + 200 Hz
+    plus the 1 kHz /clock and drops most samples). Convert the bag to the Recorder's npz format offline:
+        ros2 bag record -s mcap -o log/m6/bag_seed1 /joint_states /free_joint_state_publisher/free_joint_states \
+            /b_palm_ft_broadcaster/wrench
+        ros2 run catch_tasks bag_to_npz log/m6/bag_seed1 log/m6/run_seed1.npz"""
+    import sys
+
+    import rosbag2_py
+    from rclpy.serialization import deserialize_message
+    bag, out = sys.argv[1], sys.argv[2]
+    reader = rosbag2_py.SequentialReader()
+    reader.open(rosbag2_py.StorageOptions(uri=bag, storage_id="mcap"), rosbag2_py.ConverterOptions("cdr", "cdr"))
+    types = {"/joint_states": JointState, "/free_joint_state_publisher/free_joint_states": FreeJointStateArray,
+             "/b_palm_ft_broadcaster/wrench": WrenchStamped}
+
+    rec = Recorder.__new__(Recorder)     # no node: feed the callbacks directly
+    rec.lock = threading.Lock()
+    rec.active = True
+    rec.js_names = None
+    rec.last_cubes = {}
+    rec.clear()
+    n = 0
+    while reader.has_next():
+        topic, data, _ = reader.read_next()
+        if topic not in types:
+            continue
+        msg = deserialize_message(data, types[topic])
+        {"/joint_states": rec._on_js, "/free_joint_state_publisher/free_joint_states": rec._on_fj,
+         "/b_palm_ft_broadcaster/wrench": rec._on_ft}[topic](msg)
+        n += 1
     a = rec.arrays()
-    print(f"saved {args.out}: {len(a['t_js'])} joint-state samples, {len(a['cubes'])} ground-truth samples", flush=True)
-    ex.shutdown()
+    order = np.argsort(a["t_js"], kind="stable")       # bag order = receive order; sort by header stamp
+    a["t_js"], a["q"] = a["t_js"][order], a["q"][order]
+    if len(a["cubes"]):
+        a["cubes"] = a["cubes"][np.argsort(a["cubes"][:, 0], kind="stable")]
+    if len(a["ft"]):
+        a["ft"] = a["ft"][np.argsort(a["ft"][:, 0], kind="stable")]
+    np.savez_compressed(out, **a)
+    print(f"{bag}: {n} messages -> {out}: {len(a['t_js'])} joint states, {len(a['cubes'])} ground truth, "
+          f"{len(a['ft'])} wrench samples")
