@@ -49,3 +49,15 @@
 - Open issues: the URDF gripper model differs from the MJCF one (fingertips ~4 mm longer); B's wrist camera is a
   bracket camera with no collision geometry.
 - Details: `docs/m3_perception_pick_place.md`.
+
+## M4 — The throw (2026-10-01) ✅
+- Works: throw action server (plan from YAML → JTC with torque feed-forward, future start stamp, gripper loosen
+  on the sim clock), ThrowPlan latched on /throw_plan before release, full chain pick → re-seat → throw.
+- Numbers (20 throws): release speed error +6.6 ± 2.5 mm/s, direction 0.28 ± 0.03°, spin −1.890 ± 0.007 (plan
+  −1.928) rad/s, catch-height crossing (3.9, 1.6) ± (0.6, 0.05) mm from the catch point, table landing
+  (9.6, 2.0) ± (2.1, 0.05) mm from prediction. Without feed-forward: +0.264 m/s, 55 mm long.
+- Decisions: inverse-dynamics feed-forward table (hashed against its inputs); loosen to 0.30 at t = 0.12 s
+  (sweep); cube re-seated on the palm before the throw.
+- Open issues: separation time only resolvable to ±16 ms from GT (stamp jitter); the feed-forward table must be
+  regenerated (venv) when the throw geometry changes — the node warns and runs without it otherwise.
+- Details: `docs/m4_throw.md`.

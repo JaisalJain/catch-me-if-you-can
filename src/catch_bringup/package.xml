@@ -9,6 +9,7 @@
   <exec_depend>catch_sim</exec_depend>
   <exec_depend>catch_moveit_config</exec_depend>
   <exec_depend>catch_perception</exec_depend>
+  <exec_depend>catch_throw</exec_depend>
   <exec_depend>rviz2</exec_depend>
   <exec_depend>moveit_ros_visualization</exec_depend>
   <export><build_type>ament_cmake</build_type></export>

@@ -13,3 +13,7 @@ throw:
     decel: 25.0      # m/s^2
     tau5: 0.08       # s ramp-out
   sample_dt: 0.004   # s spacing of the JointTrajectory points sent to the JTC
+  release:
+    t_loosen: 0.12     # s after stroke start: open the grip to `loosen_to` while the arm is accelerating
+    loosen_to: 0.30    # knuckle angle (~55 mm gap): cube free on the palm, still flanked by the fingers
+    loosen_effort: 5.0

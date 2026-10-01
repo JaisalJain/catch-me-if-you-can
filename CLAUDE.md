@@ -5,7 +5,8 @@
 - M1 feasibility ✅ (scene changed: 0.35 m pedestals, 0.4 m flight — docs/m1_feasibility.md)
 - M2 scene/bringup ✅ (docs/m2_scene_bringup.md)
 - M3 perception + pick/place ✅ (docs/m3_perception_pick_place.md)
-- M4 throw — in progress
+- M4 throw ✅ (docs/m4_throw.md)
+- M5 catch, M6 full loop — next (follow-up prompt)
 
 - Progress log: `docs/progress.md`
 
@@ -42,12 +43,16 @@
   `tools/sim_ctl.sh wait 5 90`, ..., `tools/sim_ctl.sh stop` (log: `log/sim_latest.log`)
 - M2 checks: `ros2 run catch_tasks jog_test`, `ros2 run catch_tasks grasp_test --robot a`
 - M3 checks: `ros2 run catch_perception eval_detection`, `ros2 run catch_tasks pickplace_test`
+- M4: `ros2 run catch_tasks throw_eval --throws 20 [--from-pallet] [--out docs/m4/throws_20.json]`; plots `tools/plot_throws.py`
+- After changing throw.yaml (except `release:`), scene.yaml or physics.yaml: `env -u PYTHONPATH .venv/bin/python tools/throw_feedforward.py`
 - Venv integration tests (ROS sourced): `env -u PYTHONPATH .venv/bin/python -m pytest src/catch_description/test/test_fk_agreement.py src/catch_description/test/test_mjcf_up_to_date.py`
 - After changing the URDF/SRDF-relevant geometry: `env -u PYTHONPATH .venv/bin/python tools/gen_srdf.py`
 
 ## Known gotchas (project)
 - Never command the gripper beyond 0.70 (palm insert clearance). Cubes must be spawned with the palm facing up.
-- /joint_states lags the free-joint ground truth by ~2.5 ms.
+- /joint_states lags the free-joint ground truth by ~2.5 ms; the GT topic itself has ~1-2 ms stamp jitter.
+- Don't activate .venv in ROS terminals (colcon/ROS would pick up the venv python); call .venv/bin/python explicitly.
+- Temporary files: use log/ (gitignored).
 
 ## Offline tools / tests
 - Regenerate MJCF after editing `src/catch_description/config/{scene,physics}.yaml`:

@@ -13,5 +13,7 @@ setup(
     install_requires=["setuptools"],
     zip_safe=True,
     tests_require=["pytest"],
-    entry_points={"console_scripts": []},
+    entry_points={"console_scripts": [
+        "throw_node = catch_throw.throw_node:main",
+    ]},
 )

@@ -16,5 +16,6 @@ setup(
         "jog_test = catch_tasks.jog_test:main",
         "grasp_test = catch_tasks.grasp_test:main",
         "pickplace_test = catch_tasks.pickplace_test:main",
+        "throw_eval = catch_tasks.throw_eval:main",
     ]},
 )
