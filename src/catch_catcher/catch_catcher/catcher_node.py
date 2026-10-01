@@ -139,7 +139,8 @@ class Catcher(Node):
         # palm force stream: subscribe now (DDS discovery of a new subscription can take a while) and require
         # samples before reporting "ready"; unsubscribed again after the catch (500 Hz is costly in rclpy)
         self.n_wrench = 0
-        self.wrench_sub = self.create_subscription(WrenchStamped, "/b_palm_ft_broadcaster/wrench", self.on_wrench, 50,
+        # deep queue (2 s): a lagging executor must not drop the 1-2 sample impact spike
+        self.wrench_sub = self.create_subscription(WrenchStamped, "/b_palm_ft_broadcaster/wrench", self.on_wrench, 1000,
                                                    callback_group=self.force_cb)
         gh.publish_feedback(Catch.Feedback(phase="moving"))
         self.mi.wait_ready(30)

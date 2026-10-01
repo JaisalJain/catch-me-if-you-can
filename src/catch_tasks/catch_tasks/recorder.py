@@ -32,10 +32,10 @@ class Recorder:
 
     def _subscribe(self, with_rates=True):
         n = self.node
-        subs = [n.create_subscription(FreeJointStateArray, "/free_joint_state_publisher/free_joint_states", self._on_fj, 100)]
+        subs = [n.create_subscription(FreeJointStateArray, "/free_joint_state_publisher/free_joint_states", self._on_fj, 1000)]
         if with_rates:
-            subs += [n.create_subscription(JointState, "/joint_states", self._on_js, 100),
-                     n.create_subscription(WrenchStamped, "/b_palm_ft_broadcaster/wrench", self._on_ft, 100)]
+            subs += [n.create_subscription(JointState, "/joint_states", self._on_js, 1000),
+                     n.create_subscription(WrenchStamped, "/b_palm_ft_broadcaster/wrench", self._on_ft, 1000)]
         return subs
 
     def _unsubscribe(self, subs):
