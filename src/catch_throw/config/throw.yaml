@@ -1,0 +1,15 @@
+# Throw geometry chosen in M1 (docs/m1_feasibility.md, tools/feasibility.py). World frame, metres / rad.
+throw:
+  release_point: [-0.05, 0.25, 1.25]   # TCP = cube centre at separation (0.15 m above A's base)
+  catch_point: [0.35, 0.25, 1.15]      # where B intercepts (M5 may move it along the descending arc)
+  launch_angle_deg: 65.0
+  finger_axis: [0.0, 1.0, 0.0]         # 2F-85 opening direction during the toss (perpendicular to the throw plane)
+  pitch_rate: -0.9                     # palm pitch rate [rad per m of stroke] -> cube spin ~ -1.9 rad/s about +y
+  q_release_seed: [0.1751, -0.3646, 1.4183, -2.1933, 1.6446, -0.1589]   # IK branch at release
+  profile:
+    accel: 12.0      # m/s^2 TCP acceleration along the release direction
+    tau1: 0.08       # s ramp-in
+    tau3: 0.04       # s accel -> decel transition (separation happens inside it)
+    decel: 25.0      # m/s^2
+    tau5: 0.08       # s ramp-out
+  sample_dt: 0.004   # s spacing of the JointTrajectory points sent to the JTC

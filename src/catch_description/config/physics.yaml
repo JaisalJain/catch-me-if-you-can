@@ -1,0 +1,20 @@
+# MuJoCo physics / contact parameters (read by scripts/build_mjcf.py). Tuned in M2.
+timestep: 0.001
+integrator: implicitfast
+cone: elliptic
+impratio: 10
+cube:
+  friction: [0.9, 0.01, 0.001]
+  condim: 4
+  solref: [0.004, 1.0]
+  solimp: [0.95, 0.99, 0.001, 0.5, 2.0]
+pads:                       # Menagerie 2F-85 pad boxes (defaults 0.7/0.6)
+  friction: [1.0, 0.01, 0.001]
+palm_insert:
+  friction: [0.9, 0.01, 0.001]
+  solref: [0.004, 1.0]
+  solimp: [0.95, 0.99, 0.001, 0.5, 2.0]
+table:
+  friction: [0.6, 0.005, 0.0001]
+arm:
+  gravcomp: true

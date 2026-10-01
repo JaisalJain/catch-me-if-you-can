@@ -1,0 +1,142 @@
+WARNING Thu Oct  1 18:53:02 2026: Attach conflict when attaching 'robotiq_2f85' to 'ur5e', policy is 'warning'
+impratio: parent has 1 (default), child has 10, keeping parent value
+cone: parent has 0 (default), child has 1, keeping parent value
+
+WARNING Thu Oct  1 18:53:02 2026: Attach conflict when attaching 'robotiq_2f85' to 'ur5e', policy is 'warning'
+impratio: parent has 1 (default), child has 10, keeping parent value
+cone: parent has 0 (default), child has 1, keeping parent value
+
+WARNING Thu Oct  1 18:53:11 2026: Attach conflict when attaching 'robotiq_2f85' to 'ur5e', policy is 'warning'
+impratio: parent has 1 (default), child has 10, keeping parent value
+cone: parent has 0 (default), child has 1, keeping parent value
+
+WARNING Thu Oct  1 18:53:11 2026: Attach conflict when attaching 'robotiq_2f85' to 'ur5e', policy is 'warning'
+impratio: parent has 1 (default), child has 10, keeping parent value
+cone: parent has 0 (default), child has 1, keeping parent value
+
+WARNING Thu Oct  1 18:53:49 2026: Attach conflict when attaching 'robotiq_2f85' to 'ur5e', policy is 'warning'
+impratio: parent has 1 (default), child has 10, keeping parent value
+cone: parent has 0 (default), child has 1, keeping parent value
+
+WARNING Thu Oct  1 18:53:49 2026: Attach conflict when attaching 'robotiq_2f85' to 'ur5e', policy is 'warning'
+impratio: parent has 1 (default), child has 10, keeping parent value
+cone: parent has 0 (default), child has 1, keeping parent value
+
+WARNING Thu Oct  1 18:58:58 2026: Attach conflict when attaching 'robotiq_2f85' to 'ur5e', policy is 'warning'
+impratio: parent has 1 (default), child has 10, keeping parent value
+cone: parent has 0 (default), child has 1, keeping parent value
+
+WARNING Thu Oct  1 18:58:58 2026: Attach conflict when attaching 'ur5e', policy is 'warning'
+integrator: parent has 0 (default), child has 3, keeping parent value
+
+WARNING Thu Oct  1 18:59:12 2026: Attach conflict when attaching 'robotiq_2f85' to 'ur5e', policy is 'warning'
+impratio: parent has 1 (default), child has 10, keeping parent value
+cone: parent has 0 (default), child has 1, keeping parent value
+
+WARNING Thu Oct  1 18:59:12 2026: Attach conflict when attaching 'ur5e', policy is 'warning'
+integrator: parent has 0 (default), child has 3, keeping parent value
+
+WARNING Thu Oct  1 19:00:25 2026: Attach conflict when attaching 'robotiq_2f85' to 'ur5e', policy is 'warning'
+impratio: parent has 1 (default), child has 10, keeping parent value
+cone: parent has 0 (default), child has 1, keeping parent value
+
+WARNING Thu Oct  1 19:00:25 2026: Attach conflict when attaching 'ur5e', policy is 'warning'
+integrator: parent has 0 (default), child has 3, keeping parent value
+
+WARNING Thu Oct  1 19:01:42 2026: Attach conflict when attaching 'robotiq_2f85' to 'ur5e', policy is 'warning'
+impratio: parent has 1 (default), child has 10, keeping parent value
+cone: parent has 0 (default), child has 1, keeping parent value
+
+WARNING Thu Oct  1 19:01:42 2026: Attach conflict when attaching 'robotiq_2f85' to 'ur5e', policy is 'warning'
+impratio: parent has 1 (default), child has 10, keeping parent value
+cone: parent has 0 (default), child has 1, keeping parent value
+
+WARNING Thu Oct  1 19:01:42 2026: Attach conflict when attaching 'robotiq_2f85' to 'ur5e', policy is 'warning'
+impratio: parent has 1 (default), child has 10, keeping parent value
+cone: parent has 0 (default), child has 1, keeping parent value
+
+WARNING Thu Oct  1 19:01:42 2026: Attach conflict when attaching 'ur5e', policy is 'warning'
+integrator: parent has 0 (default), child has 3, keeping parent value
+
+WARNING Thu Oct  1 19:01:48 2026: Attach conflict when attaching 'robotiq_2f85' to 'ur5e', policy is 'warning'
+impratio: parent has 1 (default), child has 10, keeping parent value
+cone: parent has 0 (default), child has 1, keeping parent value
+
+WARNING Thu Oct  1 19:01:48 2026: Attach conflict when attaching 'robotiq_2f85' to 'ur5e', policy is 'warning'
+impratio: parent has 1 (default), child has 10, keeping parent value
+cone: parent has 0 (default), child has 1, keeping parent value
+
+WARNING Thu Oct  1 19:01:49 2026: Attach conflict when attaching 'robotiq_2f85' to 'ur5e', policy is 'warning'
+impratio: parent has 1 (default), child has 10, keeping parent value
+cone: parent has 0 (default), child has 1, keeping parent value
+
+WARNING Thu Oct  1 19:01:49 2026: Attach conflict when attaching 'ur5e', policy is 'warning'
+integrator: parent has 0 (default), child has 3, keeping parent value
+
+WARNING Thu Oct  1 19:02:09 2026: Attach conflict when attaching 'robotiq_2f85' to 'ur5e', policy is 'warning'
+impratio: parent has 1 (default), child has 10, keeping parent value
+cone: parent has 0 (default), child has 1, keeping parent value
+
+WARNING Thu Oct  1 19:02:09 2026: Attach conflict when attaching 'robotiq_2f85' to 'ur5e', policy is 'warning'
+impratio: parent has 1 (default), child has 10, keeping parent value
+cone: parent has 0 (default), child has 1, keeping parent value
+
+WARNING Thu Oct  1 19:02:09 2026: Attach conflict when attaching 'robotiq_2f85' to 'ur5e', policy is 'warning'
+impratio: parent has 1 (default), child has 10, keeping parent value
+cone: parent has 0 (default), child has 1, keeping parent value
+
+WARNING Thu Oct  1 19:02:09 2026: Attach conflict when attaching 'ur5e', policy is 'warning'
+integrator: parent has 0 (default), child has 3, keeping parent value
+
+WARNING Thu Oct  1 19:02:32 2026: Attach conflict when attaching 'robotiq_2f85' to 'ur5e', policy is 'warning'
+impratio: parent has 1 (default), child has 10, keeping parent value
+cone: parent has 0 (default), child has 1, keeping parent value
+
+WARNING Thu Oct  1 19:02:32 2026: Attach conflict when attaching 'robotiq_2f85' to 'ur5e', policy is 'warning'
+impratio: parent has 1 (default), child has 10, keeping parent value
+cone: parent has 0 (default), child has 1, keeping parent value
+
+WARNING Thu Oct  1 19:02:32 2026: Attach conflict when attaching 'robotiq_2f85' to 'ur5e', policy is 'warning'
+impratio: parent has 1 (default), child has 10, keeping parent value
+cone: parent has 0 (default), child has 1, keeping parent value
+
+WARNING Thu Oct  1 19:02:32 2026: Attach conflict when attaching 'ur5e', policy is 'warning'
+integrator: parent has 0 (default), child has 3, keeping parent value
+
+WARNING Thu Oct  1 19:02:54 2026: Attach conflict when attaching 'robotiq_2f85' to 'ur5e', policy is 'warning'
+impratio: parent has 1 (default), child has 10, keeping parent value
+cone: parent has 0 (default), child has 1, keeping parent value
+
+WARNING Thu Oct  1 19:02:54 2026: Attach conflict when attaching 'robotiq_2f85' to 'ur5e', policy is 'warning'
+impratio: parent has 1 (default), child has 10, keeping parent value
+cone: parent has 0 (default), child has 1, keeping parent value
+
+WARNING Thu Oct  1 19:02:54 2026: Attach conflict when attaching 'robotiq_2f85' to 'ur5e', policy is 'warning'
+impratio: parent has 1 (default), child has 10, keeping parent value
+cone: parent has 0 (default), child has 1, keeping parent value
+
+WARNING Thu Oct  1 19:02:54 2026: Attach conflict when attaching 'ur5e', policy is 'warning'
+integrator: parent has 0 (default), child has 3, keeping parent value
+
+WARNING Thu Oct  1 19:04:58 2026: Attach conflict when attaching 'robotiq_2f85' to 'ur5e', policy is 'warning'
+impratio: parent has 1 (default), child has 10, keeping parent value
+cone: parent has 0 (default), child has 1, keeping parent value
+
+WARNING Thu Oct  1 19:04:58 2026: Attach conflict when attaching 'robotiq_2f85' to 'ur5e', policy is 'warning'
+impratio: parent has 1 (default), child has 10, keeping parent value
+cone: parent has 0 (default), child has 1, keeping parent value
+
+WARNING Thu Oct  1 19:04:58 2026: Attach conflict when attaching 'robotiq_2f85' to 'ur5e', policy is 'warning'
+impratio: parent has 1 (default), child has 10, keeping parent value
+cone: parent has 0 (default), child has 1, keeping parent value
+
+WARNING Thu Oct  1 19:04:58 2026: Attach conflict when attaching 'ur5e', policy is 'warning'
+integrator: parent has 0 (default), child has 3, keeping parent value
+
+WARNING Thu Oct  1 19:05:40 2026: Attach conflict when attaching 'robotiq_2f85' to 'ur5e', policy is 'warning'
+impratio: parent has 1 (default), child has 10, keeping parent value
+cone: parent has 0 (default), child has 1, keeping parent value
+
+WARNING Thu Oct  1 19:05:40 2026: Attach conflict when attaching 'ur5e', policy is 'warning'
+integrator: parent has 0 (default), child has 3, keeping parent value
+

@@ -2,8 +2,9 @@
 
 ## Status
 - M0 toolchain ✅ (see `docs/m0_toolchain.md`)
-- M1 feasibility — in progress
-- M2 scene/bringup, M3 perception + pick/place, M4 throw — pending
+- M1 feasibility ✅ (scene changed: 0.35 m pedestals, 0.4 m flight — docs/m1_feasibility.md)
+- M2 scene/bringup — in progress
+- M3 perception + pick/place, M4 throw — pending
 - Progress log: `docs/progress.md`
 
 ## Environment rules
@@ -31,3 +32,10 @@
 - Prefixes `a_` (thrower, x=-0.8) and `b_` (catcher, x=+0.8).
 - Parameters (geometry, contact, timings) live in YAML, not code.
 - Commit after each working step; don't push.
+
+## Offline tools / tests
+- Regenerate MJCF after editing `src/catch_description/config/{scene,physics}.yaml`:
+  `env -u PYTHONPATH .venv/bin/python src/catch_description/scripts/build_mjcf.py`
+- Feasibility sweep + plots: `env -u PYTHONPATH .venv/bin/python tools/feasibility.py && ... tools/plot_feasibility.py`
+- Pure-python unit tests (system python, no build needed):
+  `PYTHONPATH=src/catch_ballistics:src/catch_kinematics:src/catch_throw:$PYTHONPATH python3 -m pytest -q src/catch_{ballistics,kinematics,throw}/test`

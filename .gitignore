@@ -8,3 +8,4 @@ __pycache__/
 tools/m0_spike/spike.xml
 tools/m0_spike/spike.urdf
 *.npy
+docs/feasibility/results.json

@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>catch_throw</name>
+  <version>0.1.0</version>
+  <description>Underhand-toss trajectory generator for robot A (numpy only) and the throw action/execution node.</description>
+  <maintainer email="jaisaljain345@gmail.com">jaisaljain</maintainer>
+  <license>Apache-2.0</license>
+  <exec_depend>catch_ballistics</exec_depend>
+  <exec_depend>catch_kinematics</exec_depend>
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>control_msgs</exec_depend>
+  <exec_depend>trajectory_msgs</exec_depend>
+  <exec_depend>catch_interfaces</exec_depend>
+  <test_depend>python3-pytest</test_depend>
+  <export><build_type>ament_python</build_type></export>
+</package>

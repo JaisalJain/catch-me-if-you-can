@@ -1,0 +1,123 @@
+<?xml version="1.0"?>
+<!-- Full scene for MoveIt / robot_state_publisher. Geometry comes from config/scene.yaml (same file the MJCF
+     generator reads). The ros2_control block points the MuJoCo hardware interface at the generated MJCF. -->
+<robot xmlns:xacro="http://wiki.ros.org/xacro" name="catch_scene">
+  <xacro:arg name="mujoco_model" default="$(find catch_description)/mjcf/scene.xml"/>
+  <xacro:arg name="headless" default="false"/>
+  <xacro:arg name="ros2_control" default="true"/>
+
+  <xacro:include filename="$(find ur_description)/urdf/ur_macro.xacro"/>
+  <xacro:include filename="$(find robotiq_description)/urdf/robotiq_2f_85_macro.urdf.xacro"/>
+
+  <xacro:property name="scene" value="${xacro.load_yaml('$(find catch_description)/config/scene.yaml')}"/>
+  <xacro:property name="poses" value="${xacro.load_yaml('$(find catch_description)/config/poses.yaml')}"/>
+  <xacro:property name="ur_cfg" value="$(find ur_description)/config/ur5e"/>
+  <xacro:property name="top_z" value="${scene['table']['top_z']}"/>
+  <xacro:property name="edge" value="${scene['cube']['edge']}"/>
+  <xacro:property name="mount" value="${scene['gripper']['mount_offset']}"/>
+  <xacro:property name="ins" value="${scene['gripper']['palm_insert']}"/>
+  <xacro:property name="arm_joints" value="${['shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint', 'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint']}"/>
+
+  <xacro:macro name="box_link" params="name size xyz rgba">
+    <link name="${name}">
+      <visual><origin xyz="${xyz}"/><geometry><box size="${size}"/></geometry>
+        <material name="${name}_mat"><color rgba="${rgba}"/></material></visual>
+      <collision><origin xyz="${xyz}"/><geometry><box size="${size}"/></geometry></collision>
+    </link>
+    <joint name="world_to_${name}" type="fixed"><parent link="world"/><child link="${name}"/></joint>
+  </xacro:macro>
+
+  <link name="world"/>
+
+  <!-- table top (legs are below the top and irrelevant for planning) -->
+  <xacro:box_link name="table" rgba="0.62 0.48 0.33 1"
+    size="${scene['table']['size'][0]} ${scene['table']['size'][1]} ${scene['table']['top_thickness']}"
+    xyz="0 0 ${top_z - scene['table']['top_thickness'] / 2}"/>
+
+  <!-- pallets: base plate + one collision box per slot border ring (simplified as the outer plate height) -->
+  <xacro:macro name="pallet" params="key">
+    <xacro:property name="pl" value="${scene['pallets']}"/>
+    <xacro:property name="c" value="${pl[key]['center']}"/>
+    <xacro:box_link name="pallet_${key}" rgba="0.8 0.8 0.78 1"
+      size="${pl['base_size'][0]} ${pl['base_size'][1]} ${pl['base_size'][2] + pl['border_height']}"
+      xyz="${c[0]} ${c[1]} ${top_z + (pl['base_size'][2] + pl['border_height']) / 2}"/>
+  </xacro:macro>
+  <xacro:pallet key="a"/>
+  <xacro:pallet key="b"/>
+
+  <xacro:macro name="arm" params="key">
+    <xacro:property name="r" value="${scene['robots'][key]}"/>
+    <xacro:property name="ph" value="${r['pedestal_height']}"/>
+    <xacro:if value="${ph > 0}">
+      <xacro:property name="ps" value="${scene['robots']['pedestal_size']}"/>
+      <xacro:box_link name="${key}_pedestal" rgba="0.55 0.56 0.58 1" size="${ps} ${ps} ${ph}"
+        xyz="${r['base_xy'][0]} ${r['base_xy'][1]} ${top_z + ph / 2}"/>
+    </xacro:if>
+    <xacro:ur_robot name="${key}_ur" tf_prefix="${key}_" parent="world"
+      joint_limits_parameters_file="${ur_cfg}/joint_limits.yaml"
+      kinematics_parameters_file="${ur_cfg}/default_kinematics.yaml"
+      physical_parameters_file="${ur_cfg}/physical_parameters.yaml"
+      visual_parameters_file="${ur_cfg}/visual_parameters.yaml">
+      <origin xyz="${r['base_xy'][0]} ${r['base_xy'][1]} ${top_z + ph}" rpy="0 0 ${r['base_yaw']}"/>
+    </xacro:ur_robot>
+    <!-- 2F-85 mounted on tool0 at the same offset as the MJCF (Menagerie base_mount 7 mm + 3.8 mm) -->
+    <xacro:robotiq_gripper name="${key}_gripper" prefix="${key}_" parent="${key}_tool0" include_ros2_control="false">
+      <origin xyz="0 0 ${mount}" rpy="0 0 0"/>
+    </xacro:robotiq_gripper>
+    <!-- primitive palm insert (same box as the MJCF), expressed in the robotiq base frame -->
+    <link name="${key}_palm_insert">
+      <visual><geometry><box size="${2 * ins['half_size'][1]} ${2 * ins['half_size'][0]} ${2 * ins['half_size'][2]}"/></geometry>
+        <material name="${key}_insert_mat"><color rgba="0.25 0.25 0.28 1"/></material></visual>
+      <collision><geometry><box size="${2 * ins['half_size'][1]} ${2 * ins['half_size'][0]} ${2 * ins['half_size'][2]}"/></geometry></collision>
+    </link>
+    <joint name="${key}_palm_insert_joint" type="fixed">
+      <parent link="${key}_robotiq_85_base_link"/><child link="${key}_palm_insert"/>
+      <origin xyz="0 0 ${ins['top_z'] - ins['half_size'][2]}"/>
+    </joint>
+    <!-- TCP = centre of a cube resting on the palm insert; z axis = approach / palm normal -->
+    <link name="${key}_tcp"/>
+    <joint name="${key}_tcp_joint" type="fixed">
+      <parent link="${key}_tool0"/><child link="${key}_tcp"/>
+      <origin xyz="0 0 ${mount + ins['top_z'] + edge / 2}"/>
+    </joint>
+  </xacro:macro>
+  <xacro:arm key="a"/>
+  <xacro:arm key="b"/>
+
+  <!-- B's wrist camera frame (optical convention: z forward, x right, y down) for perception -->
+  <xacro:property name="wc" value="${scene['cameras']['b_wrist']['pos_in_gripper_base']}"/>
+
+  <xacro:if value="$(arg ros2_control)">
+    <ros2_control name="MujocoSystem" type="system">
+      <hardware>
+        <plugin>mujoco_ros2_control/MujocoSystemInterface</plugin>
+        <param name="mujoco_model">$(arg mujoco_model)</param>
+        <param name="headless">$(arg headless)</param>
+      </hardware>
+      <xacro:macro name="rc_arm" params="key">
+        <xacro:macro name="rc_joint" params="names">
+          <xacro:if value="${names}">
+            <xacro:property name="j" value="${names[0]}"/>
+            <joint name="${key}_${j}">
+              <command_interface name="effort"/>
+              <state_interface name="position">
+                <param name="initial_value">${poses[key]['home'][arm_joints.index(j)]}</param>
+              </state_interface>
+              <state_interface name="velocity"/>
+              <state_interface name="effort"/>
+            </joint>
+            <xacro:rc_joint names="${names[1:]}"/>
+          </xacro:if>
+        </xacro:macro>
+        <xacro:rc_joint names="${arm_joints}"/>
+        <joint name="${key}_robotiq_85_left_knuckle_joint">
+          <command_interface name="position"/>
+          <state_interface name="position"><param name="initial_value">0.0</param></state_interface>
+          <state_interface name="velocity"/>
+        </joint>
+      </xacro:macro>
+      <xacro:rc_arm key="a"/>
+      <xacro:rc_arm key="b"/>
+    </ros2_control>
+  </xacro:if>
+</robot>
