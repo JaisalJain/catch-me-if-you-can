@@ -34,13 +34,39 @@
     size="${scene['table']['size'][0]} ${scene['table']['size'][1]} ${scene['table']['top_thickness']}"
     xyz="0 0 ${top_z - scene['table']['top_thickness'] / 2}"/>
 
-  <!-- pallets: base plate + one collision box per slot border ring (simplified as the outer plate height) -->
+  <!-- pallets: base plate + 4 border bars per slot (same boxes as the MJCF), all in one link per pallet -->
+  <xacro:macro name="pbox" params="size xyz rgba">
+    <visual><origin xyz="${xyz}"/><geometry><box size="${size}"/></geometry><material name="pb_${rgba}"><color rgba="${rgba}"/></material></visual>
+    <collision><origin xyz="${xyz}"/><geometry><box size="${size}"/></geometry></collision>
+  </xacro:macro>
+  <xacro:macro name="slot" params="key idx colors">
+    <xacro:if value="${idx &lt; len(colors)}">
+      <xacro:property name="pl" value="${scene['pallets']}"/>
+      <xacro:property name="cx" value="${(idx - 1) * pl['slot_pitch']}"/>
+      <xacro:property name="bw" value="${pl['border_width']}"/>
+      <xacro:property name="bh" value="${pl['border_height']}"/>
+      <xacro:property name="inner" value="${pl['slot_inner']}"/>
+      <xacro:property name="bz" value="${pl['base_size'][2] + bh / 2}"/>
+      <xacro:property name="half" value="${inner / 2 + bw / 2}"/>
+      <xacro:property name="rgba" value="${' '.join(str(v) for v in scene['cube']['colors'][colors[idx]])}"/>
+      <xacro:pbox size="${inner + 2 * bw} ${bw} ${bh}" xyz="${cx} ${half} ${bz}" rgba="${rgba}"/>
+      <xacro:pbox size="${inner + 2 * bw} ${bw} ${bh}" xyz="${cx} ${-half} ${bz}" rgba="${rgba}"/>
+      <xacro:pbox size="${bw} ${inner} ${bh}" xyz="${cx + half} 0 ${bz}" rgba="${rgba}"/>
+      <xacro:pbox size="${bw} ${inner} ${bh}" xyz="${cx - half} 0 ${bz}" rgba="${rgba}"/>
+      <xacro:slot key="${key}" idx="${idx + 1}" colors="${colors}"/>
+    </xacro:if>
+  </xacro:macro>
   <xacro:macro name="pallet" params="key">
     <xacro:property name="pl" value="${scene['pallets']}"/>
     <xacro:property name="c" value="${pl[key]['center']}"/>
-    <xacro:box_link name="pallet_${key}" rgba="0.8 0.8 0.78 1"
-      size="${pl['base_size'][0]} ${pl['base_size'][1]} ${pl['base_size'][2] + pl['border_height']}"
-      xyz="${c[0]} ${c[1]} ${top_z + (pl['base_size'][2] + pl['border_height']) / 2}"/>
+    <link name="pallet_${key}">
+      <xacro:pbox size="${pl['base_size'][0]} ${pl['base_size'][1]} ${pl['base_size'][2]}"
+        xyz="0 0 ${pl['base_size'][2] / 2}" rgba="0.8 0.8 0.78 1"/>
+      <xacro:slot key="${key}" idx="0" colors="${pl['slot_order']}"/>
+    </link>
+    <joint name="world_to_pallet_${key}" type="fixed">
+      <parent link="world"/><child link="pallet_${key}"/><origin xyz="${c[0]} ${c[1]} ${top_z}"/>
+    </joint>
   </xacro:macro>
   <xacro:pallet key="a"/>
   <xacro:pallet key="b"/>

@@ -1,0 +1,15 @@
+# Pick / place skill parameters (metres, radians). Read by catch_tasks/skills.py.
+approach_height: 0.10          # pre-grasp / pre-place height of the TCP above the target cube centre
+grasp_offset: 0.017            # TCP this far above the cube centre for a top grasp: the closing pads move 11 mm towards
+                               # the fingertips; below 17 mm they touch the slot borders (tools/pick_geometry.py)
+place_clearance: 0.010         # minimum height of the cube bottom above the pallet surface when the gripper opens
+                               # (URDF fingertips reach ~4 mm lower than the MJCF pads; MoveIt needs >= 10 mm)
+pad_reach: 0.033               # closed pads (on a 40 mm cube) reach this far past the TCP along tool z
+border_margin: 0.002           # fingertips stay this far above the slot borders when placing
+gripper_open: 0.0
+gripper_close: 0.70            # never > 0.70 (palm insert clearance)
+gripper_effort: 5.0
+in_hand_knuckle: [0.38, 0.55]  # knuckle angle range that means "closed on a 40 mm cube" (empty closes to ~0.68)
+cartesian_vel_scale: 0.15
+free_vel_scale: 0.5
+settle_time: 0.4               # s after opening/closing before moving

@@ -98,7 +98,16 @@ class MoveItClient:
                                                        tolerance_below=tol, weight=1.0))
         return self._send(self._request(f"arm_{robot}", c))
 
-    def move_pose(self, robot, pose: Pose, pos_tol=0.002, ang_tol=0.01, frame="world"):
+    def move_pose(self, robot, pose: Pose, pos_tol=0.002, ang_tol=0.01, frame="world", attempts=2):
+        """Pose goal for the TCP; retried once with doubled planning time (OMPL is randomised)."""
+        ok, msg = False, ""
+        for i in range(attempts):
+            ok, msg = self._move_pose_once(robot, pose, pos_tol, ang_tol, frame, self.planning_time * (1 + i))
+            if ok:
+                break
+        return ok, msg
+
+    def _move_pose_once(self, robot, pose, pos_tol, ang_tol, frame, planning_time):
         c = Constraints()
         link = f"{robot}_tcp"
         pc = PositionConstraint(link_name=link, weight=1.0)
@@ -112,9 +121,12 @@ class MoveItClient:
         oc.header.frame_id = frame
         c.position_constraints.append(pc)
         c.orientation_constraints.append(oc)
-        return self._send(self._request(f"arm_{robot}", c))
+        req = self._request(f"arm_{robot}", c)
+        req.allowed_planning_time = planning_time
+        return self._send(req)
 
-    def move_cartesian(self, robot, poses, max_step=0.005, vel_scale=0.2, min_fraction=0.99, frame="world"):
+    def move_cartesian(self, robot, poses, max_step=0.005, vel_scale=0.2, min_fraction=0.99, frame="world",
+                       avoid_collisions=True):
         """Straight-line TCP motion through `poses` (geometry_msgs/Pose list)."""
         req = GetCartesianPath.Request()
         req.header.frame_id = frame
@@ -122,7 +134,7 @@ class MoveItClient:
         req.link_name = f"{robot}_tcp"
         req.waypoints = list(poses)
         req.max_step = max_step
-        req.avoid_collisions = True
+        req.avoid_collisions = avoid_collisions
         req.max_velocity_scaling_factor = vel_scale
         req.max_acceleration_scaling_factor = vel_scale
         req.start_state = RobotState(is_diff=True)

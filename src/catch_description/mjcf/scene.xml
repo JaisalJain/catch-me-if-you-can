@@ -223,8 +223,8 @@
     <geom name="a_mount_plate" size="0.09 0.004" pos="-0.8 0 1.104" type="cylinder" contype="0" conaffinity="0" material="steel"/>
     <geom name="b_pedestal" size="0.09 0.09 0.175" pos="0.8 0 0.925" type="box" material="steel"/>
     <geom name="b_mount_plate" size="0.09 0.004" pos="0.8 0 1.104" type="cylinder" contype="0" conaffinity="0" material="steel"/>
-    <camera name="overhead_a" resolution="640 480" pos="-0.55 -0.28 1.45" fovy="32"/>
-    <camera name="overhead_b" resolution="640 480" pos="0.55 -0.28 1.45" fovy="32"/>
+    <camera name="overhead_a" resolution="640 480" pos="-0.45 -0.28 1.45" fovy="32"/>
+    <camera name="overhead_b" resolution="640 480" pos="0.45 -0.28 1.45" fovy="32"/>
     <camera name="side" quat="0.707107 0.707107 0 0" resolution="640 480" pos="0 -1.7 1.05" fovy="50"/>
     <camera name="demo" quat="0.851827 0.523823 0 0" pos="0 -2.3 1.85"/>
     <light name="key" pos="0.6 -1.2 3" dir="-0.182574 0.365148 -0.912871" diffuse="0.45 0.45 0.45" specular="0.1 0.1 0.1"/>
@@ -506,7 +506,7 @@
         </body>
       </body>
     </body>
-    <body name="pallet_a" pos="-0.55 -0.28 0.75">
+    <body name="pallet_a" pos="-0.45 -0.28 0.75">
       <geom name="pallet_a_base" size="0.15 0.05 0.006" pos="0 0 0.006" type="box" material="pallet_mat"/>
       <geom name="pallet_a_red_border_n" size="0.034 0.004 0.003" pos="-0.09 0.03 0.015" type="box" rgba="0.85 0.1 0.1 1"/>
       <geom name="pallet_a_red_border_s" size="0.034 0.004 0.003" pos="-0.09 -0.03 0.015" type="box" rgba="0.85 0.1 0.1 1"/>
@@ -524,7 +524,7 @@
       <site name="pallet_a_slot_green" group="4" pos="0 0 0.012"/>
       <site name="pallet_a_slot_blue" group="4" pos="0.09 0 0.012"/>
     </body>
-    <body name="pallet_b" pos="0.55 -0.28 0.75">
+    <body name="pallet_b" pos="0.45 -0.28 0.75">
       <geom name="pallet_b_base" size="0.15 0.05 0.006" pos="0 0 0.006" type="box" material="pallet_mat"/>
       <geom name="pallet_b_red_border_n" size="0.034 0.004 0.003" pos="-0.09 0.03 0.015" type="box" rgba="0.85 0.1 0.1 1"/>
       <geom name="pallet_b_red_border_s" size="0.034 0.004 0.003" pos="-0.09 -0.03 0.015" type="box" rgba="0.85 0.1 0.1 1"/>
@@ -542,15 +542,15 @@
       <site name="pallet_b_slot_green" group="4" pos="0 0 0.012"/>
       <site name="pallet_b_slot_blue" group="4" pos="0.09 0 0.012"/>
     </body>
-    <body name="cube_red" pos="-0.64 -0.28 0.782">
+    <body name="cube_red" pos="-0.54 -0.28 0.782">
       <joint name="cube_red_joint" type="free"/>
       <geom name="cube_red_geom" size="0.02 0.02 0.02" type="box" contype="3" condim="4" friction="0.9 0.01 0.001" solref="0.004" solimp="0.95 0.99" rgba="0.85 0.1 0.1 1" mass="0.06"/>
     </body>
-    <body name="cube_green" pos="-0.55 -0.28 0.782">
+    <body name="cube_green" pos="-0.45 -0.28 0.782">
       <joint name="cube_green_joint" type="free"/>
       <geom name="cube_green_geom" size="0.02 0.02 0.02" type="box" contype="3" condim="4" friction="0.9 0.01 0.001" solref="0.004" solimp="0.95 0.99" rgba="0.1 0.7 0.15 1" mass="0.06"/>
     </body>
-    <body name="cube_blue" pos="-0.46 -0.28 0.782">
+    <body name="cube_blue" pos="-0.36 -0.28 0.782">
       <joint name="cube_blue_joint" type="free"/>
       <geom name="cube_blue_geom" size="0.02 0.02 0.02" type="box" contype="3" condim="4" friction="0.9 0.01 0.001" solref="0.004" solimp="0.95 0.99" rgba="0.1 0.25 0.85 1" mass="0.06"/>
     </body>
@@ -614,7 +614,7 @@
   </sensor>
 
   <keyframe>
-    <key name="a_home" qpos="-1.5708 -1.5708 1.5708 -1.5708 -1.5708 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -0.64 -0.28 0.782 1 0 0 0 -0.55 -0.28 0.782 1 0 0 0 -0.46 -0.28 0.782 1 0 0 0" ctrl="-1.5708 -1.5708 1.5708 -1.5708 -1.5708 0 0 0 0 0 0 0 0 0"/>
-    <key name="b_home" qpos="0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1.5708 -1.5708 1.5708 -1.5708 -1.5708 0 0 0 0 0 0 0 0 0 -0.64 -0.28 0.782 1 0 0 0 -0.55 -0.28 0.782 1 0 0 0 -0.46 -0.28 0.782 1 0 0 0" ctrl="0 0 0 0 0 0 0 -1.5708 -1.5708 1.5708 -1.5708 -1.5708 0 0"/>
+    <key name="a_home" qpos="-1.5708 -1.5708 1.5708 -1.5708 -1.5708 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -0.54 -0.28 0.782 1 0 0 0 -0.45 -0.28 0.782 1 0 0 0 -0.36 -0.28 0.782 1 0 0 0" ctrl="-1.5708 -1.5708 1.5708 -1.5708 -1.5708 0 0 0 0 0 0 0 0 0"/>
+    <key name="b_home" qpos="0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1.5708 -1.5708 1.5708 -1.5708 -1.5708 0 0 0 0 0 0 0 0 0 -0.54 -0.28 0.782 1 0 0 0 -0.45 -0.28 0.782 1 0 0 0 -0.36 -0.28 0.782 1 0 0 0" ctrl="0 0 0 0 0 0 0 -1.5708 -1.5708 1.5708 -1.5708 -1.5708 0 0"/>
   </keyframe>
 </mujoco>

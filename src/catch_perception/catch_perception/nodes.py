@@ -85,7 +85,11 @@ class PalletDetector(Node):
             p = pixel_ray_plane(b.u, b.v, K, R, t, self.z_top)
             if not any(x0 <= p[0] <= x1 and y0 <= p[1] <= y1 for x0, x1, y0, y1 in self.pallet_boxes):
                 p = pixel_ray_plane(b.u, b.v, K, R, t, self.z_top_table)   # not on a pallet: on the table
-            d = CubeDetection(color=b.color, pixel_area=b.area, confidence=1.0)
+            # confidence = visible core area / core area of an unoccluded cube top at this depth
+            depth = float((R.T @ (p - t))[2])
+            side = K[0, 0] * 2 * self.half / max(depth, 1e-6)
+            expected = max(side - 2 * self.pd["core_px"], 1.0) ** 2
+            d = CubeDetection(color=b.color, pixel_area=b.area, confidence=float(min(1.0, b.area / expected)))
             d.pose.position.x, d.pose.position.y, d.pose.position.z = float(p[0]), float(p[1]), float(p[2] - self.half)
             # image yaw -> world yaw: the overhead optical frame has x = world x, y = -world y
             yaw_w = -b.yaw

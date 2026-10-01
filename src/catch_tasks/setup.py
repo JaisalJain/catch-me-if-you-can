@@ -15,5 +15,6 @@ setup(
     entry_points={"console_scripts": [
         "jog_test = catch_tasks.jog_test:main",
         "grasp_test = catch_tasks.grasp_test:main",
+        "pickplace_test = catch_tasks.pickplace_test:main",
     ]},
 )

@@ -37,3 +37,15 @@
 - Open issues: /joint_states lags ground truth by ~2.5 ms (measured; relevant to M5 timing); deprecated
   GripperActionController (warning only).
 - Details: `docs/m2_scene_bringup.md`.
+
+## M3 — Perception and pick/place (2026-10-01) ✅
+- Works: overhead HSV detection with confidence; colour check from B's wrist camera; pick (A, from detection)
+  and place (A and B) skills on MoveIt; isolated B-place test with a spawned cube.
+- Numbers: detection 1.74 mm mean / 4.66 mm max, yaw 0.4° mean (60 cubes, 0 misses); colour check 3/3;
+  B place error 0.39-0.63 mm; A pick 3/3, place-back 0.11-3.82 mm, all in slot.
+- Decisions: top-grasp TCP offset 17 mm (pad kinematics), pallets moved to x = ∓0.45, URDF pallet with real
+  borders, IK-seeded MoveIt joint goals, collision checking off only for short in-slot vertical moves,
+  lighting reduced + overhead fov 32°.
+- Open issues: the URDF gripper model differs from the MJCF one (fingertips ~4 mm longer); B's wrist camera is a
+  bracket camera with no collision geometry.
+- Details: `docs/m3_perception_pick_place.md`.

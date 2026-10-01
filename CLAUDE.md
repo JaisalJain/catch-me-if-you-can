@@ -4,8 +4,9 @@
 - M0 toolchain ✅ (see `docs/m0_toolchain.md`)
 - M1 feasibility ✅ (scene changed: 0.35 m pedestals, 0.4 m flight — docs/m1_feasibility.md)
 - M2 scene/bringup ✅ (docs/m2_scene_bringup.md)
-- M3 perception + pick/place — in progress
-- M4 throw — pending
+- M3 perception + pick/place ✅ (docs/m3_perception_pick_place.md)
+- M4 throw — in progress
+
 - Progress log: `docs/progress.md`
 
 ## Environment rules
@@ -40,6 +41,7 @@
 - Scripted runs: `tools/sim_ctl.sh start catch_bringup bringup.launch.py headless:=true rviz:=false`,
   `tools/sim_ctl.sh wait 5 90`, ..., `tools/sim_ctl.sh stop` (log: `log/sim_latest.log`)
 - M2 checks: `ros2 run catch_tasks jog_test`, `ros2 run catch_tasks grasp_test --robot a`
+- M3 checks: `ros2 run catch_perception eval_detection`, `ros2 run catch_tasks pickplace_test`
 - Venv integration tests (ROS sourced): `env -u PYTHONPATH .venv/bin/python -m pytest src/catch_description/test/test_fk_agreement.py src/catch_description/test/test_mjcf_up_to_date.py`
 - After changing the URDF/SRDF-relevant geometry: `env -u PYTHONPATH .venv/bin/python tools/gen_srdf.py`
 

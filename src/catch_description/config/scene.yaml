@@ -29,8 +29,8 @@ pallets:
   border_width: 0.008
   border_height: 0.006
   base_size: [0.30, 0.10, 0.012]
-  a: {center: [-0.55, -0.28]}
-  b: {center: [0.55, -0.28]}
+  a: {center: [-0.45, -0.28]}   # 0.35 m in front of the base (reach margin >= 0.72 rad, tools/pick_geometry.py)
+  b: {center: [0.45, -0.28]}
 lighting:                   # visual only (no effect on physics)
   headlight_ambient: 0.12
   headlight_diffuse: 0.25
@@ -38,7 +38,7 @@ lighting:                   # visual only (no effect on physics)
   fill: 0.18
   top: 0.20
 cameras:
-  overhead_a: {pos: [-0.55, -0.28, 1.45], fovy: 32, resolution: [640, 480]}
-  overhead_b: {pos: [0.55, -0.28, 1.45], fovy: 32, resolution: [640, 480]}
+  overhead_a: {pos: [-0.45, -0.28, 1.45], fovy: 32, resolution: [640, 480]}
+  overhead_b: {pos: [0.45, -0.28, 1.45], fovy: 32, resolution: [640, 480]}
   side: {pos: [0.0, -1.7, 1.05], target: [0.0, 0.0, 1.05], fovy: 50, resolution: [640, 480]}
   b_wrist: {pos_in_gripper_base: [0.10, 0.0, 0.13], fovy: 60, resolution: [320, 240]}

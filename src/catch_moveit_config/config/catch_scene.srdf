@@ -25,6 +25,14 @@
     <joint name="a_wrist_2_joint" value="-1.5708"/>
     <joint name="a_wrist_3_joint" value="2.7509"/>
   </group_state>
+  <group_state name="palm_up" group="arm_a">
+    <joint name="a_shoulder_pan_joint" value="-0.224"/>
+    <joint name="a_shoulder_lift_joint" value="-0.1972"/>
+    <joint name="a_elbow_joint" value="1.5923"/>
+    <joint name="a_wrist_1_joint" value="-2.9659"/>
+    <joint name="a_wrist_2_joint" value="1.5708"/>
+    <joint name="a_wrist_3_joint" value="0.224"/>
+  </group_state>
   <group_state name="pre_throw" group="arm_a">
     <joint name="a_shoulder_pan_joint" value="0.2178"/>
     <joint name="a_shoulder_lift_joint" value="-0.093"/>
@@ -63,6 +71,14 @@
     <joint name="b_wrist_1_joint" value="-3.1046"/>
     <joint name="b_wrist_2_joint" value="-1.5708"/>
     <joint name="b_wrist_3_joint" value="2.7509"/>
+  </group_state>
+  <group_state name="palm_up" group="arm_b">
+    <joint name="b_shoulder_pan_joint" value="-0.224"/>
+    <joint name="b_shoulder_lift_joint" value="-0.1972"/>
+    <joint name="b_elbow_joint" value="1.5923"/>
+    <joint name="b_wrist_1_joint" value="-2.9659"/>
+    <joint name="b_wrist_2_joint" value="1.5708"/>
+    <joint name="b_wrist_3_joint" value="0.224"/>
   </group_state>
   <group_state name="open" group="gripper_b">
     <joint name="b_robotiq_85_left_knuckle_joint" value="0.0"/>
