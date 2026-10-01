@@ -277,6 +277,17 @@ def build(scene, phys):
     return spec
 
 
+def compile_model(scene=None, phys=None):
+    """Compile in memory (for offline parameter studies); meshes are read from the committed mjcf/assets."""
+    if scene is None or phys is None:
+        scene, phys = load_cfg()
+    spec = build(scene, phys)
+    assets = os.path.join(PKG, "mjcf", "assets")
+    for m in spec.meshes:
+        m.file = os.path.join(assets, m.file)
+    return spec.compile()
+
+
 def generate(out_dir=None, verbose=True, scene=None, phys=None):
     if scene is None or phys is None:
         scene, phys = load_cfg()

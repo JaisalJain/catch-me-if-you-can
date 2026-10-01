@@ -25,3 +25,15 @@
   primitive palm insert. Limits unchanged; acceleration bounded via torque (UR publishes none).
 - Open issues: perfect tracking assumed (M4 measures); no self-collision check in the sweep.
 - Details: `docs/m1_feasibility.md`.
+
+## M2 — Scene and bringup (2026-10-01) ✅
+- Works: one-command bringup (sim + controllers + move_group + RViz, all on the NVIDIA GPU); arms hold their
+  start pose (gravcomp); MoveIt jogs both arms and both grippers (12/12); scene/ground truth/reset/spawn
+  services; RTF and GPU monitors.
+- Numbers: FK URDF vs MJCF worst 1e-9 mm / 4e-6 deg (50 configs x 3 frames x 2 arms); static grasp slip
+  1.61 mm (A) / 1.46 mm (B) over 10 s at up to 2.1 rad/s (< 2 mm); grip ~46 N per finger; RTF 1.000.
+- Decisions: palm insert 40x12 mm and gripper command cap 0.70; palm_up pose by IK-branch clearance search;
+  SRDF generated headless; rclpy MoveIt client (no moveit_py binary).
+- Open issues: /joint_states lags ground truth by ~2.5 ms (measured; relevant to M5 timing); deprecated
+  GripperActionController (warning only).
+- Details: `docs/m2_scene_bringup.md`.

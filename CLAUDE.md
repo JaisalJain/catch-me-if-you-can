@@ -3,8 +3,9 @@
 ## Status
 - M0 toolchain ✅ (see `docs/m0_toolchain.md`)
 - M1 feasibility ✅ (scene changed: 0.35 m pedestals, 0.4 m flight — docs/m1_feasibility.md)
-- M2 scene/bringup — in progress
-- M3 perception + pick/place, M4 throw — pending
+- M2 scene/bringup ✅ (docs/m2_scene_bringup.md)
+- M3 perception + pick/place — in progress
+- M4 throw — pending
 - Progress log: `docs/progress.md`
 
 ## Environment rules
@@ -32,6 +33,19 @@
 - Prefixes `a_` (thrower, x=-0.8) and `b_` (catcher, x=+0.8).
 - Parameters (geometry, contact, timings) live in YAML, not code.
 - Commit after each working step; don't push.
+
+## Build / run
+- Build: `source /opt/ros/jazzy/setup.bash && colcon build && source install/setup.bash`
+- Everything (GUI): `ros2 launch catch_bringup bringup.launch.py` (args: `headless:=true rviz:=false`)
+- Scripted runs: `tools/sim_ctl.sh start catch_bringup bringup.launch.py headless:=true rviz:=false`,
+  `tools/sim_ctl.sh wait 5 90`, ..., `tools/sim_ctl.sh stop` (log: `log/sim_latest.log`)
+- M2 checks: `ros2 run catch_tasks jog_test`, `ros2 run catch_tasks grasp_test --robot a`
+- Venv integration tests (ROS sourced): `env -u PYTHONPATH .venv/bin/python -m pytest src/catch_description/test/test_fk_agreement.py src/catch_description/test/test_mjcf_up_to_date.py`
+- After changing the URDF/SRDF-relevant geometry: `env -u PYTHONPATH .venv/bin/python tools/gen_srdf.py`
+
+## Known gotchas (project)
+- Never command the gripper beyond 0.70 (palm insert clearance). Cubes must be spawned with the palm facing up.
+- /joint_states lags the free-joint ground truth by ~2.5 ms.
 
 ## Offline tools / tests
 - Regenerate MJCF after editing `src/catch_description/config/{scene,physics}.yaml`:
