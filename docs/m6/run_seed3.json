@@ -1,0 +1,242 @@
+{
+ "summary": {
+  "seed": 3,
+  "duration_s": 98.9,
+  "sorted": [
+   "blue",
+   "red",
+   "green"
+  ],
+  "throws": 3,
+  "throws_per_cube": {
+   "blue": 1,
+   "red": 1,
+   "green": 1
+  },
+  "attempts": {
+   "blue": 1,
+   "red": 1,
+   "green": 1
+  },
+  "recoveries": [],
+  "complete": true
+ },
+ "events": [
+  {
+   "t": 0.0,
+   "t_sim": 15.474,
+   "state": "detect",
+   "msg": "start (seed 3)"
+  },
+  {
+   "t": 0.83,
+   "t_sim": 16.305,
+   "state": "detect",
+   "msg": "3 cube(s) on A's pallet ['blue', 'green', 'red']; random pick: blue at (-0.357, -0.280)",
+   "a_color": "blue"
+  },
+  {
+   "t": 5.78,
+   "t_sim": 21.253,
+   "state": "pick",
+   "msg": "picked (knuckle 0.450)",
+   "ok": true
+  },
+  {
+   "t": 11.62,
+   "t_sim": 27.094,
+   "state": "load",
+   "msg": "cube seated on the palm, A at the stroke start"
+  },
+  {
+   "t": 14.34,
+   "t_sim": 29.81,
+   "state": "preposition",
+   "msg": "B in its cup pose, fingers open, armed for the live throw plan"
+  },
+  {
+   "t": 17.01,
+   "t_sim": 32.481,
+   "state": "throw",
+   "msg": "throw #1 of the blue cube: stroke done (feed-forward on); arm JTC accepted 0.497 s and gripper JTC 0.482 s before the start stamp; loosen to 0.3 at t0+0.120 s (controller-timed)"
+  },
+  {
+   "t": 17.01,
+   "t_sim": 32.485,
+   "state": "throw",
+   "msg": "catch: held: force trigger at -2.3 ms vs predicted arrival, peak palm force 43.7 N, knuckle 0.449",
+   "caught": true
+  },
+  {
+   "t": 22.43,
+   "t_sim": 37.904,
+   "state": "color",
+   "msg": "B sees blue (0.101); agrees with A's blue (cross-check only)",
+   "b_color": "blue"
+  },
+  {
+   "t": 28.09,
+   "t_sim": 43.567,
+   "state": "in_hand",
+   "msg": "blue: angle -0.6 deg, centre (y, z) (-5.1, +3.6) mm, rms 0.48 mm, inliers 0.57, 2718 px"
+  },
+  {
+   "t": 35.38,
+   "t_sim": 50.855,
+   "state": "place",
+   "msg": "blue slot on B's pallet: placed (tool tilt 0.6 deg, release height 17.6 mm)",
+   "ok": true
+  },
+  {
+   "t": 36.99,
+   "t_sim": 52.46,
+   "state": "verify",
+   "msg": "overhead B: blue cube in its slot (offset +1.4, +0.4 mm, confidence 1.00)",
+   "sorted": "blue"
+  },
+  {
+   "t": 37.22,
+   "t_sim": 52.692,
+   "state": "detect",
+   "msg": "2 cube(s) on A's pallet ['green', 'red']; random pick: red at (-0.542, -0.280)",
+   "a_color": "red"
+  },
+  {
+   "t": 42.73,
+   "t_sim": 58.205,
+   "state": "pick",
+   "msg": "picked (knuckle 0.450)",
+   "ok": true
+  },
+  {
+   "t": 48.59,
+   "t_sim": 64.062,
+   "state": "load",
+   "msg": "cube seated on the palm, A at the stroke start"
+  },
+  {
+   "t": 51.47,
+   "t_sim": 66.941,
+   "state": "preposition",
+   "msg": "B in its cup pose, fingers open, armed for the live throw plan"
+  },
+  {
+   "t": 53.82,
+   "t_sim": 69.297,
+   "state": "throw",
+   "msg": "throw #1 of the red cube: stroke done (feed-forward on); arm JTC accepted 0.498 s and gripper JTC 0.487 s before the start stamp; loosen to 0.3 at t0+0.120 s (controller-timed)"
+  },
+  {
+   "t": 53.82,
+   "t_sim": 69.297,
+   "state": "throw",
+   "msg": "catch: held: force trigger at -2.3 ms vs predicted arrival, peak palm force 82.9 N, knuckle 0.449",
+   "caught": true
+  },
+  {
+   "t": 57.79,
+   "t_sim": 73.264,
+   "state": "color",
+   "msg": "B sees red (0.104); agrees with A's red (cross-check only)",
+   "b_color": "red"
+  },
+  {
+   "t": 59.03,
+   "t_sim": 74.505,
+   "state": "in_hand",
+   "msg": "red: angle -0.5 deg, centre (y, z) (+3.8, +4.2) mm, rms 0.41 mm, inliers 0.56, 2723 px"
+  },
+  {
+   "t": 65.91,
+   "t_sim": 81.383,
+   "state": "place",
+   "msg": "red slot on B's pallet: placed (tool tilt 0.5 deg, release height 16.8 mm)",
+   "ok": true
+  },
+  {
+   "t": 67.47,
+   "t_sim": 82.939,
+   "state": "verify",
+   "msg": "overhead B: red cube in its slot (offset -4.5, +0.4 mm, confidence 1.00)",
+   "sorted": "red"
+  },
+  {
+   "t": 67.77,
+   "t_sim": 83.248,
+   "state": "detect",
+   "msg": "1 cube(s) on A's pallet ['green']; random pick: green at (-0.450, -0.280)",
+   "a_color": "green"
+  },
+  {
+   "t": 72.99,
+   "t_sim": 88.46,
+   "state": "pick",
+   "msg": "picked (knuckle 0.450)",
+   "ok": true
+  },
+  {
+   "t": 78.85,
+   "t_sim": 94.328,
+   "state": "load",
+   "msg": "cube seated on the palm, A at the stroke start"
+  },
+  {
+   "t": 81.59,
+   "t_sim": 97.064,
+   "state": "preposition",
+   "msg": "B in its cup pose, fingers open, armed for the live throw plan"
+  },
+  {
+   "t": 83.84,
+   "t_sim": 99.316,
+   "state": "throw",
+   "msg": "throw #1 of the green cube: stroke done (feed-forward on); arm JTC accepted 0.464 s and gripper JTC 0.462 s before the start stamp; loosen to 0.3 at t0+0.120 s (controller-timed)"
+  },
+  {
+   "t": 83.84,
+   "t_sim": 99.316,
+   "state": "throw",
+   "msg": "catch: held: force trigger at -3.3 ms vs predicted arrival, peak palm force 57.0 N, knuckle 0.449",
+   "caught": true
+  },
+  {
+   "t": 88.61,
+   "t_sim": 104.083,
+   "state": "color",
+   "msg": "B sees green (0.100); agrees with A's green (cross-check only)",
+   "b_color": "green"
+  },
+  {
+   "t": 89.36,
+   "t_sim": 104.833,
+   "state": "in_hand",
+   "msg": "green: angle +0.0 deg, centre (y, z) (-0.9, +3.7) mm, rms 0.31 mm, inliers 0.56, 2697 px"
+  },
+  {
+   "t": 96.42,
+   "t_sim": 111.892,
+   "state": "place",
+   "msg": "green slot on B's pallet: placed (tool tilt 0.0 deg, release height 17.3 mm)",
+   "ok": true
+  },
+  {
+   "t": 98.54,
+   "t_sim": 114.018,
+   "state": "verify",
+   "msg": "overhead B: green cube in its slot (offset -1.2, +0.4 mm, confidence 1.00)",
+   "sorted": "green"
+  },
+  {
+   "t": 98.85,
+   "t_sim": 114.325,
+   "state": "detect",
+   "msg": "A's pallet: empty -> nothing left to throw"
+  },
+  {
+   "t": 98.85,
+   "t_sim": 114.325,
+   "state": "done",
+   "msg": "{\"seed\": 3, \"duration_s\": 98.9, \"sorted\": [\"blue\", \"red\", \"green\"], \"throws\": 3, \"throws_per_cube\": {\"blue\": 1, \"red\": 1, \"green\": 1}, \"attempts\": {\"blue\": 1, \"red\": 1, \"green\": 1}, \"recoveries\": [], \"complete\": true}"
+  }
+ ]
+}

@@ -26,7 +26,7 @@ REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 CUBES = ("cube_red", "cube_green", "cube_blue")
 VIEWS = {   # free cameras: lookat, distance, azimuth [deg] (camera looks along (cos az, sin az) in xy), elevation
     "catch": ([0.33, 0.22, 1.12], 0.95, 62.0, -14.0),        # close-up of B's cup, seen from the -y side, A behind
-    "overview": ([0.0, -0.08, 0.98], 2.6, 80.0, -22.0),      # whole table from the -y side (A left, B right)
+    "overview": ([0.0, -0.05, 1.0], 2.15, 80.0, -17.0),      # whole table from the -y side (A left, B right)
     "throw": ([0.12, 0.2, 1.15], 1.45, 90.0, -8.0),          # flight path from the -y side
 }
 

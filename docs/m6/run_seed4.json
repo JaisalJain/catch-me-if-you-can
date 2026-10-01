@@ -1,0 +1,297 @@
+{
+ "summary": {
+  "seed": 4,
+  "duration_s": 123.6,
+  "sorted": [
+   "green",
+   "blue",
+   "red"
+  ],
+  "throws": 4,
+  "throws_per_cube": {
+   "blue": 2,
+   "green": 1,
+   "red": 1
+  },
+  "attempts": {
+   "blue": 2,
+   "green": 1,
+   "red": 1
+  },
+  "recoveries": [
+   "blue"
+  ],
+  "complete": true
+ },
+ "events": [
+  {
+   "t": 0.0,
+   "t_sim": 18.704,
+   "state": "detect",
+   "msg": "start (seed 4)"
+  },
+  {
+   "t": 1.15,
+   "t_sim": 19.857,
+   "state": "detect",
+   "msg": "3 cube(s) on A's pallet ['blue', 'green', 'red']; random pick: blue at (-0.357, -0.280)",
+   "a_color": "blue"
+  },
+  {
+   "t": 6.12,
+   "t_sim": 24.828,
+   "state": "pick",
+   "msg": "picked (knuckle 0.450)",
+   "ok": true
+  },
+  {
+   "t": 11.98,
+   "t_sim": 30.687,
+   "state": "load",
+   "msg": "cube seated on the palm, A at the stroke start"
+  },
+  {
+   "t": 14.8,
+   "t_sim": 33.506,
+   "state": "preposition",
+   "msg": "B in its cup pose, fingers open, armed for the live throw plan"
+  },
+  {
+   "t": 14.84,
+   "t_sim": 33.548,
+   "state": "throw",
+   "msg": "FAULT INJECTED (test of the recovery path): throw #1 loosens the grip at t = 0.26 s instead of 0.12 s",
+   "injected": true
+  },
+  {
+   "t": 17.01,
+   "t_sim": 35.713,
+   "state": "throw",
+   "msg": "throw #1 of the blue cube: stroke done (feed-forward on); arm JTC accepted 0.455 s and gripper JTC 0.451 s before the start stamp; loosen to 0.3 at t0+0.260 s (controller-timed)"
+  },
+  {
+   "t": 17.01,
+   "t_sim": 35.716,
+   "state": "throw",
+   "msg": "catch: no contact detected",
+   "caught": false
+  },
+  {
+   "t": 20.87,
+   "t_sim": 39.576,
+   "state": "recover",
+   "msg": "failure with the blue cube: resetting it to A's pallet and continuing",
+   "dropped": "blue"
+  },
+  {
+   "t": 25.79,
+   "t_sim": 44.498,
+   "state": "detect",
+   "msg": "3 cube(s) on A's pallet ['blue', 'green', 'red']; random pick: green at (-0.450, -0.280)",
+   "a_color": "green"
+  },
+  {
+   "t": 31.02,
+   "t_sim": 49.727,
+   "state": "pick",
+   "msg": "picked (knuckle 0.450)",
+   "ok": true
+  },
+  {
+   "t": 36.89,
+   "t_sim": 55.598,
+   "state": "load",
+   "msg": "cube seated on the palm, A at the stroke start"
+  },
+  {
+   "t": 39.63,
+   "t_sim": 58.331,
+   "state": "preposition",
+   "msg": "B in its cup pose, fingers open, armed for the live throw plan"
+  },
+  {
+   "t": 42.0,
+   "t_sim": 60.708,
+   "state": "throw",
+   "msg": "throw #1 of the green cube: stroke done (feed-forward on); arm JTC accepted 0.488 s and gripper JTC 0.486 s before the start stamp; loosen to 0.3 at t0+0.120 s (controller-timed)"
+  },
+  {
+   "t": 42.01,
+   "t_sim": 60.709,
+   "state": "throw",
+   "msg": "catch: held: force trigger at -3.3 ms vs predicted arrival, peak palm force 78.9 N, knuckle 0.449",
+   "caught": true
+  },
+  {
+   "t": 47.5,
+   "t_sim": 66.203,
+   "state": "color",
+   "msg": "B sees green (0.100); agrees with A's green (cross-check only)",
+   "b_color": "green"
+  },
+  {
+   "t": 52.32,
+   "t_sim": 71.022,
+   "state": "in_hand",
+   "msg": "green: angle +0.0 deg, centre (y, z) (-0.7, +3.7) mm, rms 0.32 mm, inliers 0.55, 2687 px"
+  },
+  {
+   "t": 59.36,
+   "t_sim": 78.064,
+   "state": "place",
+   "msg": "green slot on B's pallet: placed (tool tilt 0.0 deg, release height 17.3 mm)",
+   "ok": true
+  },
+  {
+   "t": 60.81,
+   "t_sim": 79.509,
+   "state": "verify",
+   "msg": "overhead B: green cube in its slot (offset -1.2, +0.4 mm, confidence 1.00)",
+   "sorted": "green"
+  },
+  {
+   "t": 61.15,
+   "t_sim": 79.854,
+   "state": "detect",
+   "msg": "2 cube(s) on A's pallet ['blue', 'red']; random pick: blue at (-0.357, -0.280)",
+   "a_color": "blue"
+  },
+  {
+   "t": 66.11,
+   "t_sim": 84.809,
+   "state": "pick",
+   "msg": "picked (knuckle 0.450)",
+   "ok": true
+  },
+  {
+   "t": 71.95,
+   "t_sim": 90.656,
+   "state": "load",
+   "msg": "cube seated on the palm, A at the stroke start"
+  },
+  {
+   "t": 74.73,
+   "t_sim": 93.43,
+   "state": "preposition",
+   "msg": "B in its cup pose, fingers open, armed for the live throw plan"
+  },
+  {
+   "t": 76.66,
+   "t_sim": 95.366,
+   "state": "throw",
+   "msg": "throw #2 of the blue cube: stroke done (feed-forward on); arm JTC accepted 0.496 s and gripper JTC 0.465 s before the start stamp; loosen to 0.3 at t0+0.120 s (controller-timed)"
+  },
+  {
+   "t": 76.66,
+   "t_sim": 95.367,
+   "state": "throw",
+   "msg": "catch: held: force trigger at -2.3 ms vs predicted arrival, peak palm force 44.0 N, knuckle 0.449",
+   "caught": true
+  },
+  {
+   "t": 81.55,
+   "t_sim": 100.257,
+   "state": "color",
+   "msg": "B sees blue (0.101); agrees with A's blue (cross-check only)",
+   "b_color": "blue"
+  },
+  {
+   "t": 82.55,
+   "t_sim": 101.255,
+   "state": "in_hand",
+   "msg": "blue: angle -0.6 deg, centre (y, z) (-4.4, +3.6) mm, rms 0.50 mm, inliers 0.57, 2711 px"
+  },
+  {
+   "t": 89.88,
+   "t_sim": 108.588,
+   "state": "place",
+   "msg": "blue slot on B's pallet: placed (tool tilt 0.6 deg, release height 17.6 mm)",
+   "ok": true
+  },
+  {
+   "t": 92.67,
+   "t_sim": 111.376,
+   "state": "verify",
+   "msg": "overhead B: blue cube in its slot (offset +1.4, +0.4 mm, confidence 1.00)",
+   "sorted": "blue"
+  },
+  {
+   "t": 92.95,
+   "t_sim": 111.651,
+   "state": "detect",
+   "msg": "1 cube(s) on A's pallet ['red']; random pick: red at (-0.542, -0.280)",
+   "a_color": "red"
+  },
+  {
+   "t": 98.52,
+   "t_sim": 117.221,
+   "state": "pick",
+   "msg": "picked (knuckle 0.450)",
+   "ok": true
+  },
+  {
+   "t": 104.4,
+   "t_sim": 123.106,
+   "state": "load",
+   "msg": "cube seated on the palm, A at the stroke start"
+  },
+  {
+   "t": 107.27,
+   "t_sim": 125.97,
+   "state": "preposition",
+   "msg": "B in its cup pose, fingers open, armed for the live throw plan"
+  },
+  {
+   "t": 109.34,
+   "t_sim": 128.047,
+   "state": "throw",
+   "msg": "throw #1 of the red cube: stroke done (feed-forward on); arm JTC accepted 0.496 s and gripper JTC 0.452 s before the start stamp; loosen to 0.3 at t0+0.120 s (controller-timed)"
+  },
+  {
+   "t": 109.35,
+   "t_sim": 128.049,
+   "state": "throw",
+   "msg": "catch: held: force trigger at -2.3 ms vs predicted arrival, peak palm force 60.0 N, knuckle 0.449",
+   "caught": true
+  },
+  {
+   "t": 113.69,
+   "t_sim": 132.394,
+   "state": "color",
+   "msg": "B sees red (0.103); agrees with A's red (cross-check only)",
+   "b_color": "red"
+  },
+  {
+   "t": 115.13,
+   "t_sim": 133.837,
+   "state": "in_hand",
+   "msg": "red: angle +0.3 deg, centre (y, z) (+1.9, +4.0) mm, rms 0.37 mm, inliers 0.55, 2704 px"
+  },
+  {
+   "t": 122.02,
+   "t_sim": 140.719,
+   "state": "place",
+   "msg": "red slot on B's pallet: placed (tool tilt 0.3 deg, release height 17.1 mm)",
+   "ok": true
+  },
+  {
+   "t": 123.37,
+   "t_sim": 142.075,
+   "state": "verify",
+   "msg": "overhead B: red cube in its slot (offset -4.5, +0.4 mm, confidence 1.00)",
+   "sorted": "red"
+  },
+  {
+   "t": 123.57,
+   "t_sim": 142.27,
+   "state": "detect",
+   "msg": "A's pallet: empty -> nothing left to throw"
+  },
+  {
+   "t": 123.57,
+   "t_sim": 142.271,
+   "state": "done",
+   "msg": "{\"seed\": 4, \"duration_s\": 123.6, \"sorted\": [\"green\", \"blue\", \"red\"], \"throws\": 4, \"throws_per_cube\": {\"blue\": 2, \"green\": 1, \"red\": 1}, \"attempts\": {\"blue\": 2, \"green\": 1, \"red\": 1}, \"recoveries\": [\"blue\"], \"complete\": true}"
+  }
+ ]
+}

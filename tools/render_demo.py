@@ -28,15 +28,15 @@ def caption(img, lines, y0=10):
 
 
 def contact_time(rec, t0, t1):
-    """First palm-force spike (cube hits B's palm) in [t0, t1]; else the end of the window minus 0.8 s."""
+    """(time, True) of the first palm-force spike (cube hits B's palm) in [t0, t1]; else (t1 - 0.8 s, False)."""
     ft = rec["ft"]
     sel = (ft[:, 0] >= t0) & (ft[:, 0] <= t1)
     if sel.sum() > 60:
         f = np.linalg.norm(ft[sel, 1:], axis=1)
         hit = np.where(np.abs(f - np.median(f[:50])) > 8.0)[0]
         if len(hit):
-            return float(ft[sel, 0][hit[0]])
-    return t1 - 0.8
+            return float(ft[sel, 0][hit[0]]), True
+    return t1 - 0.8, False
 
 
 def main():
@@ -53,7 +53,8 @@ def main():
     run = json.load(open(a.events))
     ev = run["events"]
     seed = run["summary"]["seed"]
-    t_first, t_last = float(rec["t_js"][0]), float(rec["t_js"][-1])
+    t_first = max(float(rec["t_js"][0]), ev[0]["t_sim"] - 1.0)          # the run, not the whole recording
+    t_last = min(float(rec["t_js"][-1]), ev[-1]["t_sim"] + 2.0)
     # throw windows: from "B in its cup pose" (preposition done) to 1.2 s after the catch result
     throws = [e for e in ev if e["state"] == "throw" and "caught" in e]
     pre = [e for e in ev if e["state"] == "preposition" and "cup pose" in e["msg"]]
@@ -69,7 +70,7 @@ def main():
         past = [e for e in ev if e["t_sim"] <= t]
         return past[-1] if past else None
 
-    def frame(rp, t, view, speed, extra=""):
+    def frame(rp, t, view, speed, extra="", note=None):
         img = np.ascontiguousarray(rp.render(view))
         e = state_text(t)
         for x in ev:
@@ -77,7 +78,9 @@ def main():
                 sorted_.append(x["sorted"])
         head = f"catch demo  seed {seed}  t={t - t_first:6.1f} s  ({'real time' if speed == 1 else f'{speed:g}x'})"
         lines = [head + extra, f"sorted on B: {', '.join(sorted_) or '-'}"]
-        if e:
+        if note:
+            lines.append(note)
+        elif e:
             lines.append(f"[{e['state']}] {e['msg'][:110]}")
         caption(img, lines)
         return img
@@ -96,14 +99,18 @@ def main():
         # after a throw window: slow-motion close-up of that catch
         if k < len(windows) and t > windows[k][1]:
             w0, w1, e = windows[k]
-            tc = contact_time(rec, e["t_sim"] - 3.0, e["t_sim"])
+            tc, contact = contact_time(rec, e["t_sim"] - 3.0, e["t_sim"])
             cr = Replay(rec, w, h)
             ts = np.arange(tc - 0.45, tc + 0.6, 0.25 / a.fps)
             tp = ts[0]
             for tt in ts:
                 cr.advance(tp, tt)
                 tp = tt
-                wr.append_data(frame(cr, tt, "catch", 0.25, "  close-up"))
+                if not contact:
+                    note = "[catch] no palm contact: the cube misses B's cup (fingers stay open)"
+                else:
+                    note = ("[catch] palm contact -> fingers close" if tt >= tc else "[catch] cube in flight, B's cup open")
+                wr.append_data(frame(cr, tt, "catch", 0.25, "  close-up", note))
                 n += 1
             k += 1
     wr.close()

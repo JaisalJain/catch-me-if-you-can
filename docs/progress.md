@@ -61,3 +61,45 @@
 - Open issues: separation time only resolvable to ±16 ms from GT (stamp jitter); the feed-forward table must be
   regenerated (venv) when the throw geometry changes — the node warns and runs without it otherwise.
 - Details: `docs/m4_throw.md`.
+
+## Pre-M5 review items (2026-10-01/02)
+- URDF gripper collision geometry = Menagerie (worst vertex 0.84 mm, pads 0.31 mm / 0.81°), FK test covers pads +
+  all gripper collision geoms; MoveIt collision checking back on for in-slot moves (commit 75e6ba6).
+- `apt-cache policy`: the Isaac `ros-jazzy-robotiq-description 9.0.1-0noble` and `ros-jazzy-ur-* 99.2.0-0noble` are
+  **still installed** (the downgrade did not take). Only robotiq_description's visual meshes are used; nothing
+  changed. Rebuild + 40 tests (system python) + 5 venv tests: all pass after regenerating the stale throw
+  feed-forward table (gripper/sensor change; max difference 0.09 N·m).
+
+## M5 — The catch (2026-10-02) ✅
+- Works: B pre-positions from the throw-plan preview (elbow-up cup pose, 58 mm from the flight path), fingers close
+  on the palm force sensor (contact trigger, no weld — tested), color from the wrist camera, in-hand pose from the
+  wrist camera (square fit along the closing axis), corrected top-down place; `catch_eval` judges with ground truth.
+- Numbers (30 throws, 10/color): **30/30 caught**, color 30/30, **30/30 placed in slot**, place error x −0.70 ± 0.07
+  mm (max 0.83), **yaw 0.00°**, trigger −2.7 ± 0.7 ms vs predicted arrival. In-hand estimate error ≤ 0.75° / 0.3 mm.
+  Baselines: time trigger 30/30 (its close instant scatters +6 ± 12 ms, up to +50 ms); no in-hand correction
+  15/15 in slot but x error 1.67 ± 1.19 mm (max 3.39). Off-centre catches (experiment knob, up to 18° in the
+  hand): corrected 9/9 in slot, uncorrected 0/9 (8–14 mm off, resting tilted on a border).
+  Regression: pick/place 6/6, 20 throws +8.2 ± 1.8 mm/s, static grasp A one 2.35 mm outlier in 8 runs (others
+  ≤ 1.63 mm), B ≤ 1.60 mm.
+- Decisions: grip loosen timed by the controller (gripper A → JointTrajectoryController with a time-stamped
+  loosen; a Python sim-clock sleep was up to 97 ms late and caused a miss); palm-force queue 2 s deep, subscribed
+  at goal start (an rclpy lag dropped an 82 N spike once); carry via home before placing; /tf_static-only TF in
+  perception; URDF wrist-camera frame.
+- Open issues: the clean demo sits ~25 mm/s inside the catch envelope's across-path tolerance (±25–50 mm/s); no
+  flight tracking (B trusts the plan); every Python node burns a core on the 1 kHz /clock.
+- Details: `docs/m5_catch.md`.
+
+## M6 — Full loop and demo (2026-10-02) ✅
+- Works: `run_demo` state machine (detect → random pick → seat → B pre-positions → throw → contact catch → wrist-camera
+  color → in-hand pose → corrected place → overhead verify → repeat), failure recovery (log → open grippers → arms
+  home → sim reset of that cube → retry, ≤ 3 attempts per cube), opt-in fault injection for the recovery path,
+  rosbag2 recording + ground-truth check of every run, replay renderer → demo mp4.
+- Numbers: seeds 1–3 (orders R-G-B, G-B-R, B-R-G) complete in 96–99 s with 3 throws each; seed 4 with an injected
+  late grip loosen: miss → recovery → re-throw → complete in 124 s. VERIFY agrees with ground truth 12/12, final
+  cubes 0.6–0.9 mm from their slot centres. Demo: `docs/media/demo_seed1.mp4`, `demo_recovery_seed4.mp4`.
+- Decisions: rosbag2 instead of an rclpy recorder (it captured ~5 % of the samples); hashed string seeds (integer
+  seeds 1–3 gave the same cube order); FastDDS stale shared-memory cleanup in `sim_ctl.sh start` (killed processes
+  left segments that made a new process' discovery fail).
+- Open issues: drops only via fault injection in this deterministic sim; the reset is a teleport; no flight
+  tracking; videos are replays of recorded state (not the live sim window).
+- Details: `docs/m6_full_loop.md`, `README.md`.
