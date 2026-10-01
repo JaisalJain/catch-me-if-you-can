@@ -77,3 +77,89 @@ def test_fk_agreement(models, p):
             assert da < ANG_TOL, f"{link}: {np.degrees(da):.3f} deg at q={np.round(q, 3)}"
     print(f"\n[{p}] worst position error {worst_p * 1000:.6f} mm, worst angle {np.degrees(worst_a):.6f} deg "
           f"over {N_SAMPLES} configs x {len(pairs)} frames")
+
+
+GRIPPER_ANGLES = (0.0, 0.25, 0.45, 0.7)
+
+
+def _urdf_collisions(urdf_xml, prefix):
+    """{link: [(kind, data, T_link_geom)]} for the gripper links of one arm."""
+    import xml.etree.ElementTree as ET
+    from catch_kinematics.transforms import rpy_to_matrix
+    out = {}
+    for link in ET.fromstring(urdf_xml).findall("link"):
+        name = link.get("name")
+        if not name.startswith(f"{prefix}_robotiq_85"):
+            continue
+        for c in link.findall("collision"):
+            o = c.find("origin")
+            T = make_tf(rpy_to_matrix(*[float(v) for v in o.get("rpy").split()]), [float(v) for v in o.get("xyz").split()])
+            g = c.find("geometry")[0]
+            data = g.get("size") if g.tag == "box" else os.path.basename(g.get("filename"))
+            out.setdefault(name, []).append((g.tag, data, T))
+    return out
+
+
+@pytest.mark.parametrize("p", ["a", "b"])
+def test_gripper_pads_and_collision_geometry_agree(models, p):
+    """Pad frames and every gripper collision vertex (pad boxes, link hulls): URDF vs MJCF < 1 mm / 1 deg over
+    the gripper stroke (MJCF fingers settled under the actuator; URDF evaluated at the same knuckle angle)."""
+    chain, m, d = models
+    urdf = subprocess.check_output(["xacro", os.path.join(PKG, "urdf", "scene.urdf.xacro")], env=ros_env()).decode()
+    cols = _urdf_collisions(urdf, p)
+    act = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_ACTUATOR, f"{p}_robotiq_85_left_knuckle_joint")
+    kq = m.jnt_qposadr[mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_JOINT, f"{p}_robotiq_85_left_knuckle_joint")]
+    side = {"right": "left", "left": "right"}       # MJCF side -> URDF side
+    link_of = {"driver": "knuckle", "coupler": "finger", "spring_link": "inner_knuckle", "follower": "finger_tip",
+               "pad": "finger_tip"}
+    worst_pad = (0.0, 0.0)
+    worst_vert = 0.0
+    for target in GRIPPER_ANGLES:
+        mujoco.mj_resetData(m, d)
+        d.ctrl[act] = target
+        for _ in range(2000):
+            mujoco.mj_step(m, d)
+        mujoco.mj_kinematics(m, d)   # after mj_step, xpos lags qpos by one step (the free arm is still moving)
+        q = {f"{p}_{j}": d.qpos[m.jnt_qposadr[mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_JOINT, f"{p}_{j}")]] for j in JN}
+        q[f"{p}_robotiq_85_left_knuckle_joint"] = d.qpos[kq]
+        for ms in ("right", "left"):
+            Tm = _mj_pose(m, d, "body", f"{p}_robotiq_{ms}_pad")
+            Tu = chain.link_pose(f"{p}_{side[ms]}_pad", q)
+            dp, da = np.linalg.norm(Tu[:3, 3] - Tm[:3, 3]), rotation_angle(Tu[:3, :3], Tm[:3, :3])
+            worst_pad = (max(worst_pad[0], dp), max(worst_pad[1], da))
+            assert dp < POS_TOL and da < ANG_TOL, f"{p} {ms}_pad at knuckle {d.qpos[kq]:.3f}: {dp * 1000:.2f} mm {np.degrees(da):.2f} deg"
+        # every MJCF gripper collision geom must have a URDF twin whose vertices coincide within 1 mm
+        for g in range(m.ngeom):
+            bname = mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_BODY, m.geom_bodyid[g]) or ""
+            gname = mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_GEOM, g) or ""
+            if not bname.startswith(f"{p}_robotiq_") or not (m.geom_contype[g] or m.geom_conaffinity[g]) \
+                    or gname.endswith("palm_insert"):
+                continue
+            Tg = make_tf(d.geom_xmat[g].reshape(3, 3), d.geom_xpos[g])
+            if m.geom_type[g] == mujoco.mjtGeom.mjGEOM_BOX:
+                s = m.geom_size[g]
+                local = np.array([[sx, sy, sz] for sx in (-s[0], s[0]) for sy in (-s[1], s[1]) for sz in (-s[2], s[2])])
+                key = ("box", " ".join(f"{2 * v:.6f}" for v in s))
+            else:
+                mid = m.geom_dataid[g]
+                local = m.mesh_vert[m.mesh_vertadr[mid]:m.mesh_vertadr[mid] + m.mesh_vertnum[mid]]
+                key = ("mesh", mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_MESH, mid).replace(f"{p}_robotiq_", "") + "_hull.stl")
+            pts_m = (Tg[:3, :3] @ local.T).T + Tg[:3, 3]
+            rest = bname[len(f"{p}_robotiq_"):]
+            if rest in ("base", "base_mount"):
+                link = f"{p}_robotiq_85_base_link"
+            else:
+                s_, part = rest.split("_", 1)
+                link = f"{p}_robotiq_85_{side[s_]}_{link_of[part]}_link"
+            Tl = chain.link_pose(link, q)
+            best = np.inf
+            for kind, data, Tlg in cols[link]:
+                if (kind, data) != key:
+                    continue
+                Tw = Tl @ Tlg
+                pts_u = (Tw[:3, :3] @ local.T).T + Tw[:3, 3]
+                best = min(best, float(np.max(np.linalg.norm(pts_u - pts_m, axis=1))))
+            worst_vert = max(worst_vert, best)
+            assert best < POS_TOL, f"{gname or bname}: URDF collision vertices {best * 1000:.2f} mm from MJCF"
+    print(f"\n[{p}] gripper: worst pad frame {worst_pad[0] * 1000:.3f} mm / {np.degrees(worst_pad[1]):.3f} deg, "
+          f"worst collision vertex {worst_vert * 1000:.3f} mm over knuckle {GRIPPER_ANGLES}")

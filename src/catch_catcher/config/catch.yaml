@@ -1,0 +1,16 @@
+# Robot B catch parameters (catch_catcher). Metres, seconds, newtons, radians.
+intercept:
+  mode: plan_catch_point        # plan_catch_point | search (closest-to-home reachable point on the descending arc)
+  z_window: [1.0, 1.35]         # search mode: allowed intercept heights
+  min_joint_margin: 0.2
+trigger:
+  force_threshold: 8.0          # N above the pre-throw baseline of the palm force sensor
+  baseline_window: 0.2          # s of palm force averaged before the release to form the baseline
+  arm_before_release: 0.05      # s: start watching the force this long before the predicted release
+gripper:
+  open: 0.0
+  close: 0.70                   # never > 0.70 (palm insert clearance)
+  effort: 5.0
+  in_hand_knuckle: [0.36, 0.56]
+settle_time: 0.6                # s after the close command before judging "held"
+plan_timeout: 15.0              # s to wait for the live /throw_plan after ready

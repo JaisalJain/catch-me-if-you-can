@@ -1,0 +1,15 @@
+# Robot B: pre-position for the throw described by `plan` (a preview; absolute times may be zero), report
+# "ready", then arm on the live /throw_plan and close the gripper on the trigger.
+ThrowPlan plan
+string trigger          # "force" (default: palm force rises above its pre-throw baseline) | "time" (baseline)
+float64 time_offset     # time trigger only: close at predicted arrival + time_offset [s]
+float64 timeout         # s to wait for the live /throw_plan after "ready" (0 = default)
+---
+bool success            # cube held between the pads after the settle time
+string message
+float64 trigger_time_rel   # trigger time - predicted arrival at the intercept [s]
+float64 peak_force         # max baseline-subtracted palm force [N]
+float64 knuckle            # gripper position after settling
+geometry_msgs/Point intercept
+---
+string phase

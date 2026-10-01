@@ -42,7 +42,7 @@ def setup(context):
              parameters=[{"use_sim_time": True}, controllers, plugins], on_exit=Shutdown()),
     ]
     for c in ("joint_state_broadcaster", "arm_a_controller", "arm_b_controller", "gripper_a_controller",
-              "gripper_b_controller"):
+              "gripper_b_controller", "b_palm_ft_broadcaster"):
         nodes.append(Node(package="controller_manager", executable="spawner", output="log",
                           arguments=[c, "--param-file", controllers, "--controller-manager-timeout", "60"]))
     for exe in ("scene_manager", "ground_truth_tf", "rtf_monitor", "gpu_check", "camera_tf"):

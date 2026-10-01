@@ -7,7 +7,8 @@
   <xacro:arg name="ros2_control" default="true"/>
 
   <xacro:include filename="$(find ur_description)/urdf/ur_macro.xacro"/>
-  <xacro:include filename="$(find robotiq_description)/urdf/robotiq_2f_85_macro.urdf.xacro"/>
+  <!-- robotiq_description kinematics/visuals with the Menagerie collision geometry (tools/gen_gripper_urdf.py) -->
+  <xacro:include filename="$(find catch_description)/urdf/robotiq_2f85_catch.xacro"/>
 
   <xacro:property name="scene" value="${xacro.load_yaml('$(find catch_description)/config/scene.yaml')}"/>
   <xacro:property name="poses" value="${xacro.load_yaml('$(find catch_description)/config/poses.yaml')}"/>
@@ -87,9 +88,9 @@
       <origin xyz="${r['base_xy'][0]} ${r['base_xy'][1]} ${top_z + ph}" rpy="0 0 ${r['base_yaw']}"/>
     </xacro:ur_robot>
     <!-- 2F-85 mounted on tool0 at the same offset as the MJCF (Menagerie base_mount 7 mm + 3.8 mm) -->
-    <xacro:robotiq_gripper name="${key}_gripper" prefix="${key}_" parent="${key}_tool0" include_ros2_control="false">
+    <xacro:catch_gripper prefix="${key}_" parent="${key}_tool0">
       <origin xyz="0 0 ${mount}" rpy="0 0 0"/>
-    </xacro:robotiq_gripper>
+    </xacro:catch_gripper>
     <!-- primitive palm insert (same box as the MJCF), expressed in the robotiq base frame -->
     <link name="${key}_palm_insert">
       <visual><geometry><box size="${2 * ins['half_size'][1]} ${2 * ins['half_size'][0]} ${2 * ins['half_size'][2]}"/></geometry>
@@ -144,6 +145,13 @@
       </xacro:macro>
       <xacro:rc_arm key="a"/>
       <xacro:rc_arm key="b"/>
+      <!-- B's palm force/torque sensor (MuJoCo force+torque sensors on the welded palm-insert body) -->
+      <sensor name="b_palm_ft">
+        <param name="mujoco_type">fts</param>
+        <param name="mujoco_sensor_name">b_robotiq_palm_ft</param>
+        <state_interface name="force.x"/><state_interface name="force.y"/><state_interface name="force.z"/>
+        <state_interface name="torque.x"/><state_interface name="torque.y"/><state_interface name="torque.z"/>
+      </sensor>
     </ros2_control>
   </xacro:if>
 </robot>

@@ -107,13 +107,21 @@ def make_arm(scene, phys, with_camera=False):
     base = g.body("base")
     ins = scene["gripper"]["palm_insert"]
     hz = ins["half_size"][2]
-    base.add_geom(name="palm_insert", type=mujoco.mjtGeom.mjGEOM_BOX, size=ins["half_size"],
-                  pos=[0, 0, ins["top_z"] - hz], contype=INSERT_CONTYPE, conaffinity=INSERT_CONAFF,
+    # the palm insert is its own (welded) body so a force/torque sensor measures exactly the contact force the
+    # cube applies to the palm; it is exported to ROS as an FTS sensor (the MuJoCo touch sensor is kept for checks)
+    palm = base.add_body(name="palm", pos=[0, 0, ins["top_z"] - hz], gravcomp=1.0)
+    palm.add_geom(name="palm_insert", type=mujoco.mjtGeom.mjGEOM_BOX, size=ins["half_size"],
+                  contype=INSERT_CONTYPE, conaffinity=INSERT_CONAFF,
                   friction=phys["palm_insert"]["friction"], solref=phys["palm_insert"]["solref"],
-                  solimp=phys["palm_insert"]["solimp"], rgba=[0.25, 0.25, 0.28, 1], mass=0.0, group=1)
+                  solimp=phys["palm_insert"]["solimp"], rgba=[0.25, 0.25, 0.28, 1], mass=0.005, group=1)
+    palm.add_site(name="palm_ft", pos=[0, 0, 0], size=[0.003] * 3, rgba=[1, 0, 0, 0.0], group=4)
+    g.add_sensor(name="palm_ft_force", type=mujoco.mjtSensor.mjSENS_FORCE, objtype=mujoco.mjtObj.mjOBJ_SITE,
+                 objname="palm_ft")
+    g.add_sensor(name="palm_ft_torque", type=mujoco.mjtSensor.mjSENS_TORQUE, objtype=mujoco.mjtObj.mjOBJ_SITE,
+                 objname="palm_ft")
     # touch sensor zone: a thin site just covering the insert top face
-    base.add_site(name="palm_touch", type=mujoco.mjtGeom.mjGEOM_BOX,
-                  size=[ins["half_size"][0], ins["half_size"][1], 0.004], pos=[0, 0, ins["top_z"]],
+    palm.add_site(name="palm_touch", type=mujoco.mjtGeom.mjGEOM_BOX,
+                  size=[ins["half_size"][0], ins["half_size"][1], 0.004], pos=[0, 0, hz],
                   rgba=[0, 1, 0, 0.0], group=4)
     edge = scene["cube"]["edge"]
     # TCP: centre of a cube resting on the insert; oriented like tool0 (x = finger opening axis), i.e. the
@@ -134,7 +142,7 @@ def make_arm(scene, phys, with_camera=False):
         base.add_camera(name="wrist_cam", pos=p.tolist(), quat=_axes_quat(xax, yax), fovy=cam["fovy"],
                         resolution=cam["resolution"])
         base.add_geom(name="wrist_cam_housing", type=mujoco.mjtGeom.mjGEOM_BOX, size=[0.012, 0.015, 0.012],
-                      pos=(p + np.array([0.012, 0, 0])).tolist(), contype=0, conaffinity=0, group=2,
+                      pos=(p - 0.014 * fwd).tolist(), contype=0, conaffinity=0, group=2,
                       rgba=[0.1, 0.1, 0.1, 1])
     ur.attach(g, prefix="robotiq_", site=ur.site("attachment_site"))
     return ur

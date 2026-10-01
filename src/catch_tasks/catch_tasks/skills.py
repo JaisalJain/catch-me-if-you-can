@@ -127,11 +127,10 @@ class Skills:
         return False, msg
 
     def _vertical(self, robot, R, p):
-        """Short straight vertical TCP move inside the slot column. MoveIt collision checking is OFF here: the
-        URDF fingertip meshes do not match the MJCF pads (which are what physically exist); finger/border clearance
-        is guaranteed by the place-height formula and verified in MuJoCo (tools/pick_geometry.py)."""
+        """Short straight vertical TCP move (collision-checked by MoveIt; the URDF gripper collision geometry is
+        the MuJoCo one, verified < 1 mm by test_fk_agreement)."""
         return self.mi.move_cartesian(robot, [pose_from(R, p)], vel_scale=self.cfg["cartesian_vel_scale"],
-                                      avoid_collisions=False)
+                                      avoid_collisions=True)
 
     def _vs(self):
         self.mi.vel_scale = self.mi.acc_scale = self.cfg["free_vel_scale"]

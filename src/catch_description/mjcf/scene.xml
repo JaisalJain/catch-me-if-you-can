@@ -288,9 +288,7 @@
                       <inertial pos="0 -2.70394e-05 0.0354675" quat="0.999999 -0.00152849 0 0" mass="0.777441" diaginertia="0.000260285 0.000225381 0.000152708"/>
                       <geom class="a_robotiq_visual" material="a_robotiq_black" mesh="a_robotiq_base"/>
                       <geom class="a_robotiq_collision" mesh="a_robotiq_base"/>
-                      <geom name="a_robotiq_palm_insert" size="0.02 0.006 0.015" pos="0 0 0.095" type="box" contype="0" conaffinity="2" group="1" friction="0.9 0.01 0.001" solref="0.004" solimp="0.95 0.99" rgba="0.25 0.25 0.28 1" mass="0"/>
                       <site name="a_robotiq_pinch" group="5" pos="0 0 0.145" rgba="0.9 0.9 0.9 1"/>
-                      <site name="a_robotiq_palm_touch" size="0.02 0.006 0.004" type="box" group="4" pos="0 0 0.11" rgba="0 1 0 0"/>
                       <site name="a_robotiq_tcp" quat="0.707107 0 0 0.707107" size="0.004" group="4" pos="0 0 0.13" rgba="1 1 0 0"/>
                       <body name="a_robotiq_right_driver" pos="0 0.0306011 0.054904" gravcomp="1">
                         <inertial pos="2.96931e-12 0.0177547 0.00107314" quat="0.681301 0.732003 0 0" mass="0.00899563" diaginertia="1.72352e-06 1.60906e-06 3.22006e-07"/>
@@ -357,6 +355,11 @@
                             </body>
                           </body>
                         </body>
+                      </body>
+                      <body name="a_robotiq_palm" pos="0 0 0.095" gravcomp="1">
+                        <geom name="a_robotiq_palm_insert" size="0.02 0.006 0.015" type="box" contype="0" conaffinity="2" group="1" friction="0.9 0.01 0.001" solref="0.004" solimp="0.95 0.99" rgba="0.25 0.25 0.28 1" mass="0.005"/>
+                        <site name="a_robotiq_palm_ft" size="0.003" group="4" rgba="1 0 0 0"/>
+                        <site name="a_robotiq_palm_touch" size="0.02 0.006 0.004" type="box" group="4" pos="0 0 0.015" rgba="0 1 0 0"/>
                       </body>
                     </body>
                   </body>
@@ -425,12 +428,10 @@
                       <inertial pos="0 -2.70394e-05 0.0354675" quat="0.999999 -0.00152849 0 0" mass="0.777441" diaginertia="0.000260285 0.000225381 0.000152708"/>
                       <geom class="b_robotiq_visual" material="b_robotiq_black" mesh="b_robotiq_base"/>
                       <geom class="b_robotiq_collision" mesh="b_robotiq_base"/>
-                      <geom name="b_robotiq_palm_insert" size="0.02 0.006 0.015" pos="0 0 0.095" type="box" contype="0" conaffinity="2" group="1" friction="0.9 0.01 0.001" solref="0.004" solimp="0.95 0.99" rgba="0.25 0.25 0.28 1" mass="0"/>
-                      <geom name="b_robotiq_wrist_cam_housing" size="0.012 0.015 0.012" pos="0.112 0 0.13" type="box" contype="0" conaffinity="0" group="2" rgba="0.1 0.1 0.1 1"/>
+                      <geom name="b_robotiq_wrist_cam_housing" size="0.012 0.015 0.012" pos="0 0.13381 0.152302" type="box" contype="0" conaffinity="0" group="2" rgba="0.1 0.1 0.1 1"/>
                       <site name="b_robotiq_pinch" group="5" pos="0 0 0.145" rgba="0.9 0.9 0.9 1"/>
-                      <site name="b_robotiq_palm_touch" size="0.02 0.006 0.004" type="box" group="4" pos="0 0 0.11" rgba="0 1 0 0"/>
                       <site name="b_robotiq_tcp" quat="0.707107 0 0 0.707107" size="0.004" group="4" pos="0 0 0.13" rgba="1 1 0 0"/>
-                      <camera name="b_robotiq_wrist_cam" quat="0.5 0.5 0.5 0.5" resolution="320 240" pos="0.1 0 0.13" fovy="60"/>
+                      <camera name="b_robotiq_wrist_cam" quat="0 0 0.646375 0.76302" resolution="320 240" pos="0 0.12 0.15" fovy="60"/>
                       <body name="b_robotiq_right_driver" pos="0 0.0306011 0.054904" gravcomp="1">
                         <inertial pos="2.96931e-12 0.0177547 0.00107314" quat="0.681301 0.732003 0 0" mass="0.00899563" diaginertia="1.72352e-06 1.60906e-06 3.22006e-07"/>
                         <joint name="b_robotiq_85_left_knuckle_joint" class="b_robotiq_driver"/>
@@ -496,6 +497,11 @@
                             </body>
                           </body>
                         </body>
+                      </body>
+                      <body name="b_robotiq_palm" pos="0 0 0.095" gravcomp="1">
+                        <geom name="b_robotiq_palm_insert" size="0.02 0.006 0.015" type="box" contype="0" conaffinity="2" group="1" friction="0.9 0.01 0.001" solref="0.004" solimp="0.95 0.99" rgba="0.25 0.25 0.28 1" mass="0.005"/>
+                        <site name="b_robotiq_palm_ft" size="0.003" group="4" rgba="1 0 0 0"/>
+                        <site name="b_robotiq_palm_touch" size="0.02 0.006 0.004" type="box" group="4" pos="0 0 0.015" rgba="0 1 0 0"/>
                       </body>
                     </body>
                   </body>
@@ -609,7 +615,11 @@
   </actuator>
 
   <sensor>
+    <force site="a_robotiq_palm_ft" name="a_robotiq_palm_ft_force"/>
+    <torque site="a_robotiq_palm_ft" name="a_robotiq_palm_ft_torque"/>
     <touch site="a_robotiq_palm_touch" name="a_robotiq_palm_touch"/>
+    <force site="b_robotiq_palm_ft" name="b_robotiq_palm_ft_force"/>
+    <torque site="b_robotiq_palm_ft" name="b_robotiq_palm_ft_torque"/>
     <touch site="b_robotiq_palm_touch" name="b_robotiq_palm_touch"/>
   </sensor>
 

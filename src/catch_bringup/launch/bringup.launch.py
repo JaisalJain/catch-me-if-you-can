@@ -34,6 +34,7 @@ def generate_launch_description():
         Node(package="catch_perception", executable="pallet_detector", output="log", parameters=[{"use_sim_time": True}]),
         Node(package="catch_perception", executable="color_check", output="both", parameters=[{"use_sim_time": True}]),
         Node(package="catch_throw", executable="throw_node", output="both", parameters=[{"use_sim_time": True}]),
+        Node(package="catch_catcher", executable="catcher", output="both", parameters=[{"use_sim_time": True}]),
         Node(package="rviz2", executable="rviz2", arguments=["-d", rviz_cfg], output="log",
              condition=IfCondition(LaunchConfiguration("rviz")),
              parameters=[mc.robot_description, mc.robot_description_semantic, mc.robot_description_kinematics,

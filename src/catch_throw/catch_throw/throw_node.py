@@ -29,6 +29,7 @@ from trajectory_msgs.msg import JointTrajectoryPoint
 from catch_ballistics import velocity_for_launch_angle
 from catch_interfaces.action import Throw
 from catch_interfaces.msg import ThrowPlan
+from catch_interfaces.srv import GetThrowPlan
 from catch_kinematics import UR5e
 from catch_kinematics.transforms import make_tf, rot_z
 
@@ -89,6 +90,23 @@ def load_feedforward(n_samples):
     return np.array(ff["tau"]), "ok"
 
 
+def plan_msg(plan, flight_time, catch_point, cube_id="", t0=None, now=0.0):
+    """ThrowPlan message; with t0=None the absolute times are left zero (preview)."""
+    msg = ThrowPlan()
+    msg.header.stamp = to_time(now)
+    msg.header.frame_id = "world"
+    msg.cube_id = cube_id
+    msg.release_position = Point(x=float(plan.p_release[0]), y=float(plan.p_release[1]), z=float(plan.p_release[2]))
+    msg.release_velocity = Vector3(x=float(plan.v_release[0]), y=float(plan.v_release[1]), z=float(plan.v_release[2]))
+    msg.release_spin = Vector3(x=float(plan.spin[0]), y=float(plan.spin[1]), z=float(plan.spin[2]))
+    if t0 is not None:
+        msg.release_time = to_time(t0 + plan.t_release)
+        msg.stroke_start_time = to_time(t0)
+    msg.flight_time = float(flight_time)
+    msg.catch_point = Point(x=float(catch_point[0]), y=float(catch_point[1]), z=float(catch_point[2]))
+    return msg
+
+
 class ThrowNode(Node):
     def __init__(self):
         super().__init__("throw_node")
@@ -114,12 +132,18 @@ class ThrowNode(Node):
                                 callback_group=cb)
         self.grip = ActionClient(self, GripperCommand, "/gripper_a_controller/gripper_cmd", callback_group=cb)
         ActionServer(self, Throw, "/throw", self.execute, callback_group=cb)
+        self.create_service(GetThrowPlan, "/throw/preview", self.on_preview, callback_group=cb)
         m = self.plan.metrics
         self.get_logger().info(
             f"throw plan: release {np.round(self.plan.p_release, 3).tolist()} v {np.round(self.plan.v_release, 3).tolist()} "
             f"(|v| {np.linalg.norm(self.plan.v_release):.3f} m/s) spin {np.round(self.plan.spin, 2).tolist()} rad/s, "
             f"t_release {self.plan.t_release:.3f} s into a {m['duration']:.3f} s stroke; peak |qd|/limit "
             f"{m['vel_ratio_max']:.2f}; loosen gripper to {self.loosen_to} at t={self.t_loosen:.3f} s")
+
+    def on_preview(self, req, res):
+        res.success = True
+        res.plan = plan_msg(self.plan, self.flight_time, self.catch_point, now=self.now())
+        return res
 
     def now(self):
         return self.get_clock().now().nanoseconds * 1e-9
@@ -146,17 +170,7 @@ class ThrowNode(Node):
         self.t_loosen = self.get_parameter("t_loosen").value
         t0 = self.now() + lead
         p = self.plan
-        msg = ThrowPlan()
-        msg.header.stamp = to_time(self.now())
-        msg.header.frame_id = "world"
-        msg.cube_id = gh.request.cube_id
-        msg.release_position = Point(x=float(p.p_release[0]), y=float(p.p_release[1]), z=float(p.p_release[2]))
-        msg.release_velocity = Vector3(x=float(p.v_release[0]), y=float(p.v_release[1]), z=float(p.v_release[2]))
-        msg.release_spin = Vector3(x=float(p.spin[0]), y=float(p.spin[1]), z=float(p.spin[2]))
-        msg.release_time = to_time(t0 + p.t_release)
-        msg.stroke_start_time = to_time(t0)
-        msg.flight_time = float(self.flight_time)
-        msg.catch_point = Point(x=float(self.catch_point[0]), y=float(self.catch_point[1]), z=float(self.catch_point[2]))
+        msg = plan_msg(p, self.flight_time, self.catch_point, gh.request.cube_id, t0, self.now())
         self.plan_pub.publish(msg)
 
         goal = FollowJointTrajectory.Goal()

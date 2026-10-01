@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(catch_description)
 find_package(ament_cmake REQUIRED)
-install(DIRECTORY config mjcf urdf launch rviz DESTINATION share/${PROJECT_NAME})
+install(DIRECTORY config mjcf urdf meshes launch rviz DESTINATION share/${PROJECT_NAME})
 install(PROGRAMS scripts/build_mjcf.py DESTINATION lib/${PROJECT_NAME})
 if(BUILD_TESTING)
   find_package(ament_cmake_pytest REQUIRED)

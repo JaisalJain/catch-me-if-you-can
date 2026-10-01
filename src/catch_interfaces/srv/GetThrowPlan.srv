@@ -1,0 +1,4 @@
+# Preview of the configured throw (release state relative to the stroke start; absolute times are zero).
+---
+bool success
+ThrowPlan plan

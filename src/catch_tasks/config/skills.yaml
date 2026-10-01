@@ -2,8 +2,7 @@
 approach_height: 0.10          # pre-grasp / pre-place height of the TCP above the target cube centre
 grasp_offset: 0.017            # TCP this far above the cube centre for a top grasp: the closing pads move 11 mm towards
                                # the fingertips; below 17 mm they touch the slot borders (tools/pick_geometry.py)
-place_clearance: 0.010         # minimum height of the cube bottom above the pallet surface when the gripper opens
-                               # (URDF fingertips reach ~4 mm lower than the MJCF pads; MoveIt needs >= 10 mm)
+place_clearance: 0.004         # minimum height of the cube bottom above the pallet surface when the gripper opens
 pad_reach: 0.033               # closed pads (on a 40 mm cube) reach this far past the TCP along tool z
 border_margin: 0.002           # fingertips stay this far above the slot borders when placing
 gripper_open: 0.0
