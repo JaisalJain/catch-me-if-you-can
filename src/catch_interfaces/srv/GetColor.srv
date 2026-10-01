@@ -1,0 +1,8 @@
+# Classify the color of the cube in view of a camera (B's wrist camera by default).
+string camera
+---
+bool success
+string color          # red | green | blue | "" if none
+float64 confidence    # fraction of ROI pixels of the winning color
+float64[] fractions   # [red, green, blue]
+string message

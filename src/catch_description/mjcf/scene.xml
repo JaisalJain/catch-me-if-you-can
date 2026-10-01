@@ -10,7 +10,7 @@
 
   <visual>
     <global offwidth="1280" offheight="720"/>
-    <headlight ambient="0.25 0.25 0.25" diffuse="0.5 0.5 0.5"/>
+    <headlight ambient="0.12 0.12 0.12" diffuse="0.25 0.25 0.25" specular="0 0 0"/>
   </visual>
 
   <default>
@@ -223,13 +223,13 @@
     <geom name="a_mount_plate" size="0.09 0.004" pos="-0.8 0 1.104" type="cylinder" contype="0" conaffinity="0" material="steel"/>
     <geom name="b_pedestal" size="0.09 0.09 0.175" pos="0.8 0 0.925" type="box" material="steel"/>
     <geom name="b_mount_plate" size="0.09 0.004" pos="0.8 0 1.104" type="cylinder" contype="0" conaffinity="0" material="steel"/>
-    <camera name="overhead_a" resolution="640 480" pos="-0.55 -0.28 1.45"/>
-    <camera name="overhead_b" resolution="640 480" pos="0.55 -0.28 1.45"/>
+    <camera name="overhead_a" resolution="640 480" pos="-0.55 -0.28 1.45" fovy="32"/>
+    <camera name="overhead_b" resolution="640 480" pos="0.55 -0.28 1.45" fovy="32"/>
     <camera name="side" quat="0.707107 0.707107 0 0" resolution="640 480" pos="0 -1.7 1.05" fovy="50"/>
     <camera name="demo" quat="0.851827 0.523823 0 0" pos="0 -2.3 1.85"/>
-    <light name="key" pos="0.6 -1.2 3" dir="-0.182574 0.365148 -0.912871" diffuse="0.65 0.65 0.62"/>
-    <light name="fill" castshadow="false" pos="-1.5 1.5 2.5" dir="0.408248 -0.408248 -0.816497" diffuse="0.25 0.25 0.28"/>
-    <light name="top" castshadow="false" pos="0 0 3" diffuse="0.3 0.3 0.3"/>
+    <light name="key" pos="0.6 -1.2 3" dir="-0.182574 0.365148 -0.912871" diffuse="0.45 0.45 0.45" specular="0.1 0.1 0.1"/>
+    <light name="fill" castshadow="false" pos="-1.5 1.5 2.5" dir="0.408248 -0.408248 -0.816497" diffuse="0.18 0.18 0.18" specular="0 0 0"/>
+    <light name="top" castshadow="false" pos="0 0 3" diffuse="0.2 0.2 0.2" specular="0 0 0"/>
     <light name="a_spotlight" target="a_wrist_2_link" pos="-0.8 1 3.1" mode="targetbodycom"/>
     <body name="a_base" childclass="a_ur5e" pos="-0.8 0 1.1" gravcomp="1">
       <inertial pos="0 0 0" mass="4" diaginertia="0.00443333 0.00443333 0.0072"/>

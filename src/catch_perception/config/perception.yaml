@@ -1,0 +1,13 @@
+# HSV thresholds in OpenCV units (H 0-179, S/V 0-255). Tuned on the M3 renders (see docs/m3_perception_pick_place.md).
+colors:
+  red:   {h: [[0, 8], [170, 179]], s_min: 120, v_min: 60}
+  green: {h: [[45, 85]], s_min: 120, v_min: 60}
+  blue:  {h: [[100, 130]], s_min: 120, v_min: 60}
+pallet_detector:
+  cameras: [overhead_a, overhead_b]
+  core_px: 7          # distance-transform threshold separating a cube top (~48 px) from its slot border (~10 px)
+  min_core_area: 150  # px
+color_check:
+  camera: b_wrist
+  roi: [0.25, 0.15, 0.75, 0.85]   # (u0, v0, u1, v1) fractions of the image around the palm
+  min_fraction: 0.08               # fraction of ROI pixels of the winning color

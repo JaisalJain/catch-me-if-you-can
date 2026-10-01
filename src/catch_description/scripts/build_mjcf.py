@@ -167,8 +167,10 @@ def build(scene, phys):
     o.impratio = phys["impratio"]
     spec.visual.global_.offwidth = 1280
     spec.visual.global_.offheight = 720
-    spec.visual.headlight.ambient = [0.25, 0.25, 0.25]
-    spec.visual.headlight.diffuse = [0.5, 0.5, 0.5]
+    light = scene["lighting"]
+    spec.visual.headlight.ambient = [light["headlight_ambient"]] * 3
+    spec.visual.headlight.diffuse = [light["headlight_diffuse"]] * 3
+    spec.visual.headlight.specular = [0.0] * 3
     spec.visual.quality.shadowsize = 4096
     spec.stat.center = [0, 0, 0.9]
     spec.stat.extent = 1.6
@@ -192,10 +194,12 @@ def build(scene, phys):
     spec.add_material(name="pallet_mat", rgba=[0.80, 0.80, 0.78, 1])
 
     w = spec.worldbody
-    w.add_light(name="key", pos=[0.6, -1.2, 3.0], dir=[-0.2, 0.4, -1], diffuse=[0.65, 0.65, 0.62], castshadow=True)
-    w.add_light(name="fill", pos=[-1.5, 1.5, 2.5], dir=[0.5, -0.5, -1], diffuse=[0.25, 0.25, 0.28],
+    w.add_light(name="key", pos=[0.6, -1.2, 3.0], dir=[-0.2, 0.4, -1], diffuse=[light["key"]] * 3,
+                specular=[0.1] * 3, castshadow=True)
+    w.add_light(name="fill", pos=[-1.5, 1.5, 2.5], dir=[0.5, -0.5, -1], diffuse=[light["fill"]] * 3,
+                specular=[0.0] * 3, castshadow=False)
+    w.add_light(name="top", pos=[0, 0, 3.0], dir=[0, 0, -1], diffuse=[light["top"]] * 3, specular=[0.0] * 3,
                 castshadow=False)
-    w.add_light(name="top", pos=[0, 0, 3.0], dir=[0, 0, -1], diffuse=[0.3, 0.3, 0.3], castshadow=False)
     w.add_geom(name="floor", type=mujoco.mjtGeom.mjGEOM_PLANE, size=[4, 4, 0.05], material="floor_mat")
 
     # --- table: top + legs (boxes) ---
