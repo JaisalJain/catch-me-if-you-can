@@ -12,7 +12,8 @@ robots:                     # base z = table top + pedestal_height (pedestal = p
 gripper:
   mount_offset: 0.0108      # tool0 -> robotiq base origin along tool z (Menagerie base_mount 0.007 + 0.0038)
   palm_insert:              # primitive palm insert in the robotiq base frame; collides with cubes only
-    half_size: [0.020, 0.012, 0.015]   # x (finger-plate width dir), y (opening dir), z
+    half_size: [0.020, 0.006, 0.015]   # x (finger-plate width dir), y (opening dir), z. 12 mm wide: the spring
+                                       # links stay > 1 mm away up to driver angle 0.71 (we never command > 0.70)
     top_z: 0.110
 cube:
   edge: 0.040

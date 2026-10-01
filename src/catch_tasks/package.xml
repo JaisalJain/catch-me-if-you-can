@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>catch_tasks</name>
+  <version>0.1.0</version>
+  <description>Pick/place skills, MoveIt client and the task state machine.</description>
+  <maintainer email="jaisaljain345@gmail.com">jaisaljain</maintainer>
+  <license>Apache-2.0</license>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>moveit_msgs</exec_depend>
+  <exec_depend>control_msgs</exec_depend>
+  <exec_depend>shape_msgs</exec_depend>
+  <exec_depend>catch_interfaces</exec_depend>
+  <exec_depend>catch_kinematics</exec_depend>
+  <exec_depend>catch_sim</exec_depend>
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+  <test_depend>python3-pytest</test_depend>
+  <export><build_type>ament_python</build_type></export>
+</package>

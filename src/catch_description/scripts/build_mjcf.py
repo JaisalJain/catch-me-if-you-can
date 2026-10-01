@@ -116,7 +116,10 @@ def make_arm(scene, phys, with_camera=False):
                   size=[ins["half_size"][0], ins["half_size"][1], 0.004], pos=[0, 0, ins["top_z"]],
                   rgba=[0, 1, 0, 0.0], group=4)
     edge = scene["cube"]["edge"]
-    base.add_site(name="tcp", pos=[0, 0, ins["top_z"] + edge / 2], size=[0.004] * 3, rgba=[1, 1, 0, 0.0], group=4)
+    # TCP: centre of a cube resting on the insert; oriented like tool0 (x = finger opening axis), i.e. the
+    # Menagerie base frame rotated +90 deg about z
+    base.add_site(name="tcp", pos=[0, 0, ins["top_z"] + edge / 2], quat=_quat_z(np.pi / 2), size=[0.004] * 3,
+                  rgba=[1, 1, 0, 0.0], group=4)
     g.add_sensor(name="palm_touch", type=mujoco.mjtSensor.mjSENS_TOUCH, objtype=mujoco.mjtObj.mjOBJ_SITE,
                  objname="palm_touch")
     if with_camera:

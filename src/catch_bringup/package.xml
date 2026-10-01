@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>catch_bringup</name>
+  <version>0.1.0</version>
+  <description>Top-level launch files and RViz config.</description>
+  <maintainer email="jaisaljain345@gmail.com">jaisaljain</maintainer>
+  <license>Apache-2.0</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <exec_depend>catch_sim</exec_depend>
+  <exec_depend>catch_moveit_config</exec_depend>
+  <exec_depend>rviz2</exec_depend>
+  <exec_depend>moveit_ros_visualization</exec_depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>

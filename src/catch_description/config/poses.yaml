@@ -1,0 +1,8 @@
+# Named joint configurations [shoulder_pan, shoulder_lift, elbow, wrist_1, wrist_2, wrist_3] (rad).
+# home: TCP 0.35 m in front of the base, z = 1.00 m, gripper pointing down, fingers along world y
+#       (closed-form IK, catch_kinematics). Used as the ros2_control initial state and the SRDF "home" state.
+a:
+  home: [-0.3907, -1.0556, 2.5894, -3.1046, -1.5708, 2.7509]
+  pre_throw: [0.2178, -0.0930, 1.5341, -2.3863, 1.6997, -0.1761]   # start of the M1 throw stroke
+b:
+  home: [-0.3907, -1.0556, 2.5894, -3.1046, -1.5708, 2.7509]

@@ -1,0 +1,4 @@
+# Put all cubes back on A's pallet slots (sim only). Arms are not moved.
+---
+bool success
+string message

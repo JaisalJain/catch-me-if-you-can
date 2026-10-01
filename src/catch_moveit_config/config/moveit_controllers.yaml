@@ -1,0 +1,27 @@
+moveit_controller_manager: moveit_simple_controller_manager/MoveItSimpleControllerManager
+moveit_simple_controller_manager:
+  controller_names: [arm_a_controller, arm_b_controller, gripper_a_controller, gripper_b_controller]
+  arm_a_controller:
+    type: FollowJointTrajectory
+    action_ns: follow_joint_trajectory
+    default: true
+    joints: [a_shoulder_pan_joint, a_shoulder_lift_joint, a_elbow_joint, a_wrist_1_joint, a_wrist_2_joint, a_wrist_3_joint]
+  gripper_a_controller:
+    type: GripperCommand
+    action_ns: gripper_cmd
+    default: true
+    joints: [a_robotiq_85_left_knuckle_joint]
+  arm_b_controller:
+    type: FollowJointTrajectory
+    action_ns: follow_joint_trajectory
+    default: true
+    joints: [b_shoulder_pan_joint, b_shoulder_lift_joint, b_elbow_joint, b_wrist_1_joint, b_wrist_2_joint, b_wrist_3_joint]
+  gripper_b_controller:
+    type: GripperCommand
+    action_ns: gripper_cmd
+    default: true
+    joints: [b_robotiq_85_left_knuckle_joint]
+trajectory_execution:
+  allowed_execution_duration_scaling: 1.3
+  allowed_goal_duration_margin: 0.5
+  allowed_start_tolerance: 0.02

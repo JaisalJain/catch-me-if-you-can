@@ -1,0 +1,6 @@
+# Teleport a cube (sim only): where = "gripper_a" | "gripper_b" | "pallet_a" | "pallet_b" | "home"
+string color
+string where
+---
+bool success
+string message

@@ -1,0 +1,8 @@
+# Robot A: throw the cube currently held in gripper A (cube_id given by the caller for logging).
+string cube_id
+---
+bool success
+string message
+ThrowPlan plan
+---
+string phase

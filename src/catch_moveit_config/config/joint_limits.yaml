@@ -1,0 +1,19 @@
+# MoveIt time-parameterisation limits. Velocities = UR5e limits; accelerations are conservative choices for
+# free-space moves (UR publishes no acceleration limit). The throw does NOT go through MoveIt.
+default_velocity_scaling_factor: 0.5
+default_acceleration_scaling_factor: 0.5
+joint_limits:
+  a_shoulder_pan_joint: {has_velocity_limits: true, max_velocity: 3.1416, has_acceleration_limits: true, max_acceleration: 5.0}
+  a_shoulder_lift_joint: {has_velocity_limits: true, max_velocity: 3.1416, has_acceleration_limits: true, max_acceleration: 5.0}
+  a_elbow_joint: {has_velocity_limits: true, max_velocity: 3.1416, has_acceleration_limits: true, max_acceleration: 5.0}
+  a_wrist_1_joint: {has_velocity_limits: true, max_velocity: 3.1416, has_acceleration_limits: true, max_acceleration: 5.0}
+  a_wrist_2_joint: {has_velocity_limits: true, max_velocity: 3.1416, has_acceleration_limits: true, max_acceleration: 5.0}
+  a_wrist_3_joint: {has_velocity_limits: true, max_velocity: 3.1416, has_acceleration_limits: true, max_acceleration: 5.0}
+  a_robotiq_85_left_knuckle_joint: {has_velocity_limits: true, max_velocity: 2.0, has_acceleration_limits: true, max_acceleration: 10.0}
+  b_shoulder_pan_joint: {has_velocity_limits: true, max_velocity: 3.1416, has_acceleration_limits: true, max_acceleration: 5.0}
+  b_shoulder_lift_joint: {has_velocity_limits: true, max_velocity: 3.1416, has_acceleration_limits: true, max_acceleration: 5.0}
+  b_elbow_joint: {has_velocity_limits: true, max_velocity: 3.1416, has_acceleration_limits: true, max_acceleration: 5.0}
+  b_wrist_1_joint: {has_velocity_limits: true, max_velocity: 3.1416, has_acceleration_limits: true, max_acceleration: 5.0}
+  b_wrist_2_joint: {has_velocity_limits: true, max_velocity: 3.1416, has_acceleration_limits: true, max_acceleration: 5.0}
+  b_wrist_3_joint: {has_velocity_limits: true, max_velocity: 3.1416, has_acceleration_limits: true, max_acceleration: 5.0}
+  b_robotiq_85_left_knuckle_joint: {has_velocity_limits: true, max_velocity: 2.0, has_acceleration_limits: true, max_acceleration: 10.0}
