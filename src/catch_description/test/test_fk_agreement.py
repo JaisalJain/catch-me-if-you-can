@@ -6,6 +6,7 @@ Compared frames per arm, at 50 random joint configurations within the joint limi
     tool0  (URDF <p>tool0)               vs MJCF site <p>attachment_site
     TCP    (URDF <p>tcp)                  vs MJCF site <p>robotiq_tcp
     gripper base (URDF <p>robotiq_85_base_link * Rz(-90deg)) vs MJCF body <p>robotiq_base
+    B's wrist camera (URDF b_wrist_cam_optical * diag(1,-1,-1)) vs MJCF camera b_robotiq_wrist_cam
 """
 import glob
 import os
@@ -42,6 +43,10 @@ def models():
 
 
 def _mj_pose(m, d, kind, name):
+    if kind == "camera":
+        i = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_CAMERA, name)
+        assert i >= 0, name
+        return make_tf(d.cam_xmat[i].reshape(3, 3), d.cam_xpos[i])
     if kind == "site":
         i = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_SITE, name)
         assert i >= 0, name
@@ -59,6 +64,8 @@ def test_fk_agreement(models, p):
     pairs = [(f"{p}_tool0", np.eye(4), "site", f"{p}_attachment_site"),
              (f"{p}_tcp", np.eye(4), "site", f"{p}_robotiq_tcp"),
              (f"{p}_robotiq_85_base_link", make_tf(rot_z(-np.pi / 2)), "body", f"{p}_robotiq_base")]
+    if p == "b":   # ROS optical frame (x right, y down, z forward) vs MuJoCo camera (x right, y up, looks along -z)
+        pairs.append(("b_wrist_cam_optical", make_tf(np.diag([1.0, -1.0, -1.0])), "camera", "b_robotiq_wrist_cam"))
     worst_p, worst_a = 0.0, 0.0
     for _ in range(N_SAMPLES):
         q = rng.uniform(-np.pi, np.pi, 6)
@@ -66,6 +73,8 @@ def test_fk_agreement(models, p):
         d.qpos[:] = m.qpos0
         d.qpos[qadr] = q
         mujoco.mj_kinematics(m, d)
+        mujoco.mj_comPos(m, d)
+        mujoco.mj_camlight(m, d)      # camera poses are not part of mj_kinematics
         qd = {f"{p}_{j}": v for j, v in zip(JN, q)}
         for link, offset, kind, mjname in pairs:
             Tu = chain.link_pose(link, qd) @ offset

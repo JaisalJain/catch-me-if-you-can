@@ -16,4 +16,5 @@ throw:
   release:
     t_loosen: 0.12     # s after stroke start: open the grip to `loosen_to` while the arm is accelerating
     loosen_to: 0.30    # knuckle angle (~55 mm gap): cube free on the palm, still flanked by the fingers
-    loosen_effort: 5.0
+    hold: 0.70         # grip command while holding the cube (= skills gripper_close; never > 0.70)
+    loosen_ramp: 0.004 # s for the command step hold -> loosen_to (executed by gripper_a_controller, sim time)

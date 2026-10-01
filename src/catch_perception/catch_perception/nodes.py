@@ -10,12 +10,28 @@ from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from sensor_msgs.msg import CameraInfo, Image
-from tf2_ros import Buffer, TransformListener
+from rclpy.qos import DurabilityPolicy, QoSProfile
+from tf2_msgs.msg import TFMessage
+from tf2_ros import Buffer
 
 from catch_interfaces.msg import CubeDetection, CubeDetectionArray
-from catch_interfaces.srv import GetColor
+from catch_interfaces.srv import GetColor, GetInHandPose
 
-from .vision import cube_blobs, dominant_color, pixel_ray_plane
+from .vision import cube_blobs, dominant_color, in_hand_pose, pixel_ray_plane
+
+
+def static_tf_buffer(node, callback_group=None):
+    """TF buffer fed from /tf_static only. All transforms these nodes need (camera mounts, b_tcp -> wrist camera)
+    are static; a full TransformListener would also process the 500 Hz /tf stream and starve the executor."""
+    buf = Buffer()
+
+    def on_static(msg):
+        for t in msg.transforms:
+            buf.set_transform_static(t, "tf_static")
+    node.create_subscription(TFMessage, "/tf_static", on_static,
+                             QoSProfile(depth=100, durability=DurabilityPolicy.TRANSIENT_LOCAL),
+                             callback_group=callback_group)
+    return buf
 
 
 def load_cfg():
@@ -58,8 +74,7 @@ class PalletDetector(Node):
         bx, by = p["base_size"][0] / 2, p["base_size"][1] / 2
         self.pallet_boxes = [(p[k]["center"][0] - bx, p[k]["center"][0] + bx, p[k]["center"][1] - by, p[k]["center"][1] + by)
                              for k in ("a", "b")]
-        self.tf = Buffer()
-        TransformListener(self.tf, self)
+        self.tf = static_tf_buffer(self)
         self.info, self.pubs = {}, {}
         for cam in self.pd["cameras"]:
             self.pubs[cam] = self.create_publisher(CubeDetectionArray, f"/perception/{cam}/cubes", 10)
@@ -113,6 +128,14 @@ class ColorCheck(Node):
             self.create_subscription(Image, f"/cameras/{cam}/image_raw", lambda m, c=cam: self.latest.__setitem__(c, m),
                                      1, callback_group=cb)
         self.create_service(GetColor, "/perception/get_color", self.on_req, callback_group=cb)
+        # in-hand pose of the caught cube (wrist camera looks along the closing axis)
+        self.edge = load_scene()["cube"]["edge"]
+        self.ih = cfg["in_hand"]
+        self.info = None
+        self.create_subscription(CameraInfo, "/cameras/b_wrist/camera_info", lambda m: setattr(self, "info", m), 1,
+                                 callback_group=cb)
+        self.tf = static_tf_buffer(self, cb)
+        self.create_service(GetInHandPose, "/perception/in_hand_pose", self.on_in_hand, callback_group=cb)
 
     def on_req(self, req, res):
         cam = req.camera or self.cc["camera"]
@@ -128,6 +151,38 @@ class ColorCheck(Node):
         else:
             res.success, res.color, res.message = True, best, f"{best} {frac:.3f}"
         self.get_logger().info(f"get_color({cam}): {res.message} fractions={np.round(res.fractions, 3).tolist()}")
+        return res
+
+
+    def on_in_hand(self, req, res):
+        msg = self.latest.get("b_wrist")
+        if msg is None or self.info is None:
+            res.success, res.message = False, "no wrist image / camera_info"
+            return res
+        try:
+            tf = self.tf.lookup_transform("b_tcp", msg.header.frame_id, rclpy.time.Time())
+        except Exception as e:  # noqa: BLE001
+            res.success, res.message = False, f"no TF b_tcp <- {msg.header.frame_id}: {e}"
+            return res
+        T = np.eye(4)
+        T[:3, :3] = _quat_to_R(tf.transform.rotation)
+        T[:3, 3] = [tf.transform.translation.x, tf.transform.translation.y, tf.transform.translation.z]
+        rgb = to_rgb(msg)
+        color = req.color or dominant_color(rgb, self.colors, self.cc["roi"])[0]
+        r = in_hand_pose(rgb, self.colors[color], np.array(self.info.k).reshape(3, 3), T, self.edge,
+                         self.ih["min_px"])
+        if r is None:
+            res.success, res.message = False, f"no {color} cube face in the wrist image"
+            return res
+        res.angle, res.fit_rms = r["angle"], r["rms"]
+        res.pose.position.x, res.pose.position.y, res.pose.position.z = [float(v) for v in r["p"]]
+        res.pose.orientation.w, res.pose.orientation.x = float(np.cos(r["angle"] / 2)), float(np.sin(r["angle"] / 2))
+        ok = r["rms"] < self.ih["max_rms"] and r["inlier_frac"] > self.ih["min_inlier_frac"]
+        res.success = bool(ok)
+        res.message = (f"{color}: angle {np.degrees(r['angle']):+.1f} deg, centre (y, z) "
+                       f"({1000 * r['p'][1]:+.1f}, {1000 * r['p'][2]:+.1f}) mm, rms {1000 * r['rms']:.2f} mm, "
+                       f"inliers {r['inlier_frac']:.2f}, {r['n_px']} px")
+        self.get_logger().info(f"in_hand_pose: {res.message}")
         return res
 
 

@@ -61,3 +61,53 @@ def test_dominant_color():
     draw_square(img, 320, 240, 60, COL["blue"])
     best, frac, fr = dominant_color(img, CFG["colors"], (0.25, 0.15, 0.75, 0.85))
     assert best == "blue" and frac == pytest.approx(121 * 121 / (320 * 336), rel=0.05) and fr["red"] == 0.0
+
+
+# ------------------------------------------------------------------------------------------ in-hand pose
+def _wrist_camera(p_cam=(0.12, 0.0, 0.02)):
+    """Pinhole camera in the TCP frame looking at the TCP (like B's wrist camera), ROS optical convention."""
+    p = np.array(p_cam)
+    z = -p / np.linalg.norm(p)
+    x = np.cross(z, [0, 0, 1.0])
+    x /= np.linalg.norm(x)
+    y = np.cross(z, x)
+    T = np.eye(4)
+    T[:3, :3], T[:3, 3] = np.column_stack([x, y, z]), p
+    K = np.array([[208.0, 0, 160], [0, 208.0, 120], [0, 0, 1]])
+    return K, T
+
+
+def _render_face(K, T, cy, cz, th, edge=0.04, occluder_px=18):
+    """Red cube face (plane x = edge/2, square rotated by th about x) on grey, with a dark vertical 'finger' band
+    occluding the middle of the face."""
+    h, w = 240, 320
+    v, u = np.mgrid[0:h, 0:w]
+    d = T[:3, :3] @ (np.linalg.inv(K) @ np.vstack([u.ravel(), v.ravel(), np.ones(u.size)]))
+    s = (edge / 2 - T[0, 3]) / d[0]
+    y, z = T[1, 3] + s * d[1] - cy, T[2, 3] + s * d[2] - cz
+    c, sn = np.cos(th), np.sin(th)
+    a, b = c * y + sn * z, -sn * y + c * z
+    inside = ((np.abs(a) <= edge / 2) & (np.abs(b) <= edge / 2)).reshape(h, w)
+    img = np.full((h, w, 3), (90, 95, 100), np.uint8)
+    img[inside] = (200, 30, 30)
+    uc = K[0, 2]
+    img[:, int(uc - occluder_px):int(uc + occluder_px)] = (30, 30, 32)
+    # knuckle: a wider dark block covering the palm-side part of the face
+    vk = int(K[1, 2] + 0.55 * K[1, 1] * edge / T[0, 3])
+    img[vk:, int(uc - 2.2 * occluder_px):int(uc + 2.2 * occluder_px)] = (30, 30, 32)
+    # a same-colored slot border far below the hand
+    img[215:222, 250:300] = (200, 30, 30)
+    return img
+
+
+@pytest.mark.parametrize("th_deg,cy,cz", [(0, 0, 0), (3, 0.002, 0.004), (-12.6, 0.018, 0.005), (25, -0.005, 0.01),
+                                          (-40, 0.0, 0.0)])
+def test_in_hand_pose_from_occluded_face(th_deg, cy, cz):
+    from catch_perception.vision import in_hand_pose
+    K, T = _wrist_camera()
+    img = _render_face(K, T, cy, cz, np.radians(th_deg))
+    r = in_hand_pose(img, CFG["colors"]["red"], K, T, 0.04)
+    assert r is not None
+    err = (np.degrees(r["angle"]) - th_deg + 45) % 90 - 45
+    assert abs(err) < (0.5 if abs(th_deg) <= 25 else 1.5), r    # near 45 deg the edge/side assignment is ambiguous
+    assert abs(r["p"][1] - cy) < 0.001 and abs(r["p"][2] - cz) < 0.001, r

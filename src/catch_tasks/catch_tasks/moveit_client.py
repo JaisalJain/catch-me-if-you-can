@@ -9,7 +9,7 @@ import threading
 import time
 
 import numpy as np
-from control_msgs.action import GripperCommand
+from control_msgs.action import FollowJointTrajectory, GripperCommand
 from geometry_msgs.msg import Pose, PoseStamped
 from moveit_msgs.action import ExecuteTrajectory, MoveGroup
 from moveit_msgs.msg import (BoundingVolume, Constraints, JointConstraint, MotionPlanRequest, MoveItErrorCodes,
@@ -19,6 +19,7 @@ from rclpy.action import ActionClient
 from rclpy.node import Node
 from sensor_msgs.msg import JointState
 from shape_msgs.msg import SolidPrimitive
+from trajectory_msgs.msg import JointTrajectoryPoint
 
 JN = ["shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint", "wrist_1_joint", "wrist_2_joint", "wrist_3_joint"]
 
@@ -41,7 +42,10 @@ class MoveItClient:
         self.move = ActionClient(node, MoveGroup, "/move_action")
         self.exec = ActionClient(node, ExecuteTrajectory, "/execute_trajectory")
         self.cart = node.create_client(GetCartesianPath, "/compute_cartesian_path")
-        self.grippers = {k: ActionClient(node, GripperCommand, f"/gripper_{k}_controller/gripper_cmd") for k in "ab"}
+        # gripper A runs on a JointTrajectoryController (time-stamped loosen during the throw), B on a
+        # GripperActionController (contact-triggered close)
+        self.grippers = {"b": ActionClient(node, GripperCommand, "/gripper_b_controller/gripper_cmd")}
+        self.grip_traj = {"a": ActionClient(node, FollowJointTrajectory, "/gripper_a_controller/follow_joint_trajectory")}
         self._js = {}
         self._lock = threading.Lock()
         node.create_subscription(JointState, "/joint_states", self._on_js, 10)
@@ -152,7 +156,10 @@ class MoveItClient:
         return r.result.error_code.val == MoveItErrorCodes.SUCCESS, f"MoveItErrorCode {r.result.error_code.val}"
 
     def gripper(self, robot, position, max_effort=5.0, timeout=5.0):
-        """position: driver joint angle, 0 = open, 0.8 = closed. Returns (ok, result)."""
+        """position: driver joint angle, 0 = open, 0.8 = closed. Returns (ok, result).
+        Blocks until the fingers stop (reached or stalled on an object)."""
+        if robot in self.grip_traj:
+            return self._gripper_traj(robot, position, timeout)
         ac = self.grippers[robot]
         ac.wait_for_server(timeout_sec=5.0)
         g = GripperCommand.Goal()
@@ -166,7 +173,46 @@ class MoveItClient:
             return False, None
         return bool(r.result.reached_goal or r.result.stalled), r.result
 
+    def gripper_traj_goal(self, robot, points, stamp=None):
+        """FollowJointTrajectory goal for a trajectory-controlled gripper: points = [(t_from_start, position)]."""
+        from builtin_interfaces.msg import Duration
+        g = FollowJointTrajectory.Goal()
+        g.trajectory.joint_names = [f"{robot}_robotiq_85_left_knuckle_joint"]
+        if stamp is not None:
+            g.trajectory.header.stamp = stamp
+        for t, q in points:
+            sec = int(t)
+            g.trajectory.points.append(JointTrajectoryPoint(
+                positions=[float(q)], time_from_start=Duration(sec=sec, nanosec=int(round((t - sec) * 1e9)))))
+        return g
+
+    def _gripper_traj(self, robot, position, timeout, ramp=0.02, still=0.1):
+        ac = self.grip_traj[robot]
+        ac.wait_for_server(timeout_sec=5.0)
+        h = _wait(ac.send_goal_async(self.gripper_traj_goal(robot, [(ramp, position)])), 5.0)
+        if h is None or not h.accepted:
+            return False, None
+        r = _wait(h.get_result_async(), timeout)
+        if r is None:
+            return False, None
+        # the controller finishes after `ramp`; wait for the fingers themselves to stop (reached or stalled)
+        t0 = time.monotonic()
+        t_still = None
+        while time.monotonic() - t0 < timeout:
+            with self._lock:
+                v = abs(self._js[f"{robot}_robotiq_85_left_knuckle_joint"][1])
+            if v < 0.01:
+                t_still = t_still or time.monotonic()
+                if time.monotonic() - t_still > still and time.monotonic() - t0 > 0.1:
+                    break
+            else:
+                t_still = None
+            time.sleep(0.005)
+        return r.result.error_code == 0, r.result
+
     def gripper_async(self, robot, position, max_effort=5.0):
+        if robot in self.grip_traj:
+            return self.grip_traj[robot].send_goal_async(self.gripper_traj_goal(robot, [(0.02, position)]))
         g = GripperCommand.Goal()
         g.command.position = float(position)
         g.command.max_effort = float(max_effort)

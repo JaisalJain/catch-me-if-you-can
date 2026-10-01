@@ -91,9 +91,9 @@ class Catcher(Node):
         mag = float(np.linalg.norm(f - a["f0"]))
         a["peak"] = max(a["peak"], mag)
         if a["mode"] == "force" and a["t_trig"] is None and mag > a["thr"]:
-            a["t_trig"] = t
             self._close()
             a["t_cmd"] = self.now()
+            a["t_trig"] = t          # set last: the action thread proceeds as soon as it sees t_trig
 
     def _close(self):
         g = GripperCommand.Goal()
@@ -167,9 +167,10 @@ class Catcher(Node):
         if mode == "time":
             while self.now() < t_arrive + g.time_offset - 0.0005:
                 time.sleep(0.0005)
-            self.arm["t_trig"] = self.now()
+            t = self.now()
             self._close()
             self.arm["t_cmd"] = self.now()
+            self.arm["t_trig"] = t
         else:
             while self.arm["t_trig"] is None and self.now() < t_arrive + 0.5:
                 time.sleep(0.001)

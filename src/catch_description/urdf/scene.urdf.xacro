@@ -113,6 +113,26 @@
 
   <!-- B's wrist camera frame (optical convention: z forward, x right, y down) for perception -->
   <xacro:property name="wc" value="${scene['cameras']['b_wrist']['pos_in_gripper_base']}"/>
+  <!-- The MJCF camera sits at wc in the Menagerie base frame (wc[0] = 0) and looks at the TCP; the TCP frame is
+       that base frame rotated +90 deg about z. Elevation phi of the camera above the TCP, seen from the TCP. -->
+  <xacro:property name="wc_dz" value="${wc[2] - ins['top_z'] - edge / 2}"/>
+  <xacro:property name="wc_phi" value="${atan2(wc_dz, wc[1])}"/>
+  <link name="b_wrist_cam_optical"/>
+  <joint name="b_wrist_cam_optical_joint" type="fixed">
+    <parent link="b_tcp"/><child link="b_wrist_cam_optical"/>
+    <origin xyz="${wc[1]} ${-wc[0]} ${wc_dz}" rpy="${atan2(-cos(wc_phi), -sin(wc_phi))} 0 ${pi / 2}"/>
+  </joint>
+  <!-- camera housing (MJCF: visual only); a collision box here keeps MoveIt conservative around it -->
+  <link name="b_wrist_cam_housing">
+    <visual><geometry><box size="0.024 0.030 0.024"/></geometry>
+      <material name="b_wrist_cam_mat"><color rgba="0.1 0.1 0.1 1"/></material></visual>
+    <collision><geometry><box size="0.030 0.036 0.030"/></geometry></collision>
+  </link>
+  <joint name="b_wrist_cam_housing_joint" type="fixed">
+    <parent link="b_wrist_cam_optical"/><child link="b_wrist_cam_housing"/>
+    <!-- MJCF housing: 14 mm behind the lens along the view axis, box axes = Menagerie base axes -->
+    <origin xyz="0 0 -0.014" rpy="${-atan2(-cos(wc_phi), -sin(wc_phi))} 0 0"/>
+  </joint>
 
   <xacro:if value="$(arg ros2_control)">
     <ros2_control name="MujocoSystem" type="system">

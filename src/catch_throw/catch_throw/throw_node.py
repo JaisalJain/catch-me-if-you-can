@@ -3,9 +3,10 @@
 On a goal it (1) generates the toss trajectory from catch_throw/config/throw.yaml (catch_throw.generator),
 (2) checks that arm A is at the stroke start (the caller moves it there with MoveIt), (3) publishes the
 ThrowPlan (latched) with the predicted release time in sim time, (4) sends the time-parameterised joint
-trajectory directly to arm_a_controller with a future start stamp and (5) loosens the gripper at
-t_loosen after the stroke start (sim clock). The cube is released by the arm's deceleration, not by the
-fingers.
+trajectory directly to arm_a_controller with a future start stamp and (5) schedules the gripper loosen at
+t_loosen after the stroke start as a time-stamped trajectory on gripper_a_controller (a JTC), so the loosen
+instant is executed by the control loop in sim time. The cube is released by the arm's deceleration, not by
+the fingers.
 """
 import os
 import threading
@@ -16,7 +17,7 @@ import rclpy
 import yaml
 from ament_index_python.packages import get_package_share_directory
 from builtin_interfaces.msg import Duration, Time
-from control_msgs.action import FollowJointTrajectory, GripperCommand
+from control_msgs.action import FollowJointTrajectory
 from geometry_msgs.msg import Point, Vector3
 from rclpy.action import ActionClient, ActionServer
 from rclpy.callback_groups import ReentrantCallbackGroup
@@ -119,7 +120,8 @@ class ThrowNode(Node):
         self.declare_parameter("t_loosen", float(rel.get("t_loosen", 0.12)))   # overridable for studies
         self.t_loosen = self.get_parameter("t_loosen").value
         self.loosen_to = float(rel.get("loosen_to", 0.30))
-        self.loosen_effort = float(rel.get("loosen_effort", 5.0))
+        self.hold_cmd = float(rel.get("hold", 0.70))           # grip command while holding (skills gripper_close)
+        self.loosen_ramp = float(rel.get("loosen_ramp", 0.004))  # s for the command step hold -> loosen_to
         self.ff, why = load_feedforward(len(self.plan.t))
         if self.ff is None:
             self.get_logger().warn(f"no torque feed-forward: {why}")
@@ -130,7 +132,8 @@ class ThrowNode(Node):
                                               QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL))
         self.jtc = ActionClient(self, FollowJointTrajectory, "/arm_a_controller/follow_joint_trajectory",
                                 callback_group=cb)
-        self.grip = ActionClient(self, GripperCommand, "/gripper_a_controller/gripper_cmd", callback_group=cb)
+        self.grip = ActionClient(self, FollowJointTrajectory, "/gripper_a_controller/follow_joint_trajectory",
+                                 callback_group=cb)
         ActionServer(self, Throw, "/throw", self.execute, callback_group=cb)
         self.create_service(GetThrowPlan, "/throw/preview", self.on_preview, callback_group=cb)
         m = self.plan.metrics
@@ -192,23 +195,39 @@ class ThrowNode(Node):
         goal.trajectory.points.append(end)
         gh.publish_feedback(Throw.Feedback(phase="committed"))
         h = self._wait(self.jtc.send_goal_async(goal), 5.0)
+        t_acc = self.now()
         if h is None or not h.accepted:
             gh.abort()
             res.success, res.message = False, "JTC rejected the throw trajectory"
             return res
-        # loosen the grip during the acceleration phase (sim clock)
-        self._sleep_until(t0 + self.t_loosen)
-        g = GripperCommand.Goal()
-        g.command.position, g.command.max_effort = self.loosen_to, self.loosen_effort
-        self.grip.send_goal_async(g)
-        t_cmd = self.now()
-        gh.publish_feedback(Throw.Feedback(phase=f"gripper loosened at t={t_cmd - t0:.4f}"))
+        if t_acc > t0:
+            self.get_logger().error(f"JTC accepted the throw {t_acc - t0:.3f} s AFTER its start stamp: the stroke "
+                                    "starts mid-trajectory (increase start_lead)")
+        # loosen the grip during the acceleration phase: a time-stamped trajectory for gripper_a_controller (a JTC),
+        # so the controller executes it at t0 + t_loosen in sim time, independent of this node's scheduling.
+        # Hold the grip command until t_loosen (the JTC interpolates from its last command to the first point).
+        hold, tl, ramp = self.hold_cmd, self.t_loosen, self.loosen_ramp
+        gg = FollowJointTrajectory.Goal()
+        gg.trajectory.header.stamp = to_time(t0)
+        gg.trajectory.joint_names = ["a_robotiq_85_left_knuckle_joint"]
+        gg.trajectory.points = [JointTrajectoryPoint(positions=[hold], time_from_start=to_dur(0.0)),
+                                JointTrajectoryPoint(positions=[hold], time_from_start=to_dur(tl)),
+                                JointTrajectoryPoint(positions=[self.loosen_to], time_from_start=to_dur(tl + ramp))]
+        hg = self._wait(self.grip.send_goal_async(gg), 5.0)
+        t_gacc = self.now()
+        g_ok = hg is not None and hg.accepted and t_gacc < t0 + tl
+        if not g_ok:
+            self.get_logger().error(f"gripper loosen trajectory not accepted in time (accepted={hg is not None and hg.accepted}, "
+                                    f"{t_gacc - t0:+.3f} s vs stroke start)")
+        gh.publish_feedback(Throw.Feedback(phase=f"gripper loosen scheduled at t0+{tl:.3f}"))
         r = self._wait(h.get_result_async(), p.t[-1] + lead + 5.0)
-        ok = r is not None and r.result.error_code == 0
+        ok = r is not None and r.result.error_code == 0 and g_ok
         res.success = bool(ok)
-        res.message = (f"stroke done (feed-forward {'on' if use_ff else 'off'}); gripper loosen command at "
-                       f"{t_cmd - t0:.4f} s (planned {self.t_loosen:.4f})"
-                       if ok else f"JTC error {r.result.error_code if r else 'timeout'} {r.result.error_string if r else ''}")
+        res.message = (f"stroke done (feed-forward {'on' if use_ff else 'off'}); arm JTC accepted {t0 - t_acc:.3f} s and "
+                       f"gripper JTC {t0 - t_gacc:.3f} s before the start stamp; loosen to {self.loosen_to} at "
+                       f"t0+{tl:.3f} s (controller-timed)"
+                       if ok else f"throw failed: arm JTC {r.result.error_code if r else 'timeout'} "
+                                  f"{r.result.error_string if r else ''}, gripper scheduled in time: {g_ok}")
         res.plan = msg
         if ok:
             gh.succeed()

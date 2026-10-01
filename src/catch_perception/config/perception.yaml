@@ -11,3 +11,7 @@ color_check:
   camera: b_wrist
   roi: [0.25, 0.15, 0.75, 0.85]   # (u0, v0, u1, v1) fractions of the image around the palm
   min_fraction: 0.08               # fraction of ROI pixels of the winning color
+in_hand:                           # B's wrist camera: square fit to the near cube face (vision.in_hand_pose)
+  min_px: 200
+  max_rms: 0.0015                  # m
+  min_inlier_frac: 0.4

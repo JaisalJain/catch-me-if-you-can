@@ -13,7 +13,7 @@ from tf2_ros import StaticTransformBroadcaster, TransformBroadcaster
 
 from mujoco_ros2_control_msgs.msg import FreeJointStateArray
 
-from .scene_config import RX_PI, URDF_T_MJCF_BASE, load_scene, mujoco_camera_rotations
+from .scene_config import RX_PI, load_scene, mujoco_camera_rotations
 
 
 def _quat_xyzw(R):
@@ -123,9 +123,7 @@ class CameraTF(Node):
         for name, (parent, p, R) in mujoco_camera_rotations(scene).items():
             Ropt = R @ RX_PI
             if parent == "b_robotiq_mjcf_base":
-                parent = "b_robotiq_85_base_link"
-                p = URDF_T_MJCF_BASE @ p
-                Ropt = URDF_T_MJCF_BASE @ Ropt
+                continue    # B's wrist camera: b_wrist_cam_optical is in the URDF (tested in test_fk_agreement)
             t = TransformStamped()
             t.header.frame_id = parent
             t.child_frame_id = f"{name}_optical"

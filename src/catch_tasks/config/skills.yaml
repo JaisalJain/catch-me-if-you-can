@@ -12,3 +12,5 @@ in_hand_knuckle: [0.38, 0.55]  # knuckle angle range that means "closed on a 40 
 cartesian_vel_scale: 0.15
 free_vel_scale: 0.5
 settle_time: 0.4               # s after opening/closing before moving
+finger_half_span: 0.035        # closed on a cube: fingertip outer faces this far from the TCP along tool x
+finger_half_width: 0.011       # fingertip half width along tool y (matters when the tool is tilted about x)

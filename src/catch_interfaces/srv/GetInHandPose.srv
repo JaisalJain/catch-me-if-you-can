@@ -1,0 +1,8 @@
+# Pose of the cube held by B, in B's TCP frame, from B's wrist camera (looks along the closing axis = tool x).
+string color          # cube color (from the color check); "" = use the dominant color in view
+---
+bool success
+geometry_msgs/Pose pose   # cube centre + orientation in b_tcp (rotation about tool x only)
+float64 angle             # rotation about tool x [rad], folded to [-pi/4, pi/4)
+float64 fit_rms           # rms of the square fit on the inlier boundary pixels [m]
+string message

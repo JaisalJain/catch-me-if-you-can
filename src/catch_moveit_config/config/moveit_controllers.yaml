@@ -7,8 +7,8 @@ moveit_simple_controller_manager:
     default: true
     joints: [a_shoulder_pan_joint, a_shoulder_lift_joint, a_elbow_joint, a_wrist_1_joint, a_wrist_2_joint, a_wrist_3_joint]
   gripper_a_controller:
-    type: GripperCommand
-    action_ns: gripper_cmd
+    type: FollowJointTrajectory
+    action_ns: follow_joint_trajectory
     default: true
     joints: [a_robotiq_85_left_knuckle_joint]
   arm_b_controller:

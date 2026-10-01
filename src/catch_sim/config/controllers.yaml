@@ -38,14 +38,19 @@ arm_a_controller:
       a_wrist_2_joint: {p: 600.0, d: 20.0, i: 0.0, i_clamp: 0.0, ff_velocity_scale: 0.0}
       a_wrist_3_joint: {p: 300.0, d: 10.0, i: 0.0, i_clamp: 0.0, ff_velocity_scale: 0.0}
 
-gripper_a_controller:
-  ros__parameters:
-    type: position_controllers/GripperActionController
-    joint: a_robotiq_85_left_knuckle_joint
-    goal_tolerance: 0.02
-    allow_stalling: true
-    stall_velocity_threshold: 0.01
-    stall_timeout: 0.3
+gripper_a_controller:            # a JTC (not a GripperActionController): the throw schedules the grip loosen as a
+  ros__parameters:                # time-stamped trajectory, executed by the 500 Hz control loop in sim time (M5)
+    type: joint_trajectory_controller/JointTrajectoryController
+    joints: [a_robotiq_85_left_knuckle_joint]
+    command_interfaces: [position]
+    state_interfaces: [position, velocity]
+    interpolation_method: splines
+    interpolate_from_desired_state: true     # start from the last command (0.70 while gripping), not the stalled state
+    allow_nonzero_velocity_at_trajectory_end: true
+    constraints:                             # 0 = not checked: the fingers stall on a cube short of the command
+      stopped_velocity_tolerance: 0.0
+      goal_time: 0.0
+      a_robotiq_85_left_knuckle_joint: {trajectory: 0.0, goal: 0.0}
 
 arm_b_controller:
   ros__parameters:
