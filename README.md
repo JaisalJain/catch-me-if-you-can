@@ -32,11 +32,14 @@ around each throw, 0.25x close-up of every catch). Catch clips: [`docs/media/`](
 
 ## How to run
 Prerequisites: Ubuntu 24.04, ROS 2 Jazzy, MoveIt 2, `ros-jazzy-mujoco-ros2-control` 0.1.1 (packages.ros.org), an
-NVIDIA GPU (PRIME offload is set by the launch files; see `docs/m0_toolchain.md`).
+NVIDIA GPU (PRIME offload is set by the launch files; see `docs/m0_toolchain.md`). No special apt versions: the
+workspace pins its own robot descriptions (`robotiq_description` 0.0.1, `ur_description` 3.5.1, jazzy release
+tags as submodules in `src/external/`), which overlay whatever is installed under `/opt/ros`.
 
 ```bash
-git submodule update --init            # pinned MuJoCo Menagerie
-source /opt/ros/jazzy/setup.bash && colcon build && source install/setup.bash
+git submodule update --init            # pinned MuJoCo Menagerie + robot descriptions
+source /opt/ros/jazzy/setup.bash
+colcon build --allow-overriding robotiq_description ur_description && source install/setup.bash
 ros2 launch catch_bringup bringup.launch.py              # sim window + controllers + MoveIt + RViz
 ros2 run catch_tasks run_demo --seed 1                   # in a second terminal: the full loop
 ```

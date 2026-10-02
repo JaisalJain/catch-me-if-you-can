@@ -135,3 +135,31 @@
 - Open issues: throw_node, catcher (MoveItClient) and run_demo keep a permanent /joint_states (≈ 470 Hz)
   subscription on their MultiThreadedExecutor (≈ 95 / 50 / 50 % of a core); pallet_detector processes every
   overhead image (~12 Hz, ~110 %). The m5 clips in docs/media still show the old housing without the bracket.
+
+## v1.0.1 cleanup (2026-10-02)
+- Robot descriptions pinned in the workspace, system untouched (no apt changes): `src/external/robotiq_description`
+  and `src/external/ur_description` are git submodules at the jazzy release tags packages.ros.org builds from
+  (`release/jazzy/robotiq_description/0.0.1-3` = `4131e61`, `release/jazzy/ur_description/3.5.1-1` = `6e45dd1`).
+  `ros2 pkg prefix` → `install/` for both; the Isaac `robotiq_description 9.0.1` / `ur_* 99.2.0` in /opt/ros are no
+  longer used (`ur_moveit_config` and the other `ur_*` never were).
+  - Why submodules (option 1) and not copying files into catch_description (option 2): option 2 is fewer bytes
+    (~10 MB of ur5e + 2F-85 meshes vs a 73 MB ur_description checkout, kept out of our git history by the
+    submodule) but is a fork: `ur_macro.xacro` hard-codes `$(find ur_description)` includes and
+    `visual_parameters.yaml` the mesh package, the robotiq macro its ros2_control include, and the DH test and
+    `gen_gripper_urdf.py` read the upstream xacros — all would need edits, and every upstream bump a re-copy.
+    The release-tag submodules are byte-identical to the official .debs (ur_description: identical to the
+    installed 3.5.1; robotiq: the 9 2F-85 visual meshes identical to the Isaac ones), add 2 small entries to
+    `.gitmodules`, and a bump is one checkout.
+  - `tools/gen_gripper_urdf.py` rerun: only the 9 visual mesh paths changed (`meshes/visual/2f_85/x.dae` →
+    `meshes/visual/x.dae`). robotiq 0.0.1 writes absolute `file://$(find ...)` mesh paths; the generator now
+    stores `package://robotiq_description/...` (the URDF must not embed an install path). Expanded scene URDF:
+    identical to v1.0 except those 9 × 2 filenames → FK identical. New test: every URDF mesh resolves into the
+    workspace, never /opt/ros. Clean rebuild (`rm -rf build install`): 60/60 tests pass (52 + the new one with
+    system python, 7 venv). Feed-forward table not regenerated: its inputs (throw/scene/physics yaml, MJCF) are
+    unchanged and its hash matches.
+  - colcon warns that the overlay overrides underlay packages; harmless for description-only packages;
+    `--allow-overriding robotiq_description ur_description` silences it (README).
+- m5 clips re-rendered with the bracket (same recordings, views, windows and frame counts; commands in
+  `docs/m5_catch.md`).
+- Still open for v2 Phase 2: permanent /joint_states subscriptions in throw_node, catcher and run_demo.
+

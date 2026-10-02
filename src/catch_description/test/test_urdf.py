@@ -57,3 +57,16 @@ def test_ros2_control_block(urdf):
     assert len(effort) == 12
     model = [p for p in rc.findall("hardware/param") if p.get("name") == "mujoco_model"][0].text
     assert model.endswith("mjcf/scene.xml")
+
+
+def test_meshes_resolve_into_the_workspace(urdf):
+    """Robot descriptions are pinned in src/external (overlay): no mesh may come from /opt/ros (Isaac builds)."""
+    from ament_index_python.packages import get_package_prefix
+    files = {m.get("filename") for m in ET.fromstring(urdf).iter("mesh")}
+    assert files
+    for f in files:
+        assert f.startswith("package://"), f
+        pkg, rel = f[len("package://"):].split("/", 1)
+        prefix = get_package_prefix(pkg)
+        assert not prefix.startswith("/opt/ros"), f"{pkg} resolves to {prefix}"
+        assert os.path.isfile(os.path.join(prefix, "share", pkg, rel)), f

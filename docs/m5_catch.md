@@ -117,6 +117,17 @@ is made.
 
 Clips are replays of the recorded sim state (`tools/render_replay.py`: arms and cubes pinned to the recorded
 joint states / ground truth, gripper linkage re-simulated from the recorded knuckle angle).
+Re-rendered in v1.0.1 with the wrist-camera bracket (recordings in `log/`, gitignored):
+
+```bash
+R="env -u PYTHONPATH .venv/bin/python tools/render_replay.py"
+$R log/m5/force/trial_07.npz --out docs/media/m5_catch_ok.mp4 --view catch \
+   --label "M5 trial 7 (green): contact-triggered cup catch"
+$R log/m5_run1/rec/force/trial_21.npz --out docs/media/m5_fail_missed_trigger.mp4 --view catch \
+   --label "M5 run 1, trial 21: palm-force spike dropped by the catcher -> fingers never close"
+$R log/m6_dev/fault.npz --out docs/media/m5_fail_late_release.mp4 --view throw --window 18.7,20.6 \
+   --label "injected fault: grip loosened late (0.26 s) -> slow release, cube misses B's palm"
+```
 
 ## Other changes in M5
 * URDF: `b_wrist_cam_optical` (+ a housing collision box); FK test extended to the camera (0.000 mm / 0.00001°).

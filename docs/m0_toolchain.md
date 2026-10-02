@@ -14,23 +14,28 @@ Date: 2026-10-01. All evidence below was produced on the target laptop; the spik
 | venv `mujoco` | **3.12.0** (pinned in `tools/requirements.txt`) | `pip freeze` |
 | JTC / ros2_controllers | 4.42.1 | dpkg |
 | MoveIt | 2.12.4 | dpkg |
-| `ur_description` | 3.5.1 (packages.ros.org) | dpkg |
+| `ur_description` | 3.5.1, workspace overlay (`src/external`, since v1.0.1) | `ros2 pkg prefix` |
+| `robotiq_description` | 0.0.1, workspace overlay (`src/external`, since v1.0.1) | `ros2 pkg prefix` |
 | Menagerie | commit `4d038b3feae26ec82b46a4d586379114012a8ac7` (2026-09-29), git submodule | `git submodule status` |
 
-### Leftover Isaac ROS packages (not a blocker, but worth cleaning)
-The apt pin only affects *new* installs; these Isaac builds are still installed:
-`ros-jazzy-robotiq-description 9.0.1-0noble` (upstream: 0.0.1-3noble), and
-`ros-jazzy-ur-{robot-driver,moveit-config,controllers,calibration,client-library,dashboard-msgs} 99.2.0-0noble`
-(upstream: 3.8.0). The project uses only `robotiq_description` from this list (meshes + the 2F-85
-xacro macro). To return to upstream binaries:
+### Robot descriptions are pinned in the workspace (v1.0.1)
+No special apt versions are needed. The workspace builds its own `robotiq_description` and `ur_description`
+from git submodules in `src/external/`, pinned to the jazzy release tags that packages.ros.org builds its
+binaries from (`ros2-gbp/*-release`, see `src/external/README.md`):
 
-```
-sudo apt install --allow-downgrades ros-jazzy-robotiq-description=0.0.1-3noble.20260905.072300 \
-  ros-jazzy-ur-moveit-config=3.8.0-1noble.20260905.080712 ros-jazzy-ur-robot-driver=3.8.0-1noble.20260905.075123
-```
-(Check `apt-cache policy ros-jazzy-ur-*` for the remaining exact versions.) Also not installed but handy:
-`sudo apt install ros-jazzy-mujoco-ros2-control-demos`. For M0 I built only the demos package from the
-0.1.1 source tag in a scratch workspace (it is launch/config/models only) to run its tutorial.
+| Package | Tag | Commit |
+|---|---|---|
+| `robotiq_description` | `release/jazzy/robotiq_description/0.0.1-3` | `4131e61` |
+| `ur_description` | `release/jazzy/ur_description/3.5.1-1` | `6e45dd1` |
+
+The overlay takes precedence over whatever is in `/opt/ros/jazzy` (`ros2 pkg prefix` → `install/...`), so it
+does not matter that this laptop still has NVIDIA Isaac builds installed (`ros-jazzy-robotiq-description
+9.0.1-0noble`, `ros-jazzy-ur-{robot-driver,moveit-config,controllers,...} 99.2.0-0noble`). The system is left as it
+is (a past downgrade attempt is not worth the risk). `ur_moveit_config` and the other `ur_*` packages are not used
+(MoveIt config is `catch_moveit_config`). `colcon build` warns that the two packages override the underlay; they
+are description-only (no headers, no libraries), so `--allow-overriding robotiq_description ur_description`
+just silences the warning. The test `test_urdf.py::test_meshes_resolve_into_the_workspace` fails if any mesh of
+the expanded URDF resolves into `/opt/ros`.
 
 ## GPU / rendering
 

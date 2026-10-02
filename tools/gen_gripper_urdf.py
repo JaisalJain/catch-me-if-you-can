@@ -63,6 +63,17 @@ def robotiq_urdf():
     return subprocess.check_output(["xacro", path], env=ros_env()).decode()
 
 
+def package_uri(fn):
+    """robotiq_description 0.0.1 writes absolute file://<share>/robotiq_description/... mesh paths; store a
+    package:// URI so the URDF does not depend on where the package is installed (resolved by the overlay)."""
+    key = "/share/robotiq_description/"
+    if fn.startswith("file://") and key in fn:
+        fn = "package://robotiq_description/" + fn.split(key, 1)[1]
+    if not fn.startswith("package://"):
+        raise SystemExit(f"unexpected mesh path {fn}")
+    return fn
+
+
 def rpy_from_R(R):
     """URDF rpy (R = Rz(y) Ry(p) Rx(r))."""
     p = np.arcsin(-np.clip(R[2, 0], -1, 1))
@@ -166,6 +177,8 @@ def main():
             continue
         for c in link.findall("collision"):
             link.remove(c)
+        for mesh in link.iter("mesh"):
+            mesh.set("filename", package_uri(mesh.get("filename")))
         body = ET.tostring(link, encoding="unicode").replace(PFX, "${prefix}")
         suffix = name[len(PFX):]
         inner = "".join(cols.get(suffix, []))
