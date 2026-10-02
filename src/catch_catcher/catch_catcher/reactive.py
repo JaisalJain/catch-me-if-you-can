@@ -120,31 +120,32 @@ class ReactivePlanner:
             return None
         return q
 
-    def check(self, seg, q_a=None):
-        """(limit ratio, clearance) of a quintic."""
-        n = self.cfg["check_samples"]
-        ts = np.linspace(0, seg.T, n)
+    def limit_ratio(self, seg):
+        """max(speed / cap, torque / cap) of a quintic (batch RNEA, gravity included); 9 if a joint margin fails."""
+        ts = np.linspace(0, seg.T, self.cfg["check_samples"])
         S = [seg(t) for t in ts]
-        Q = np.array([s[0] for s in S])
-        QD = np.array([s[1] for s in S])
-        QDD = np.array([s[2] for s in S])
+        Q = np.array([x[0] for x in S])
+        QD = np.array([x[1] for x in S])
+        QDD = np.array([x[2] for x in S])
         vel = float(np.max(np.abs(QD) / VEL_LIMIT))
-        tau = self.dyn.torques(Q, QD, QDD, gravity=True)
-        tq = float(np.max(np.abs(tau) / TORQUE_LIMIT))
+        tq = float(np.max(np.abs(self.dyn.torques(Q, QD, QDD, gravity=True)) / TORQUE_LIMIT))
         ratio = max(vel / self.lim["vel_ratio"], tq / self.lim["torque_ratio"])
         if np.min(POS_LIMIT - np.abs(Q)) < self.lim["pos_margin"]:
             ratio = max(ratio, 9.0)
-        # collisions: every ~collision_dt along the trajectory
+        return ratio
+
+    def clearance(self, seg, q_a=None):
+        """Capsule-model clearance along a quintic (every collision_dt; self, environment and arm A)."""
         m = max(2, int(np.ceil(seg.T / self.cfg["collision_dt"])) + 1)
         Qc = np.array([seg(t)[0] for t in np.linspace(0, seg.T, m)])
         extra = None
         if q_a is not None and self.robot_a is not None:
             A0, A1 = self.caps.segments(self.robot_a, q_a)
             extra = (A0[0], A1[0], self.caps.r)
-        clr = self.caps.clearance(self.robot, Qc, env=True, self_check=True, extra_capsules=extra)
-        return ratio, clr
+        return self.caps.clearance(self.robot, Qc, env=True, self_check=True, extra_capsules=extra)
 
-    def plan_to(self, t_now, state, t_c, p, v, mode, q_a=None):
+    def candidate(self, t_now, state, t_c, p, v, mode):
+        """(plan without clearance, reason) for one intercept time: IK + limits."""
         q0, qd0, qdd0 = state
         t_arr = t_c - (self.cfg["cup"]["arrive_early"] if mode == "cup" else 0.0)
         T = t_arr - t_now
@@ -154,32 +155,43 @@ class ReactivePlanner:
         if q1 is None:
             return None, "no IK / margins"
         seg = Quintic(q0, qd0, qdd0, q1, 0, 0, T)
-        ratio, clr = self.check(seg, q_a)
-        plan = Plan(t_now, seg, q1, t_arr, t_c, np.asarray(p), np.asarray(v), ratio, clr)
-        if ratio > 1.0:
-            return plan, "over limits"
-        if clr < self.caps.min_clearance:
-            return plan, "collision"
-        return plan, "ok"
+        plan = Plan(t_now, seg, q1, t_arr, t_c, np.asarray(p), np.asarray(v), self.limit_ratio(seg), np.inf)
+        return plan, ("ok" if plan.ratio <= 1.0 else "over limits")
+
+    def plan_to(self, t_now, state, t_c, p, v, mode, q_a=None):
+        plan, why = self.candidate(t_now, state, t_c, p, v, mode)
+        if why != "ok":
+            return plan, why
+        plan.clearance = self.clearance(plan.seg, q_a)
+        return plan, ("ok" if plan.clearance >= self.caps.min_clearance else "collision")
 
     def search(self, t_now, state, pred, t_from, mode, q_a=None):
-        """Best intercept on the predicted path: the feasible one with the lowest limit ratio. pred(t) -> (p, v)."""
+        """Best intercept on the predicted path: among the candidates within the limits (IK + batch RNEA for all),
+        the one with the lowest limit ratio that is collision-free (capsule checks only on those, best first)."""
         c = self.cfg
-        best, reasons = None, {}
-        for t_c in np.arange(max(t_from, t_now + c["min_move_time"]), t_now + c["horizon"], c["search_dt"]):
+        cands, reasons = [], {}
+        # window: from the later of now and t_from (the estimate's reference time: the release for the plan source,
+        # which B receives ~0.7 s before the throw) over `horizon`
+        t_start = max(t_from, t_now + c["min_move_time"])
+        for t_c in np.arange(t_start, t_start + c["horizon"], c["search_dt"]):
             p, v = pred(t_c)
             if v[2] >= 0:
                 continue
-            if p[2] < c["z_min"] or not (c["box_lo"][0] <= p[0] <= c["box_hi"][0]) or not (c["box_lo"][1] <= p[1] <= c["box_hi"][1]):
-                if p[2] < c["z_min"]:
-                    break
+            if p[2] < c["z_min"]:
+                break
+            if not (c["box_lo"][0] <= p[0] <= c["box_hi"][0]) or not (c["box_lo"][1] <= p[1] <= c["box_hi"][1]):
                 reasons["outside envelope box"] = reasons.get("outside envelope box", 0) + 1
                 continue
-            plan, why = self.plan_to(t_now, state, t_c, p, v, mode, q_a)
+            plan, why = self.candidate(t_now, state, t_c, p, v, mode)
             reasons[why] = reasons.get(why, 0) + 1
-            if why == "ok" and (best is None or plan.ratio < best.ratio):
-                best = plan
-        return best, reasons
+            if why == "ok":
+                cands.append(plan)
+        for plan in sorted(cands, key=lambda x: x.ratio):
+            plan.clearance = self.clearance(plan.seg, q_a)
+            if plan.clearance >= self.caps.min_clearance:
+                return plan, reasons
+            reasons["collision"] = reasons.get("collision", 0) + 1
+        return None, reasons
 
     def return_plan(self, t_now, state, duration=None):
         """Back to the ready pose (abort)."""
@@ -188,9 +200,9 @@ class ReactivePlanner:
         seg = Quintic(q0, qd0, qdd0, self.q_ready, 0, 0, T)
         return Plan(t_now, seg, self.q_ready.copy(), t_now + T, t_now + T, np.zeros(3), np.zeros(3), 0.0, 1.0)
 
-    def feedforward(self, q, qd, qdd):
-        """Effort feed-forward for the JTC (the sim compensates gravity itself)."""
-        return self.dyn.rnea(q, qd, qdd, gravity=False)
+    def feedforward(self, Q, QD, QDD):
+        """Effort feed-forward for the JTC, batch (the sim compensates gravity itself)."""
+        return self.dyn.torques(Q, QD, QDD, gravity=False)
 
 
 def ballistic(p0, v0, t0):

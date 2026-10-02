@@ -83,4 +83,48 @@ class ArmDynamics:
         return tau
 
     def torques(self, Q, QD, QDD, gravity=True):
-        return np.array([self.rnea(q, qd, qdd, gravity) for q, qd, qdd in zip(Q, QD, QDD)])
+        """Batch RNEA over N states (arrays (N, 6)), vectorised over N."""
+        Q, QD, QDD = (np.atleast_2d(np.asarray(x, float)) for x in (Q, QD, QDD))
+        N, n = Q.shape[0], 6
+        w = np.zeros((N, 3))
+        wd = np.zeros((N, 3))
+        a = np.broadcast_to(-self.g if gravity else np.zeros(3), (N, 3)).copy()
+        Rs, ws, wds, acs = [], [], [], []
+        for i in range(n):
+            z = self.ax[i]
+            K = _skew(z)
+            c, s_ = np.cos(Q[:, i]), np.sin(Q[:, i])
+            Rz = np.eye(3)[None] + s_[:, None, None] * K[None] + (1 - c)[:, None, None] * (K @ K)[None]   # (N,3,3)
+            Ri = np.einsum("ij,njk->nik", self.Rp[i], Rz)                                         # child in parent
+            p = self.pp[i]
+            a_o = a + np.cross(wd, p) + np.cross(w, np.cross(w, p))
+            wT = np.einsum("nji,nj->ni", Ri, w)                                                   # R^T w
+            w_c = wT + z[None] * QD[:, i:i + 1]
+            wd_c = np.einsum("nji,nj->ni", Ri, wd) + z[None] * QDD[:, i:i + 1] + np.cross(wT, z[None] * QD[:, i:i + 1])
+            a = np.einsum("nji,nj->ni", Ri, a_o)
+            w, wd = w_c, wd_c
+            Rs.append(Ri)
+            ws.append(w)
+            wds.append(wd)
+            acs.append(a)
+        tau = np.zeros((N, n))
+        f_next = np.zeros((N, 3))
+        m_next = np.zeros((N, 3))
+        for i in reversed(range(n)):
+            c, I, m = self.c[i], self.I[i], self.m[i]
+            w, wd, a = ws[i], wds[i], acs[i]
+            a_c = a + np.cross(wd, c) + np.cross(w, np.cross(w, c))
+            F = m * a_c
+            Iw = w @ I.T
+            N_ = wd @ I.T + np.cross(w, Iw)
+            if i + 1 < n:
+                R1 = Rs[i + 1]
+                f_ch = np.einsum("nij,nj->ni", R1, f_next)
+                m_ch = np.einsum("nij,nj->ni", R1, m_next) + np.cross(self.pp[i + 1], f_ch)
+            else:
+                f_ch = m_ch = np.zeros((N, 3))
+            f = F + f_ch
+            mo = N_ + np.cross(c, F) + m_ch
+            tau[:, i] = mo @ self.ax[i] + self.arm[i] * QDD[:, i]
+            f_next, m_next = f, mo
+        return tau

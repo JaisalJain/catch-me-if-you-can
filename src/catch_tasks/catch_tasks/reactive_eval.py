@@ -121,6 +121,8 @@ class ReactiveEval(TrackerEval):
                    t_contact_minus_intercept_ms=round(1000 * (res.t_contact - res.t_intercept), 1) if res and res.t_contact else None,
                    held=held, rel_mm=(1000 * T[:3, 3]).round(1).tolist())
         row.update(self.post(arr, color, row))
+        if tr and len(arr["cubes"]):
+            row.update(self.release_error(arr, color, tr.result.plan))
         row["outcome"] = self.classify(row)
         if a.rec_dir and (not a.rec_fail_only or not held):
             os.makedirs(a.rec_dir, exist_ok=True)
@@ -161,6 +163,29 @@ class ReactiveEval(TrackerEval):
         out.update(min_cube_tcp_mm=round(1000 * float(best), 1), min_clearance_mm=round(1000 * float(clr), 1))
         return out
 
+    def release_error(self, arr, color, plan):
+        """Realised release error vs the published plan: ballistic fit (known g) to the ground-truth free flight
+        30-180 ms after the planned release, evaluated at the planned release time."""
+        k = COLORS.index(color)
+        tc, pc = arr["cubes"][:, 0], arr["cubes"][:, 1 + 7 * k:4 + 7 * k]
+        t_rel = plan.release_time.sec + plan.release_time.nanosec * 1e-9
+        w = (tc > t_rel + 0.03) & (tc < t_rel + 0.18)
+        if w.sum() < 10:
+            return {}
+        tau = tc[w] - t_rel
+        y = pc[w] - 0.5 * np.outer(tau ** 2, [0, 0, -9.81])
+        A = np.column_stack([np.ones_like(tau), tau])
+        sol, *_ = np.linalg.lstsq(A, y, rcond=None)
+        p0, v0 = sol[0], sol[1]
+        vp = np.array([plan.release_velocity.x, plan.release_velocity.y, plan.release_velocity.z])
+        pp = np.array([plan.release_position.x, plan.release_position.y, plan.release_position.z])
+        dp = p0 - pp
+        n = vp / np.linalg.norm(vp)
+        return dict(release_dv_mm_s=(1000 * (v0 - vp)).round(1).tolist(), release_dp_mm=(1000 * dp).round(1).tolist(),
+                    release_speed_err_rel=round(float(np.linalg.norm(v0) / np.linalg.norm(vp) - 1), 5),
+                    release_dir_err_deg=round(float(np.degrees(np.arccos(np.clip(v0 @ vp / np.linalg.norm(v0) / np.linalg.norm(vp), -1, 1)))), 3),
+                    release_time_equiv_ms=round(float(-1000 * (dp @ n) / np.linalg.norm(vp)), 1))
+
     def classify(self, r):
         if r["held"]:
             return "held"
@@ -193,6 +218,13 @@ def summarize(rows, args):
                    plan_ms=round(float(np.median([r["plan_ms"] for r in v])), 2),
                    max_limit_ratio=round(float(max(r["max_limit_ratio"] for r in v)), 3),
                    min_plan_clearance_mm=round(1000 * float(min(r["plan_min_clearance"] for r in v)), 1))
+    re = [r for r in valid if "release_speed_err_rel" in r]
+    if re:
+        out["release_realised"] = dict(speed_err_rel_std=round(float(np.std([r["release_speed_err_rel"] for r in re])), 5),
+                                       speed_err_rel_mean=round(float(np.mean([r["release_speed_err_rel"] for r in re])), 5),
+                                       dir_err_deg_rms=round(float(np.sqrt(np.mean(np.square([r["release_dir_err_deg"] for r in re])))), 3),
+                                       time_equiv_ms_std=round(float(np.std([r["release_time_equiv_ms"] for r in re])), 2),
+                                       time_equiv_ms_mean=round(float(np.mean([r["release_time_equiv_ms"] for r in re])), 2))
     out["cell"] = dict(label=args.label, mode=args.mode, source=args.source, noise=args.noise, seed=args.seed,
                        gripper_profile=os.environ.get("CATCH_GRIPPER_PROFILE", "realistic"),
                        gripper_latency=os.environ.get("CATCH_GRIPPER_LATENCY", "profile default"),

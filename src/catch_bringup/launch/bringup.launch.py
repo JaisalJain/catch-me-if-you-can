@@ -30,6 +30,7 @@ def generate_launch_description():
         DeclareLaunchArgument("mujoco_model", default_value=""),
         DeclareLaunchArgument("camera_rate", default_value="150.0"),   # measured 128.8 Hz (the plugin restarts its timer at each check; 130-140 gave 116 Hz)
         DeclareLaunchArgument("tracker", default_value="true"),
+        DeclareLaunchArgument("plan_catcher", default_value="false"),   # benchmark baseline: B from A's plan
         SetEnvironmentVariable("__NV_PRIME_RENDER_OFFLOAD", "1"),
         SetEnvironmentVariable("__GLX_VENDOR_LIBRARY_NAME", "nvidia"),
         IncludeLaunchDescription(PythonLaunchDescriptionSource(sim),
@@ -42,6 +43,12 @@ def generate_launch_description():
         Node(package="catch_perception", executable="color_check", output="both", parameters=[{"use_sim_time": True}]),
         Node(package="catch_throw", executable="throw_node", output="both", parameters=[{"use_sim_time": True}]),
         Node(package="catch_catcher", executable="catcher", output="both", parameters=[{"use_sim_time": True}]),
+        # v2: reactive catch from the ready pose; vision-only (never subscribes to A's plan) ...
+        Node(package="catch_catcher", executable="reactive_catcher", name="reactive_catcher", output="both",
+             parameters=[{"use_sim_time": True, "source": "vision"}]),
+        # ... and the plan-informed baseline (benchmark only)
+        Node(package="catch_catcher", executable="reactive_catcher", name="reactive_catcher_plan", output="both",
+             parameters=[{"use_sim_time": True, "source": "plan"}], condition=IfCondition(LaunchConfiguration("plan_catcher"))),
         Node(package="rviz2", executable="rviz2", arguments=["-d", rviz_cfg], output="log",
              condition=IfCondition(LaunchConfiguration("rviz")),
              parameters=[mc.robot_description, mc.robot_description_semantic, mc.robot_description_kinematics,

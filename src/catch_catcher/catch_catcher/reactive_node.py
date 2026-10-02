@@ -187,16 +187,15 @@ class ReactiveCatcher(Node):
         T = plan.seg.T
         dt = self.cfg["traj_dt"]
         ts = list(np.arange(0.0, T, dt)) + [T]
-        for t in ts:
-            q, qd, qdd = plan.seg(t)
-            tau = self.planner.feedforward(q, qd, qdd)
-            jt.points.append(JointTrajectoryPoint(positions=q.tolist(), velocities=qd.tolist(),
-                                                  accelerations=qdd.tolist(), effort=tau.tolist(),
+        S = [plan.seg(t) for t in ts]
+        Q = np.array([x[0] for x in S] + [plan.q_goal])
+        QD = np.array([x[1] for x in S] + [np.zeros(6)])
+        QDD = np.array([x[2] for x in S] + [np.zeros(6)])
+        TAU = self.planner.feedforward(Q, QD, QDD)
+        for k, t in enumerate(ts + [T + 0.2]):
+            jt.points.append(JointTrajectoryPoint(positions=Q[k].tolist(), velocities=QD[k].tolist(),
+                                                  accelerations=QDD[k].tolist(), effort=TAU[k].tolist(),
                                                   time_from_start=to_dur(t)))
-        hold = JointTrajectoryPoint(positions=plan.q_goal.tolist(), velocities=[0.0] * 6, accelerations=[0.0] * 6,
-                                    effort=self.planner.feedforward(plan.q_goal, np.zeros(6), np.zeros(6)).tolist(),
-                                    time_from_start=to_dur(T + 0.2))
-        jt.points.append(hold)
         self.traj_pub.publish(jt)
 
     def schedule_close(self, t_cmd):
@@ -279,9 +278,9 @@ class ReactiveCatcher(Node):
         res.t_commit = t_commit - t_first
         q_a = np.array(self.js.positions([f"a_{j}" for j in JN]))
         state = (self.mi.joints("b"), np.zeros(6), np.zeros(6))
-        t0 = t_commit + cfg["send_lead"]
+        t0 = t_commit + cfg["commit_lead"]
         tp = time.perf_counter()
-        plan, reasons = self.planner.search(t0, state, pred, t0, mode, q_a)
+        plan, reasons = self.planner.search(t0, state, pred, max(t0, stamp), mode, q_a)
         plan_ms = [1000 * (time.perf_counter() - tp)]
         if plan is None:
             self.inputs.armed = None
@@ -294,6 +293,7 @@ class ReactiveCatcher(Node):
         self.send_plan(plan)
         gh.publish_feedback(ReactiveCatch.Feedback(phase="committed"))
         n_sent, t_last_send, ratios, clrs = 1, self.now(), [plan.ratio], [plan.clearance]
+        n_kept = 0
 
         def t_close_for(p):
             if mode == "pinch":
@@ -325,16 +325,27 @@ class ReactiveCatcher(Node):
                     p_c, v_c = pred(plan.t_intercept)
                     new, why = self.planner.plan_to(t0, st, plan.t_intercept, p_c, v_c, mode, q_a)
                     if why != "ok":
-                        new, reasons = self.planner.search(t0, st, pred, t0, mode, q_a)
-                        why = "ok" if new is not None else f"no feasible intercept ({reasons})"
+                        new2, reasons = self.planner.search(t0, st, pred, max(t0, last_stamp), mode, q_a)
+                        if new2 is not None:
+                            new, why = new2, "ok"
                     plan_ms.append(1000 * (time.perf_counter() - tp))
-                    if new is None:
-                        # abort: back to the ready pose
+                    if why != "ok":
+                        # no better plan within the limits: keep the current one (a late small correction often
+                        # exceeds the limits); abort only if the predicted intercept left the catch envelope
+                        c_ = cfg
+                        outside = (p_c[2] < c_["z_min"] or not (c_["box_lo"][0] <= p_c[0] <= c_["box_hi"][0])
+                                   or not (c_["box_lo"][1] <= p_c[1] <= c_["box_hi"][1])
+                                   or self.planner.goal(p_c, v_c, mode, plan.q_goal) is None)
+                        n_kept += 1
+                        t_last_send = now
+                        if not outside:
+                            time.sleep(0.001)
+                            continue
                         self.send_plan(self.planner.return_plan(t0, st))
                         self.mi.gripper_async("b", self.k_pre)
                         self.inputs.armed = None
-                        res.aborted, res.abort_reason = True, why
-                        res.message = f"aborted after {n_sent} plans: {why}"
+                        res.aborted, res.abort_reason = True, f"predicted intercept left the envelope ({why})"
+                        res.message = f"aborted after {n_sent} plans: {res.abort_reason}"
                         res.n_replans = n_sent - 1
                         self.get_logger().warn(res.message)
                         gh.succeed()
@@ -379,7 +390,7 @@ class ReactiveCatcher(Node):
         res.min_clearance = float(min(clrs))
         res.plan_ms_median = float(np.median(plan_ms))
         res.message = (f"{'held' if res.success else 'not held'} ({mode}, {self.source}): trigger {res.trigger}, "
-                       f"commit {1000 * res.t_commit:.0f} ms after first fix, {res.n_replans} replans "
+                       f"commit {1000 * res.t_commit:.0f} ms after first fix, {res.n_replans} replans ({n_kept} kept) "
                        f"({res.replan_rate_hz:.0f} Hz, {res.plan_ms_median:.1f} ms each), limit ratio <= "
                        f"{res.max_limit_ratio:.2f}, clearance >= {1000 * res.min_clearance:.0f} mm, knuckle {k:.3f}")
         self.get_logger().info(res.message)
