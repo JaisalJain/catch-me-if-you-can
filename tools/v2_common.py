@@ -89,10 +89,12 @@ def build_model(cameras=None, profile=None, size=(640, 480)):
     m = spec.compile()
     if profile:
         a = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_ACTUATOR, "b_robotiq_85_left_knuckle_joint")
-        m.actuator_gainprm[a, 0] *= profile["kp_scale"]
-        m.actuator_biasprm[a, 1] *= profile["kp_scale"]
-        m.actuator_biasprm[a, 2] *= profile.get("kv_scale", profile["kp_scale"])
-        m.actuator_forcerange[a] *= profile["force_scale"]
+        # absolute values relative to the v1 actuator (kp 100, kv 10, force +-5), independent of physics.yaml's
+        # gripper section (the ROS sim's actuator, v2: kp 1000 = the realistic profile)
+        m.actuator_gainprm[a, 0] = 100.0 * profile["kp_scale"]
+        m.actuator_biasprm[a, 1] = -100.0 * profile["kp_scale"]
+        m.actuator_biasprm[a, 2] = -10.0 * profile.get("kv_scale", profile["kp_scale"])
+        m.actuator_forcerange[a] = [-5.0 * profile["force_scale"], 5.0 * profile["force_scale"]]
     return m, scene, phys
 
 

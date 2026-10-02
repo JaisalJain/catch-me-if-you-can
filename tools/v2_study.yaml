@@ -8,12 +8,23 @@
 #                   than that: 85 -> 40 mm in 93 ms, up to ~720 mm/s.
 #                   Actuator kp x10 (damping unchanged) so the sim fingers follow the ramp: 137-145 mm/s achieved
 #                   (tools/v2_catch_sim.py --gripper); force limit (= grip force) unchanged from v1.
+#   fast_close:     NOT a real 2F-85: same 10x commanded speed, kp x20, but the REALISTIC force limit (= the same
+#                   grip force as realistic). The force limit caps the speed: ~570 mm/s (56 -> 40 mm) achieved.
+#                   Separates the effect of closing speed from that of grip force (Phase 2 review).
 #   fast_idealized: NOT a real 2F-85: 10x the spec speed; kp x20 and a 5x force limit (so also 5x grip force)
 #                   to follow it: ~1000-1250 mm/s achieved.
 gripper_profile: realistic
 gripper_profiles:
   realistic: {gap_speed: 0.150, kp_scale: 10.0, kv_scale: 1.0, force_scale: 1.0}
+  fast_close: {gap_speed: 1.500, kp_scale: 20.0, kv_scale: 1.0, force_scale: 1.0}
   fast_idealized: {gap_speed: 1.500, kp_scale: 20.0, kv_scale: 1.0, force_scale: 5.0}
+# Gripper command latency (command sent -> fingers start moving), all profiles. Robotiq 2F-85/2F-140 instruction
+# manual, 4.7.1 Connection Setup: "200 Hz is the usual speed when commanding / reading from the Robotiq Gripper. It
+# is therefore recommended to send commands with a minimum delay of 5 ms between them", RS-485 at 115,200 bps.
+# Estimate: <= 5 ms to the next command slot + ~2 ms for the Modbus FC16 request/response (~25 bytes at 115.2 kbps)
+# + a few ms gripper-internal cycle -> 10 ms. Not a measured value; swept 0/10/20/30 ms.
+gripper_latency_s: 0.010
+gripper_latency_assumed_s: 0.010   # what B compensates for in a timed close (the true latency may differ)
 
 limits:                 # same margins as M1
   vel_ratio: 0.85       # joint speed <= 85 % of 180 deg/s
@@ -93,3 +104,4 @@ catch_sim:
   pinch_gap_speeds_mm_s: [75, 150, 300, 600, 1500, 3000]
   pinch_match: [0.0, 0.25, 0.5, 1.0]       # commanded fraction of the cube velocity matched at the intercept
   pinch_cone_deg: 30
+  latency_sweep_s: [0.0, 0.010, 0.020, 0.030]

@@ -99,6 +99,90 @@
    "achieved_mm_s": 571.4285714285709
   },
   {
+   "gripper_profile": "fast_close",
+   "gap_speed_cmd_mm_s": 75,
+   "start_gap_mm": 85.2,
+   "t_to_40mm": 0.6079999999999994,
+   "achieved_mm_s": 74.34210526315798
+  },
+  {
+   "gripper_profile": "fast_close",
+   "gap_speed_cmd_mm_s": 75,
+   "start_gap_mm": 56,
+   "t_to_40mm": 0.21900000000000014,
+   "achieved_mm_s": 73.05936073059357
+  },
+  {
+   "gripper_profile": "fast_close",
+   "gap_speed_cmd_mm_s": 150,
+   "start_gap_mm": 85.2,
+   "t_to_40mm": 0.3070000000000002,
+   "achieved_mm_s": 147.2312703583061
+  },
+  {
+   "gripper_profile": "fast_close",
+   "gap_speed_cmd_mm_s": 150,
+   "start_gap_mm": 56,
+   "t_to_40mm": 0.11200000000000004,
+   "achieved_mm_s": 142.8571428571428
+  },
+  {
+   "gripper_profile": "fast_close",
+   "gap_speed_cmd_mm_s": 300,
+   "start_gap_mm": 85.2,
+   "t_to_40mm": 0.15600000000000008,
+   "achieved_mm_s": 289.7435897435896
+  },
+  {
+   "gripper_profile": "fast_close",
+   "gap_speed_cmd_mm_s": 300,
+   "start_gap_mm": 56,
+   "t_to_40mm": 0.05900000000000005,
+   "achieved_mm_s": 271.18644067796583
+  },
+  {
+   "gripper_profile": "fast_close",
+   "gap_speed_cmd_mm_s": 600,
+   "start_gap_mm": 85.2,
+   "t_to_40mm": 0.08100000000000007,
+   "achieved_mm_s": 558.0246913580243
+  },
+  {
+   "gripper_profile": "fast_close",
+   "gap_speed_cmd_mm_s": 600,
+   "start_gap_mm": 56,
+   "t_to_40mm": 0.03200000000000003,
+   "achieved_mm_s": 499.99999999999955
+  },
+  {
+   "gripper_profile": "fast_close",
+   "gap_speed_cmd_mm_s": 1500,
+   "start_gap_mm": 85.2,
+   "t_to_40mm": 0.051000000000000045,
+   "achieved_mm_s": 886.2745098039209
+  },
+  {
+   "gripper_profile": "fast_close",
+   "gap_speed_cmd_mm_s": 1500,
+   "start_gap_mm": 56,
+   "t_to_40mm": 0.028000000000000025,
+   "achieved_mm_s": 571.4285714285709
+  },
+  {
+   "gripper_profile": "fast_close",
+   "gap_speed_cmd_mm_s": 3000,
+   "start_gap_mm": 85.2,
+   "t_to_40mm": 0.051000000000000045,
+   "achieved_mm_s": 886.2745098039209
+  },
+  {
+   "gripper_profile": "fast_close",
+   "gap_speed_cmd_mm_s": 3000,
+   "start_gap_mm": 56,
+   "t_to_40mm": 0.028000000000000025,
+   "achieved_mm_s": 571.4285714285709
+  },
+  {
    "gripper_profile": "fast_idealized",
    "gap_speed_cmd_mm_s": 75,
    "start_gap_mm": 85.2,

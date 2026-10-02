@@ -133,9 +133,14 @@ class CatchSim:
 
     # --------------------------------------------------------------------- trial ------------------------------
     def run(self, throw, mode="cup", cone_deg=30.0, match=0.0, rng=None, perception="measured", replan=None,
-            gap_speed=None, cup_pre_gap=None, pinch_pre_gap=None, close_lead=0.0, ready=None):
+            gap_speed=None, cup_pre_gap=None, pinch_pre_gap=None, close_lead=0.0, ready=None, latency=None,
+            latency_assumed=None):
         c, cs = self.c, self.c["catch_sim"]
         rng = rng or np.random.default_rng(0)
+        # gripper command latency: every command reaches the fingers `latency` later; a timed close is sent
+        # `latency_assumed` earlier (B's compensation); a contact-triggered close cannot be compensated
+        latency = c["gripper_latency_s"] if latency is None else latency
+        latency_assumed = c["gripper_latency_assumed_s"] if latency_assumed is None else latency_assumed
         if ready is not None:           # another ready pose (q, approach elevation) for this trial
             self.q_ready, self.z_ready = np.array(ready[0]), V.ready_rotation(ready[1])[:, 2]
         replan = cs["replan"] if replan is None else replan
@@ -183,6 +188,7 @@ class CatchSim:
         planned = False
         t_c = None
         info = dict(mode=mode, cone_deg=cone_deg, match_cmd=match, gripper_profile=self.profile_name, pre_gap_mm=pre_gap,
+                    latency=latency, latency_assumed=latency_assumed, close_lead=close_lead,
                     gap_speed=gap_speed, perception=perception, replan=replan)
         k_ref_fn = lambda t: k_open
         t_hit = t_cmd = None
@@ -259,7 +265,7 @@ class CatchSim:
                         # fingers reach the cube width at the predicted arrival
                         k_rate = gap_speed * 1000.0
                         t_close = (pre_gap - 40.0) / k_rate
-                        t_cmd = t_c - t_close - close_lead
+                        t_cmd = t_c - t_close - close_lead - latency_assumed
                         k_ref_fn = (lambda tc0: (lambda t: k_open if t < tc0 else
                                                  V.knuckle_for_gap(max(pre_gap - k_rate * (t - tc0), 0.0))))(t_cmd)
             # cup trigger: palm touch sensor (contact only)
@@ -269,7 +275,7 @@ class CatchSim:
                 k_rate = gap_speed * 1000.0
                 k_ref_fn = (lambda tc0: (lambda t: k_open if t < tc0 else
                                          V.knuckle_for_gap(max(pre_gap - k_rate * (t - tc0), 0.0))))(t_cmd)
-            k_ref = min(k_ref_fn(now), cs["close_to"])
+            k_ref = min(k_ref_fn(now - latency), cs["close_to"])
             self._control(traj, k_ref)
             mujoco.mj_step(m, d)
             if not touched_b:
@@ -395,6 +401,7 @@ def main():
     ap.add_argument("--perception", default="measured")
     ap.add_argument("--n", type=int)
     ap.add_argument("--only", default=None, help="run only rows whose key contains this text")
+    ap.add_argument("--corrections", action="store_true", help="Phase 2 review rows (latency, fast_close, timing)")
     ap.add_argument("--throws", default="random", choices=["random", "square"],
                     help="throw distribution: random palm pitch (min joint speed) or square arrival on B's palm")
     a = ap.parse_args()
@@ -417,6 +424,9 @@ def main():
         sim = CatchSim(prof_name)
         th = throws(c, kind=a.throws)[a.one]
         print(json.dumps(sim.run(th, mode=a.mode, cone_deg=a.cone, match=a.match, perception=a.perception), indent=1))
+    if a.corrections:
+        run_corrections(c, a, prof_name)
+        return
     if not (a.cup or a.pinch):
         return
     ths = throws(c, a.n, a.throws)
@@ -468,6 +478,38 @@ def main():
         run_rows(f"catch_pinch{sfx}.json", [sp for sp in specs if not a.only or a.only in sp[0]], ths, c, prof_name, a.throws,
                  note="keys profile|<gripper_profile>|<mode>|<match commanded>, speed|<gap mm/s>|<mode>|<match> "
                       "(speed sweep: fast_idealized actuator, the ramp speed is the variable)")
+
+
+def run_corrections(c, a, prof_name):
+    """Phase 2 review: every row with the 10 ms gripper command latency (B compensates 10 ms in a timed close);
+    the headline realistic pinch at several close offsets; fast_close (fast ramp, realistic force) vs
+    fast_idealized (5x force); closing-speed sweep with the realistic force limit; latency sweep."""
+    cs = c["catch_sim"]
+    cone = cs["pinch_cone_deg"]
+    pg = cs["pinch_pre_gap_mm"]
+    for kind in ("square", "random"):
+        ths = throws(c, a.n, kind)
+        specs = []
+        for prof in ("realistic", "fast_close", "fast_idealized"):
+            for lead in (0, -10, -20):
+                specs.append((f"pinch|{prof}|lead{lead}", prof, dict(mode="pinch", cone_deg=cone, close_lead=lead / 1000), None))
+        if kind == "square":
+            for gs in (75, 150, 300, 600):
+                for lead in (0, -10):
+                    specs.append((f"speed_realforce|{gs}|lead{lead}", "fast_close",
+                                  dict(mode="pinch", cone_deg=cone, close_lead=lead / 1000), gs / 1000))
+            for lat in cs["latency_sweep_s"]:
+                ms = int(round(1000 * lat))
+                specs.append((f"latency|{ms}|pinch|realistic|lead-10", "realistic",
+                              dict(mode="pinch", cone_deg=cone, close_lead=-0.010, latency=lat), None))
+                specs.append((f"latency|{ms}|cup_pregap|realistic|cone10", "realistic",
+                              dict(mode="cup", cone_deg=10, cup_pre_gap=pg, latency=lat), None))
+            for cone_c in (10, 30):
+                specs.append((f"cup_pregap|realistic|cone{cone_c}", "realistic", dict(mode="cup", cone_deg=cone_c, cup_pre_gap=pg), None))
+            specs.append(("cup_open|realistic|cone30", "realistic", dict(mode="cup", cone_deg=30), None))
+        run_rows(f"catch_corrections{'_square' if kind == 'square' else ''}.json",
+                 [sp for sp in specs if not a.only or a.only in sp[0]], ths, c, prof_name, kind,
+                 note="Phase 2 review rows; gripper latency 10 ms (assumed 10 ms) unless the key says otherwise")
 
 
 def run_rows(name, specs, ths, c, prof_name, kind, note=""):

@@ -22,6 +22,41 @@ Limits everywhere (same as M1): joint speed ≤ 85 % of 180 °/s, inverse-dynami
 ≤ 80 % of 150/150/150/28/28/28 N·m, ≥ 0.15 rad from the joint limits. A catch only counts if every executed
 (re)plan of B stayed inside these limits.
 
+## Corrections after the Phase 1 review (Phase 2, step 0)
+
+**Which configuration each pinch number comes from.** The Phase 1 table quoted 86–87 % for the realistic pinch,
+while `catch_modes.png` showed ~75 % (panel f), 71–79 % (d) and 55–71 % at 150 mm/s (e). All are correct for their
+configuration; the plots did not say which one, and the headline configuration was not plotted:
+
+| number | close timing | pre-gap | throw set | perception | gripper | latency | source row |
+|---|---|---|---|---|---|---|---|
+| **87 % / 86 %** (headline) | **+10 ms** after nominal | 56 mm | square / random | measured | realistic | 0 (Phase 1) and 10 ms (now) | `lead\|-10\|…`, `pinch\|realistic\|lead-10` |
+| 76 % / 71 % | nominal (gap 40 mm at predicted arrival) | 56 mm | square / random | measured | realistic | 0 | `profile\|realistic\|pinch\|0.0` (old panel f, d) |
+| 79 % / 72 % | nominal, 0.25 velocity matching | 56 mm | square / random | measured | realistic | 0 | panel (d) |
+| 58 % (old panel e at 150 mm/s) | nominal | 56 mm | square | measured | **fast_idealized actuator (5× force)** ramped at 150 mm/s | 0 | `speed\|150\|pinch\|0.0` |
+| 55–71 % (old panel e, 150 mm/s, random/square, match 0/1) | nominal | 56 mm | both | measured | 5× force actuator | 0 | `speed\|150\|…` |
+
+Now: panel (f) of `catch_modes.png` shows the headline configurations (with the 10 ms gripper latency), panel (d)
+says it is nominal timing, panel (e) shows the closing-speed sweep with the **realistic** grip force (plus the old 5×
+force curve for comparison), and `catch_corrections.png` adds the timing, speed-vs-force and latency sweeps.
+The headline is unchanged by the latency model: **87 % (square) / 86 % (random)**, realistic gripper, 10 ms latency.
+
+**Closing speed vs grip force.** `fast_idealized` had 5× the grip force. New profile `fast_close`: the same 10×
+commanded speed, the realistic force limit (it reaches ~570 mm/s from 56 mm, force-limited). Pinch, square throws,
+120 each: realistic 76 / **87** / 88 % (close nominal / +10 / +20 ms), **fast_close 100** / 94 / 78 %, fast_idealized
+100 / 100 / 94 %. Closing-speed sweep with the realistic force (best timing): 75 mm/s 43 %, 150 mm/s 81 %, 300 mm/s
+96 %, 600 mm/s 100 %. **The speed effect is a speed effect**: a fast gripper with the 2F-85's force catches 100 %.
+
+**Gripper command latency.** Robotiq 2F-85/2F-140 instruction manual, 4.7.1 Connection Setup: "200 Hz is the usual
+speed when commanding / reading from the Robotiq Gripper. It is therefore recommended to send commands with a minimum
+delay of 5 ms between them", RS-485 at 115,200 bps. Estimate: ≤ 5 ms to the next command slot + ~2 ms Modbus
+transaction + gripper cycle ≈ **10 ms (default; not a measurement)**. Offline: every gripper command reaches the
+fingers 10 ms later; a timed close is sent 10 ms early (B's assumed latency). Sweep of the true latency with B
+assuming 10 ms (square throws): pinch 76 / 87 / 88 / 82 % at 0 / 10 / 20 / 30 ms (a latency error is a close-timing
+error), pre-closed cup 90 / 89 / 88 / 86 % (contact-triggered, cannot be compensated, but the cup is tolerant).
+
+![corrections](v2/catch_corrections.png)
+
 ## 1. Ready pose for B
 
 ![ready pose](v2/ready_pose.png)
