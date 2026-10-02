@@ -1,0 +1,78 @@
+# v2 Phase 1: offline feasibility study (tools/v2_*.py, venv). Units: m, s, rad unless the key says otherwise.
+# Results: docs/v2/, report: docs/v2_phase1_feasibility.md. Nothing here is read by the ROS pipeline.
+
+# Gripper model used by the catch simulations. Every output (json, log line, plot title) carries this value.
+#   realistic:      reference ramp at the 2F-85's maximum closing speed. Robotiq 2F-85 product sheet: stroke
+#                   85 mm, closing speed 20-150 mm/s (2F-140: 140 mm, 30-250 mm/s: full stroke ~0.56 s for both,
+#                   so the speed is the rate of the finger GAP). The v1 sim gripper (step command) is faster
+#                   than that: 85 -> 40 mm in 93 ms, up to ~720 mm/s.
+#   fast_idealized: not a real 2F-85. 10x the spec speed and a 20x stiffer, 20x stronger actuator.
+gripper_profile: realistic
+gripper_profiles:
+  realistic: {gap_speed: 0.150, kp_scale: 1.0, force_scale: 1.0}
+  fast_idealized: {gap_speed: 1.500, kp_scale: 20.0, force_scale: 20.0}
+
+limits:                 # same margins as M1
+  vel_ratio: 0.85       # joint speed <= 85 % of 180 deg/s
+  torque_ratio: 0.80    # MuJoCo inverse dynamics (gravity included) <= 80 % of 150/150/150/28/28/28 N m
+  pos_margin: 0.15      # rad from the joint limits
+  table_clearance: 0.10 # TCP (cube centre) above the table top during B's moves
+
+# 1. Ready pose search for B (TCP = cube centre on the palm; approach axis = tool z; closing axis = tool x)
+ready:
+  x: [0.30, 0.35, 0.40, 0.45, 0.50, 0.55]
+  y: [0.0, 0.05, 0.10, 0.15, 0.20, 0.25]
+  z: [1.10, 1.15, 1.20, 1.25, 1.30, 1.35]
+  elevation_deg: [0, 15, 30, 45, 60]      # approach axis above horizontal, pointing towards A (-x)
+  min_wrist_sin: 0.5                      # |sin(wrist_2)| >= 0.5: >= 30 deg from the wrist singularity
+  min_clearance: 0.05                     # arm vs table / pedestals / pallets
+  top_n_envelope: 12                      # best candidates by margins that get the full envelope evaluation
+
+# 2. Perception
+perception:
+  rates_hz: [60, 120, 240]
+  noise_mm: [1, 2, 4]                     # per-frame, per-axis 1-sigma of the triangulated cube centre
+  latency_s: [0.0, 0.010, 0.025, 0.040]   # detection + transport latency (frame time -> estimate available)
+  first_visible_s: 0.030                  # cube clear of A's fingers
+  good_enough_mm: 10.0                    # 95 % 3D error of the predicted intercept that starts B's move
+  render_sizes: [[320, 240], [640, 480]]
+  # study cameras looking at the flight volume (world frame, fovy deg). Two orthogonal views: side_front gives
+  # x/z, top gives x/y; a pair facing each other would leave the depth axis poorly conditioned.
+  cameras:
+    side_front: {pos: [0.15, -1.30, 1.30], target: [0.15, 0.20, 1.25], fovy: 45}
+    top:        {pos: [0.15, 0.20, 2.35], target: [0.15, 0.20, 1.25], fovy: 55}   # orthogonal to side_front
+  detection_runs: 40                      # throws rendered for the measured detection noise
+
+# 3. Catch envelope
+envelope:
+  t_left_s: [0.15, 0.20, 0.25, 0.30]
+  grid_step: 0.025
+
+# 4. Random throws for A (release point fixed at the M1 one; targets from B's envelope)
+throws:
+  release_point: [-0.05, null, 1.25]      # y follows the target (throw plane parallel to x)
+  launch_angle_deg: [50, 55, 60, 65, 70, 75]
+  target_x: [0.25, 0.30, 0.35, 0.40, 0.45]
+  target_y: [0.10, 0.15, 0.20, 0.25, 0.30, 0.35]
+  target_z: [1.05, 1.10, 1.15, 1.20, 1.25, 1.30]
+
+# 5. Catch simulations
+catch_sim:
+  n_throws: 120                           # throws sampled from the distribution per configuration
+  seed: 7
+  control_dt: 0.002                       # B's PD + inverse-dynamics feed-forward (like the JTC at 500 Hz)
+  camera_rate_hz: 120
+  noise_mm: 2.0
+  latency_s: 0.025
+  replan: true                            # re-plan B's move on every new estimate (reactive intercept)
+  freeze_before_s: 0.040                  # no re-plan in the last 40 ms
+  arrive_early_s: 0.030                   # cup: B at rest this long before the predicted arrival
+  touch_threshold_n: 2.0                  # cup: palm touch sensor (contact only) -> close
+  trigger_latency_s: 0.006
+  close_to: 0.70
+  settle_s: 0.8
+  cup_cone_deg: [0, 10, 20, 30, 45, 60, 180]
+  pinch_pre_gap_mm: 56                    # pre-opened finger gap (cube 40 mm: +-8 mm)
+  pinch_gap_speeds_mm_s: [75, 150, 300, 600, 1500, 3000]
+  pinch_match: [0.0, 0.25, 0.5, 0.75, 1.0]  # commanded fraction of the cube velocity matched at the intercept
+  pinch_cone_deg: 30
