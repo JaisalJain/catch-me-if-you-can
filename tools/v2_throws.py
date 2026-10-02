@@ -221,6 +221,47 @@ def dyn_mjcf_xml(scene, phys, path):
     return path
 
 
+def pin_from_mujoco(dyn):
+    """Pinocchio model with exactly the MuJoCo Dynamics parameters: arm joint placements / axes / inertias read
+    from the compiled model, every body below wrist_3 (gripper at knuckle 0, 60 g cube) lumped onto wrist_3."""
+    import mujoco
+    import pinocchio as pin
+    m, d = dyn.m, mujoco.MjData(dyn.m)
+    mujoco.mj_forward(m, d)
+    model = pin.Model()
+    bid = lambda n: mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, n)
+    links = ["shoulder_link", "upper_arm_link", "forearm_link", "wrist_1_link", "wrist_2_link", "wrist_3_link"]
+    se3 = lambda pos, quat: pin.SE3(pin.Quaternion(quat[0], quat[1], quat[2], quat[3]).toRotationMatrix(), np.array(pos))
+    w_T = {}
+    parent, prev_T = 0, se3(d.xpos[bid("base")], d.xquat[bid("base")])
+    for jn, ln in zip(V.JN, links):
+        b = bid(ln)
+        T = se3(d.xpos[b], d.xquat[b])
+        j = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_JOINT, jn)
+        ax = m.jnt_axis[j]
+        assert np.allclose(m.jnt_pos[j], 0)
+        jid = model.addJoint(parent, pin.JointModelRevoluteUnaligned(ax[0], ax[1], ax[2]), prev_T.inverse() * T, jn)
+        I = pin.Inertia(m.body_mass[b], m.body_ipos[b], se3([0, 0, 0], m.body_iquat[b]).rotation @ np.diag(m.body_inertia[b])
+                        @ se3([0, 0, 0], m.body_iquat[b]).rotation.T)
+        if ln == "wrist_3_link":
+            for c in range(m.nbody):
+                a, inside = c, False
+                while a > 0:
+                    a = m.body_parentid[a]
+                    if a == b:
+                        inside = True
+                        break
+                if not inside or m.body_mass[c] == 0:
+                    continue
+                Ic = pin.Inertia(m.body_mass[c], np.zeros(3), np.diag(m.body_inertia[c]))
+                X = T.inverse() * se3(d.xipos[c], [1, 0, 0, 0])
+                X.rotation = T.rotation.T @ d.ximat[c].reshape(3, 3)
+                I = I + X.act(Ic)
+        model.appendBodyToJoint(jid, I, pin.SE3.Identity())
+        parent, prev_T, w_T[jn] = jid, T, T
+    return model
+
+
 def run_id(c):
     import mujoco
     import pinocchio as pin
@@ -276,7 +317,9 @@ def run_id(c):
         jmv = [pm.joints[pm.getJointId(j)].idx_v for j in V.JN]
     # MuJoCo armature (rotor inertia) of the Menagerie arm joints, not in the URDF
     arm = A["dyn"].m.dof_armature[A["dyn"].dofs]
-    rows = {"urdf": [], "urdf+armature": [], "mjcf": []}
+    pp = pin_from_mujoco(A["dyn"])
+    dp = pp.createData()
+    rows = {"urdf": [], "urdf+armature": [], "mjcf": [], "mujoco_params": []}
     t_pin = []
     for plan, tau_mj in plans:
         for k in range(0, len(plan.t), 2):
@@ -288,6 +331,7 @@ def run_id(c):
             t_pin.append(time.perf_counter() - a)
             rows["urdf"].append(tu - tau_mj[k])
             rows["urdf+armature"].append(tu + arm * qdd - tau_mj[k])
+            rows["mujoco_params"].append(pin.rnea(pp, dp, q, qd, qdd) + arm * qdd - tau_mj[k])
             if pm is not None:
                 Q, Vv, Aa = pin.neutral(pm), np.zeros(pm.nv), np.zeros(pm.nv)
                 Q[jm], Vv[jmv], Aa[jmv] = q, qd, qdd
@@ -299,7 +343,11 @@ def run_id(c):
                time_ms=dict(branch_and_kappa=1000 * float(np.median(t_branch)), generate_throw=1000 * float(np.median(t_gen)),
                             mujoco_id_per_throw=1000 * float(np.median(t_id)), pinocchio_rnea_per_sample_us=1e6 * float(np.median(t_pin)),
                             samples_per_throw=int(np.median([len(p.t) for p, _ in plans]))),
-               peak_abs_tau_mujoco=peak, mjcf_parse=res["mjcf_parse"])
+               peak_abs_tau_mujoco=peak, mjcf_parse=res["mjcf_parse"],
+               note_models="urdf: robot_description (ur_description + robotiq_description inertias); urdf+armature: plus "
+                           "MuJoCo's 0.1 kg m^2 rotor inertia; mjcf: pin.buildModelFromMJCF of the MuJoCo model (its "
+                           "importer gives wrist_3 + gripper ~0.85 kg more mass than MuJoCo compiles); mujoco_params: "
+                           "pinocchio model built from the compiled MuJoCo body parameters (+ armature)")
     for k, v in rows.items():
         if not v:
             continue
