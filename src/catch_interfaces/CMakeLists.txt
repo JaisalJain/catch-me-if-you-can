@@ -6,8 +6,8 @@ find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
-  "msg/ThrowPlan.msg" "msg/CubeDetection.msg" "msg/CubeDetectionArray.msg"
+  "msg/ThrowPlan.msg" "msg/CubeDetection.msg" "msg/CubeDetectionArray.msg" "msg/CubeTrack.msg"
   "srv/SpawnCube.srv" "srv/ResetScene.srv" "srv/GetColor.srv" "srv/GetThrowPlan.srv" "srv/GetInHandPose.srv"
-  "action/Throw.action" "action/Catch.action"
+  "action/Throw.action" "action/Catch.action" "action/ReactiveCatch.action"
   DEPENDENCIES std_msgs geometry_msgs builtin_interfaces)
 ament_package()

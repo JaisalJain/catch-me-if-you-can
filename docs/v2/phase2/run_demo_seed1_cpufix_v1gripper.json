@@ -1,0 +1,242 @@
+{
+ "summary": {
+  "seed": 1,
+  "duration_s": 88.3,
+  "sorted": [
+   "red",
+   "green",
+   "blue"
+  ],
+  "throws": 3,
+  "throws_per_cube": {
+   "red": 1,
+   "green": 1,
+   "blue": 1
+  },
+  "attempts": {
+   "red": 1,
+   "green": 1,
+   "blue": 1
+  },
+  "recoveries": [],
+  "complete": true
+ },
+ "events": [
+  {
+   "t": 0.0,
+   "t_sim": 15.462,
+   "state": "detect",
+   "msg": "start (seed 1)"
+  },
+  {
+   "t": 1.75,
+   "t_sim": 17.21,
+   "state": "detect",
+   "msg": "3 cube(s) on A's pallet ['blue', 'green', 'red']; random pick: red at (-0.542, -0.280)",
+   "a_color": "red"
+  },
+  {
+   "t": 7.28,
+   "t_sim": 22.74,
+   "state": "pick",
+   "msg": "picked (knuckle 0.450)",
+   "ok": true
+  },
+  {
+   "t": 13.08,
+   "t_sim": 28.542,
+   "state": "load",
+   "msg": "cube seated on the palm, A at the stroke start"
+  },
+  {
+   "t": 15.93,
+   "t_sim": 31.396,
+   "state": "preposition",
+   "msg": "B in its cup pose, fingers open, armed for the live throw plan"
+  },
+  {
+   "t": 17.84,
+   "t_sim": 33.299,
+   "state": "throw",
+   "msg": "throw #1 of the red cube: stroke done (v1 throw, noise none: |v| 2.1419 vs 2.1419 m/s, start +0.0 ms; feed-forward on); loosen to 0.3 commanded at t0+0.120 s (v1 gripper model)"
+  },
+  {
+   "t": 17.84,
+   "t_sim": 33.299,
+   "state": "throw",
+   "msg": "catch: held: force trigger at -2.3 ms vs predicted arrival, peak palm force 82.7 N, knuckle 0.449",
+   "caught": true
+  },
+  {
+   "t": 21.8,
+   "t_sim": 37.261,
+   "state": "color",
+   "msg": "B sees red (0.102); agrees with A's red (cross-check only)",
+   "b_color": "red"
+  },
+  {
+   "t": 22.01,
+   "t_sim": 37.472,
+   "state": "in_hand",
+   "msg": "red: angle +0.4 deg, centre (y, z) (+2.6, +3.6) mm, rms 0.39 mm, inliers 0.55, 2685 px"
+  },
+  {
+   "t": 29.2,
+   "t_sim": 44.666,
+   "state": "place",
+   "msg": "red slot on B's pallet: placed (tool tilt 0.4 deg, release height 17.4 mm)",
+   "ok": true
+  },
+  {
+   "t": 30.54,
+   "t_sim": 46.001,
+   "state": "verify",
+   "msg": "overhead B: red cube in its slot (offset -4.5, +0.4 mm, confidence 1.00)",
+   "sorted": "red"
+  },
+  {
+   "t": 30.72,
+   "t_sim": 46.182,
+   "state": "detect",
+   "msg": "2 cube(s) on A's pallet ['blue', 'green']; random pick: green at (-0.450, -0.280)",
+   "a_color": "green"
+  },
+  {
+   "t": 35.91,
+   "t_sim": 51.368,
+   "state": "pick",
+   "msg": "picked (knuckle 0.450)",
+   "ok": true
+  },
+  {
+   "t": 41.71,
+   "t_sim": 57.167,
+   "state": "load",
+   "msg": "cube seated on the palm, A at the stroke start"
+  },
+  {
+   "t": 44.59,
+   "t_sim": 60.049,
+   "state": "preposition",
+   "msg": "B in its cup pose, fingers open, armed for the live throw plan"
+  },
+  {
+   "t": 46.38,
+   "t_sim": 61.84,
+   "state": "throw",
+   "msg": "throw #1 of the green cube: stroke done (v1 throw, noise none: |v| 2.1419 vs 2.1419 m/s, start +0.0 ms; feed-forward on); loosen to 0.3 commanded at t0+0.120 s (v1 gripper model)"
+  },
+  {
+   "t": 46.38,
+   "t_sim": 61.84,
+   "state": "throw",
+   "msg": "catch: held: force trigger at -2.3 ms vs predicted arrival, peak palm force 61.5 N, knuckle 0.448",
+   "caught": true
+  },
+  {
+   "t": 50.27,
+   "t_sim": 65.728,
+   "state": "color",
+   "msg": "B sees green (0.102); agrees with A's green (cross-check only)",
+   "b_color": "green"
+  },
+  {
+   "t": 50.4,
+   "t_sim": 65.857,
+   "state": "in_hand",
+   "msg": "green: angle -1.1 deg, centre (y, z) (+1.6, +4.7) mm, rms 0.32 mm, inliers 0.56, 2728 px"
+  },
+  {
+   "t": 57.77,
+   "t_sim": 73.228,
+   "state": "place",
+   "msg": "green slot on B's pallet: placed (tool tilt 1.1 deg, release height 16.5 mm)",
+   "ok": true
+  },
+  {
+   "t": 59.23,
+   "t_sim": 74.688,
+   "state": "verify",
+   "msg": "overhead B: green cube in its slot (offset -1.2, +0.4 mm, confidence 1.00)",
+   "sorted": "green"
+  },
+  {
+   "t": 59.41,
+   "t_sim": 74.869,
+   "state": "detect",
+   "msg": "1 cube(s) on A's pallet ['blue']; random pick: blue at (-0.357, -0.280)",
+   "a_color": "blue"
+  },
+  {
+   "t": 64.36,
+   "t_sim": 79.819,
+   "state": "pick",
+   "msg": "picked (knuckle 0.450)",
+   "ok": true
+  },
+  {
+   "t": 70.17,
+   "t_sim": 85.627,
+   "state": "load",
+   "msg": "cube seated on the palm, A at the stroke start"
+  },
+  {
+   "t": 73.09,
+   "t_sim": 88.55,
+   "state": "preposition",
+   "msg": "B in its cup pose, fingers open, armed for the live throw plan"
+  },
+  {
+   "t": 74.95,
+   "t_sim": 90.41,
+   "state": "throw",
+   "msg": "throw #1 of the blue cube: stroke done (v1 throw, noise none: |v| 2.1419 vs 2.1419 m/s, start +0.0 ms; feed-forward on); loosen to 0.3 commanded at t0+0.120 s (v1 gripper model)"
+  },
+  {
+   "t": 74.95,
+   "t_sim": 90.41,
+   "state": "throw",
+   "msg": "catch: held: force trigger at -2.3 ms vs predicted arrival, peak palm force 44.4 N, knuckle 0.449",
+   "caught": true
+  },
+  {
+   "t": 78.83,
+   "t_sim": 94.295,
+   "state": "color",
+   "msg": "B sees blue (0.101); agrees with A's blue (cross-check only)",
+   "b_color": "blue"
+  },
+  {
+   "t": 78.95,
+   "t_sim": 94.411,
+   "state": "in_hand",
+   "msg": "blue: angle -0.6 deg, centre (y, z) (-4.5, +3.6) mm, rms 0.49 mm, inliers 0.57, 2711 px"
+  },
+  {
+   "t": 86.55,
+   "t_sim": 102.013,
+   "state": "place",
+   "msg": "blue slot on B's pallet: placed (tool tilt 0.6 deg, release height 17.6 mm)",
+   "ok": true
+  },
+  {
+   "t": 88.01,
+   "t_sim": 103.476,
+   "state": "verify",
+   "msg": "overhead B: blue cube in its slot (offset +1.4, +0.4 mm, confidence 1.00)",
+   "sorted": "blue"
+  },
+  {
+   "t": 88.28,
+   "t_sim": 103.737,
+   "state": "detect",
+   "msg": "A's pallet: empty -> nothing left to throw"
+  },
+  {
+   "t": 88.28,
+   "t_sim": 103.738,
+   "state": "done",
+   "msg": "{\"seed\": 1, \"duration_s\": 88.3, \"sorted\": [\"red\", \"green\", \"blue\"], \"throws\": 3, \"throws_per_cube\": {\"red\": 1, \"green\": 1, \"blue\": 1}, \"attempts\": {\"red\": 1, \"green\": 1, \"blue\": 1}, \"recoveries\": [], \"complete\": true}"
+  }
+ ]
+}

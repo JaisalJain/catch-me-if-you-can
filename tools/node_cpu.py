@@ -13,7 +13,7 @@ import time
 TICK = os.sysconf("SC_CLK_TCK")
 
 
-def procs():
+def procs(extra=()):
     out = {}
     for pid in os.listdir("/proc"):
         if not pid.isdigit() or int(pid) == os.getpid():
@@ -33,6 +33,9 @@ def procs():
                 name = "ros2_control_node (sim, C++)"
             elif c.endswith("moveit_ros_move_group/move_group"):
                 name = "move_group (C++)"
+        for pat in extra:                      # e.g. an idle probe script (--match cpu_probe)
+            if any(pat in c for c in cmd[:3]) and not any("node_cpu.py" in c for c in cmd[:3]):
+                name = os.path.basename(next(c for c in cmd[:3] if pat in c))
         if name:
             out[int(pid)] = name
     return out
@@ -47,8 +50,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--seconds", type=float, default=30.0)
     ap.add_argument("--out")
+    ap.add_argument("--match", nargs="*", default=[], help="also measure processes whose command line contains this")
     a = ap.parse_args()
-    p = procs()
+    p = procs(a.match)
     t0, c0 = time.monotonic(), {pid: ticks(pid) for pid in p}
     time.sleep(a.seconds)
     t1 = time.monotonic()

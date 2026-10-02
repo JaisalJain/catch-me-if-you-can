@@ -182,3 +182,31 @@
 - Finding for v1: the v1 sim gripper closes 3–5× faster than the real 2F-85 (M5's 30/30 cup used it).
 - Details and Phase 2 plan: `docs/v2_phase1_feasibility.md`.
 
+## v2 Phase 2 — step 0: corrections from the Phase 1 review (2026-10-02)
+- Pinch numbers reconciled (docs/v2_phase1_feasibility.md, "Corrections"): the 86–87 % headline is the realistic pinch
+  closing 10 ms after the nominal instant (56 mm pre-gap, measured perception); the plots showed nominal timing
+  (76 / 71 %), 0.25 matching (79 / 72 %) and a 5x-force actuator at 150 mm/s (55–71 %). Plots relabelled, panel (f) =
+  headline configurations, new `catch_corrections.png`.
+- Speed vs force: new profile `fast_close` (10x speed, realistic force): pinch 100 % at nominal timing (fast_idealized
+  100 %, realistic 87 % at +10 ms) -> the gain is speed, not force. Realistic-force speed sweep: 75/150/300/600 mm/s
+  -> 43/81/96/100 % (best timing).
+- Gripper command latency 10 ms (Robotiq manual 4.7.1: 200 Hz command rate, >= 5 ms between commands, 115.2 kbps;
+  estimate, not measured), offline and in the sim (catch_sim/gripper_model.py: rate-limited 150 mm/s ramp, delayed;
+  both grippers are JTCs). Sweep (B assumes 10 ms): pinch 76/87/88/82 %, pre-closed cup 90/89/88/86 % at 0/10/20/30 ms.
+- v1 honesty: the v1 sim gripper closed 3–5x faster than a 2F-85. Re-run with the realistic model (150 mm/s, 10 ms,
+  both arms): **v1 catch eval 30/30 caught, 30/30 placed** (trigger -2.8 ± 0.6 ms; original 30/30); **M4 20/20, speed
+  error +5.4 ± 1.8 mm/s** (v1 +6.6 ± 2.5), direction 0.27°, catch-height crossing +2.3 mm. The M1 throw lands square on
+  a static, plan-informed cup, so the slow close does not matter there (Phase 1: it does for random throws).
+
+## v2 Phase 2 — step 1: /joint_states CPU fix (2026-10-02)
+- `catch_sim.joint_state_cache.JointStateCache`: latest /joint_states on a helper node + EventsExecutor thread (same
+  pattern as the /clock offload); used by MoveItClient (catcher, run_demo, evals, skills) and throw_node.
+- Idle CPU, % of one core (tools/node_cpu.py, 30 s, same sim): **throw_node 93.2 -> 9.8, catcher 53.2 -> 9.8,
+  run_demo's node 46.6 -> 11.8** (docs/v2/phase2/cpu_idle_{before,after}.json).
+- Regression with the v1 gripper (MJCF variant + profile v1, so only the CPU fix differs): **M4 20/20, +7.1 ± 2.2 mm/s,
+  0.28 ± 0.03°, crossing (+4.1, +1.6) mm** (v1: +6.6 ± 2.5, 0.28 ± 0.03, (+3.9, +1.6)); **run_demo seed 1 complete R-G-B,
+  3 throws, trigger -2.3 ms x3, verify offsets identical to v1 to 0.1 mm**, 95.7 -> 88.3 s.
+- Found on the way: move_group also published /robot_description (from the default MJCF) and raced
+  robot_state_publisher; it no longer publishes (`mujoco_model:=` variants now load). Short gripper ramps stamped
+  "now" could arrive after their end (rejected): immediate commands use a zero stamp.
+

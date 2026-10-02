@@ -1,8 +1,15 @@
 # Robot A: throw the cube currently held in gripper A (cube_id given by the caller for logging).
 string cube_id
+string library            # "" = the configured v1 throw; else "pinch" | "cup" (catch_throw/config/library_*.json)
+int32 entry -1            # library entry (from /throw/preview); -1 = the entry selected by the last preview
+string noise              # "" / none | low | medium | high (catch_throw/config/v2.yaml); applied to the executed throw
+int32 noise_seed          # seed of this throw's noise draw
 ---
 bool success
 string message
-ThrowPlan plan
+ThrowPlan plan                                # the NOMINAL plan A published (what it intended)
+geometry_msgs/Vector3 release_velocity_commanded   # the perturbed release velocity A actually commanded
+float64 release_time_offset                   # actual stroke start - published stroke start [s]
+string noise
 ---
 string phase

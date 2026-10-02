@@ -1,0 +1,28 @@
+# v2 reactive catcher (catch_catcher/reactive_node.py, reactive.py). Metres, seconds, radians.
+ready:                          # v2 Phase 1 ready pose (docs/v2_phase1_feasibility.md, tools/v2_ready_envelope.py)
+  q: [-0.87968, -0.111865, 1.891186, -2.997496, 1.175298, 3.949908]
+  tcp: [0.30, 0.25, 1.10]
+  elev_deg: 60                  # approach axis 60 deg above horizontal towards A; closing axis along world y
+pre_gap_mm: 56                  # fingers pre-opened to 56 mm (cube 40 mm: +-8 mm)
+limits: {vel_ratio: 0.85, torque_ratio: 0.80, pos_margin: 0.15}
+max_joint_jump: 2.5             # rad from the ready pose (IK branch continuity)
+check_samples: 12               # limit check samples per plan
+collision_dt: 0.015             # s between collision-checked configurations (capsule model, incl. arm A)
+min_move_time: 0.04
+horizon: 0.7                    # s ahead searched for an intercept
+search_dt: 0.02
+z_min: 1.0                      # intercept at least this high (TCP)
+box_lo: [0.10, -0.05]           # intercept xy box (catch envelope from the ready pose, Phase 1 item 3)
+box_hi: [0.55, 0.50]
+return_time: 0.8                # abort: back to the ready pose in this time
+commit_e95_mm: 30.0             # commit when the tracker's 95 % intercept error is below this (Phase 1: start_mm)
+replan_period: 0.02             # s between trajectory replacements (50 Hz)
+freeze_before: 0.04             # no replan in the last 40 ms before the intercept
+send_lead: 0.006                # trajectory start stamp this far ahead of now (transport to the JTC)
+traj_dt: 0.01                   # s between JointTrajectory points (quintic samples with effort feed-forward)
+pinch: {cone_deg: 30, close_offset: 0.010}   # close so the gap reaches 40 mm on predicted arrival + 10 ms (Phase 1)
+cup: {cone_deg: 10, arrive_early: 0.030, fallback_after: 0.030}   # timed fallback close 30 ms after predicted arrival
+contact_threshold_n: 3.0        # palm force above the pre-throw baseline -> close (both modes)
+settle: 0.8
+in_hand_knuckle: [0.36, 0.56]
+flight_timeout: 5.0             # s after "ready" to wait for a flight

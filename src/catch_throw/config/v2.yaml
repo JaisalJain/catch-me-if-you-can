@@ -1,0 +1,20 @@
+# v2 throws (catch_throw/library.py, throw_node). Seconds, metres, radians unless the key says otherwise.
+library:
+  default: pinch            # pinch: every A-feasible throw B can catch with the natural pinch (241, docs/v2/...)
+                            # cup:   square-arrival throws (cube lands square on B's cup palm, 121)
+  seed: 1                   # A's random entry choice (numpy default_rng(seed)); run_demo / benchmarks pass their own
+  loosen_before_separation: 0.112   # grip loosen this long before the planned separation (v1 throw: 0.232 - 0.12)
+
+# Release noise, Gaussian per throw, applied by A to the trajectory it EXECUTES; the published plan stays nominal
+# (what A intended). speed_rel: relative speed error (1-sigma); dir_deg: direction error per axis across the
+# velocity (1-sigma); time_s: stroke start (= release) time error vs the published plan (1-sigma).
+#   low    = M4's measured scatter (20 throws): speed +-2.5 mm/s (0.12 %), direction +-0.03 deg; separation time
+#            not resolvable better than +-16 ms from ground truth, 1 ms assumed
+#   medium = half of the plan-informed catch tolerance across the flight path (M5 / Phase 1: +-25-50 mm/s across
+#            the path at ~2 m/s; 12.5 mm/s -> 0.36 deg, 0.6 %), 5 ms
+#   high   = that tolerance itself (25 mm/s -> 0.72 deg, 1.2 %), 10 ms
+noise:
+  none:   {speed_rel: 0.0,    dir_deg: 0.0,  time_s: 0.0}
+  low:    {speed_rel: 0.0012, dir_deg: 0.03, time_s: 0.001}
+  medium: {speed_rel: 0.006,  dir_deg: 0.36, time_s: 0.005}
+  high:   {speed_rel: 0.012,  dir_deg: 0.72, time_s: 0.010}

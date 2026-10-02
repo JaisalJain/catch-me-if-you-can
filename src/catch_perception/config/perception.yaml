@@ -5,6 +5,7 @@ colors:
   blue:  {h: [[100, 130]], s_min: 120, v_min: 60}
 pallet_detector:
   cameras: [overhead_a, overhead_b]
+  trigger_hz: 4.0     # v2: overhead cameras are polled (on-demand); this node requests a frame pair at this rate
   core_px: 7          # distance-transform threshold separating a cube top (~48 px) from its slot border (~10 px)
   min_core_area: 150  # px
 color_check:

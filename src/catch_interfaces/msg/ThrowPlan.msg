@@ -9,3 +9,7 @@ builtin_interfaces/Time release_time  # predicted separation time
 builtin_interfaces/Time stroke_start_time
 float64 flight_time                   # nominal release -> catch point
 geometry_msgs/Point catch_point       # nominal intercept used for the geometry design (B may choose another)
+# v2 random throws
+string library                        # "" = the configured v1 throw, else the throw library ("pinch" | "cup")
+int32 library_entry                   # entry index in that library (-1 for the v1 throw)
+float64[] stroke_start_q              # arm A joint configuration at the stroke start (move there before /throw)

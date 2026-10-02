@@ -227,6 +227,8 @@
     <camera name="overhead_b" resolution="640 480" pos="0.45 -0.28 1.45" fovy="32"/>
     <camera name="side" quat="0.707107 0.707107 0 0" resolution="640 480" pos="0 -1.7 1.05" fovy="50"/>
     <camera name="demo" quat="0.851827 0.523823 0 0" pos="0 -2.3 1.85"/>
+    <camera name="track_side" quat="0.718789 0.695228 0 0" resolution="320 240" pos="0.15 -1.3 1.3"/>
+    <camera name="track_top" resolution="320 240" pos="0.15 0.2 2.35" fovy="55"/>
     <light name="key" pos="0.6 -1.2 3" dir="-0.182574 0.365148 -0.912871" diffuse="0.45 0.45 0.45" specular="0.1 0.1 0.1"/>
     <light name="fill" castshadow="false" pos="-1.5 1.5 2.5" dir="0.408248 -0.408248 -0.816497" diffuse="0.18 0.18 0.18" specular="0 0 0"/>
     <light name="top" castshadow="false" pos="0 0 3" diffuse="0.2 0.2 0.2" specular="0 0 0"/>
@@ -606,14 +608,14 @@
     <general name="a_wrist_1_joint_motor" class="a_size1" joint="a_wrist_1_joint" ctrlrange="-28 28" biastype="none" gainprm="1" biasprm="0 0 0"/>
     <general name="a_wrist_2_joint_motor" class="a_size1" joint="a_wrist_2_joint" ctrlrange="-28 28" biastype="none" gainprm="1" biasprm="0 0 0"/>
     <general name="a_wrist_3_joint_motor" class="a_size1" joint="a_wrist_3_joint" ctrlrange="-28 28" biastype="none" gainprm="1" biasprm="0 0 0"/>
-    <general name="a_robotiq_85_left_knuckle_joint" class="a_robotiq_2f85" tendon="a_robotiq_split" ctrlrange="0 0.8" forcerange="-5 5" gainprm="100" biasprm="0 -100 -10"/>
+    <general name="a_robotiq_85_left_knuckle_joint" class="a_robotiq_2f85" tendon="a_robotiq_split" ctrlrange="0 0.8" forcerange="-5 5" gainprm="1000" biasprm="0 -1000 -10"/>
     <general name="b_shoulder_pan_joint_motor" class="b_size3" joint="b_shoulder_pan_joint" ctrlrange="-150 150" biastype="none" gainprm="1" biasprm="0 0 0"/>
     <general name="b_shoulder_lift_joint_motor" class="b_size3" joint="b_shoulder_lift_joint" ctrlrange="-150 150" biastype="none" gainprm="1" biasprm="0 0 0"/>
     <general name="b_elbow_joint_motor" class="b_size3_limited" joint="b_elbow_joint" ctrlrange="-150 150" biastype="none" gainprm="1" biasprm="0 0 0"/>
     <general name="b_wrist_1_joint_motor" class="b_size1" joint="b_wrist_1_joint" ctrlrange="-28 28" biastype="none" gainprm="1" biasprm="0 0 0"/>
     <general name="b_wrist_2_joint_motor" class="b_size1" joint="b_wrist_2_joint" ctrlrange="-28 28" biastype="none" gainprm="1" biasprm="0 0 0"/>
     <general name="b_wrist_3_joint_motor" class="b_size1" joint="b_wrist_3_joint" ctrlrange="-28 28" biastype="none" gainprm="1" biasprm="0 0 0"/>
-    <general name="b_robotiq_85_left_knuckle_joint" class="b_robotiq_2f85" tendon="b_robotiq_split" ctrlrange="0 0.8" forcerange="-5 5" gainprm="100" biasprm="0 -100 -10"/>
+    <general name="b_robotiq_85_left_knuckle_joint" class="b_robotiq_2f85" tendon="b_robotiq_split" ctrlrange="0 0.8" forcerange="-5 5" gainprm="1000" biasprm="0 -1000 -10"/>
   </actuator>
 
   <sensor>

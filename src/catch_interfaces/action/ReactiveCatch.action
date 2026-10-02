@@ -1,0 +1,26 @@
+# v2 robot B: catch a thrown cube from the ready pose. The prediction source is fixed per node (parameter
+# `source`: "vision" = /tracker/cube only, never A's plan; "plan" = A's /throw_plan, benchmark baseline).
+string mode               # "pinch" (default) | "cup"
+float64 timeout           # s to wait for a flight after "ready" (0 = default)
+float64 close_offset      # s added to the timed close (NaN / 0 = config default)
+bool skip_ready_move      # already at the ready pose with the pre-gap
+---
+bool success              # node's own judgement: fingers closed on a cube (knuckle in range) after settling
+string message
+string trigger            # "timed" | "contact" | "none"
+bool aborted
+string abort_reason
+float64 t_commit          # s after the first estimate's flight start (t_first) when B committed
+float64 t_first_estimate  # sim time of the first usable estimate
+float64 t_intercept       # planned intercept time (sim)
+geometry_msgs/Point intercept
+float64 t_close_cmd       # sim time the close was commanded (scheduled timed close or contact)
+float64 t_contact         # sim time of the first palm contact (0 = none)
+int32 n_replans
+float64 replan_rate_hz
+float64 max_limit_ratio   # max over executed plans of max(speed/0.85, torque/0.80)
+float64 min_clearance     # m, capsule model, over executed plans
+float64 plan_ms_median    # planner compute time per replan
+float64 knuckle
+---
+string phase

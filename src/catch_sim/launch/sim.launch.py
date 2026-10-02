@@ -20,26 +20,30 @@ NV_ENV = {  # same as tools/nv_env.sh: never let rendering silently fall back to
 }
 
 
-def robot_description(headless):
+def robot_description(headless, mujoco_model=""):
     desc = get_package_share_directory("catch_description")
     doc = xacro.process_file(os.path.join(desc, "urdf", "scene.urdf.xacro"),
                              mappings={"headless": headless,
-                                       "mujoco_model": os.path.join(desc, "mjcf", "scene.xml")})
+                                       "mujoco_model": mujoco_model or os.path.join(desc, "mjcf", "scene.xml")})
     return doc.toxml()
 
 
 def setup(context):
     headless = LaunchConfiguration("headless").perform(context)
+    mujoco_model = LaunchConfiguration("mujoco_model").perform(context)   # MJCF variant (tools/v2_live/mjcf_variant.py)
+    camera_rate = LaunchConfiguration("camera_rate").perform(context)     # streaming (tracking) cameras [Hz]
     sim = get_package_share_directory("catch_sim")
     controllers = os.path.join(sim, "config", "controllers.yaml")
     plugins = os.path.join(sim, "config", "mujoco_plugins.yaml")
-    urdf = robot_description(headless)
+    urdf = robot_description(headless, mujoco_model)
     nodes = [SetEnvironmentVariable(k, v) for k, v in NV_ENV.items()]
     nodes += [
         Node(package="robot_state_publisher", executable="robot_state_publisher", output="log",
              parameters=[{"robot_description": ParameterValue(urdf, value_type=str), "use_sim_time": True}]),
         Node(package="mujoco_ros2_control", executable="ros2_control_node", output="both", emulate_tty=True,
-             parameters=[{"use_sim_time": True}, controllers, plugins], on_exit=Shutdown()),
+             parameters=[{"use_sim_time": True}, controllers, plugins,
+                         {"mujoco_plugins.mujoco_camera_plugin.camera_publish_rate": float(camera_rate)}],
+             on_exit=Shutdown()),
     ]
     for c in ("joint_state_broadcaster", "arm_a_controller", "arm_b_controller", "gripper_a_controller",
               "gripper_b_controller", "b_palm_ft_broadcaster"):
@@ -53,5 +57,7 @@ def setup(context):
 def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument("headless", default_value="false"),
+        DeclareLaunchArgument("mujoco_model", default_value=""),
+        DeclareLaunchArgument("camera_rate", default_value="125.0"),
         OpaqueFunction(function=setup),
     ])

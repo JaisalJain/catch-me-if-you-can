@@ -16,7 +16,8 @@ def moveit_config():
             .joint_limits(file_path="config/joint_limits.yaml")
             .trajectory_execution(file_path="config/moveit_controllers.yaml")
             .planning_pipelines(pipelines=["ompl"], default_planning_pipeline="ompl")
-            .planning_scene_monitor(publish_robot_description=True, publish_robot_description_semantic=True)
+            # /robot_description comes from robot_state_publisher only (it may point at an MJCF variant: mujoco_model:=)
+            .planning_scene_monitor(publish_robot_description=False, publish_robot_description_semantic=True)
             .to_moveit_configs())
 
 

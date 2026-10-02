@@ -1,0 +1,19 @@
+# catch_tracker (v2 flight tracking). Camera intrinsics/extrinsics are NOT here: tracker.launch.py derives them
+# from catch_description/config/scene.yaml (cameras.tracking), the same numbers the MJCF cameras are built from.
+cube_tracker:
+  ros__parameters:
+    cameras: [track_side, track_top]
+    roi: {lo: [-0.15, 0.0, 0.95], hi: [0.65, 0.45, 1.70]}   # flight volume (excludes pallets, table, A's start)
+    min_px: 8                     # a 40 mm cube is ~60-150 px at 320x240
+    max_ray_gap: 0.010            # m: the two cameras' rays must meet within this (else a mis-association)
+    # constant 3D offset of the silhouette-centroid triangulation vs the cube centre (shading of the faces);
+    # calibrated against ground truth: ros2 run catch_tasks tracker_eval --calibrate (docs/v2/phase2)
+    bias: [0.0, 0.0, 0.0]
+    sigma: [0.0015, 0.0015, 0.0025]   # per-axis measurement noise for the reported covariance [m]
+    acquire_frames: 5
+    acquire_rms: 0.003
+    acquire_speed: 0.8
+    lose_residual: 0.015
+    max_frames: 120
+    intercept_ref: [0.30, 0.25, 1.10]   # B's ready TCP (v2 Phase 1)
+    intercept_z_min: 0.95

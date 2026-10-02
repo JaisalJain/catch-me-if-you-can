@@ -10,7 +10,8 @@ Changes applied to the Menagerie models (see docs/m0_toolchain.md for why):
   * UR5e position servos -> torque motors clamped to the UR5e joint torques; gravity compensation on all
     robot bodies, routed through the actuators (actuatorgravcomp) so it counts against the torque limits.
   * 2F-85: driver joint renamed to the URDF name `robotiq_85_left_knuckle_joint`; its actuator gets the same
-    name and is re-expressed as an equivalent position servo in radians (kp=100, kv=10, ctrl 0..0.8).
+    name and is re-expressed as an equivalent position servo in radians (physics.yaml gripper: kp/kv, ctrl 0..0.8;
+    v1 used kp=100, kv=10).
   * 2F-85: a primitive palm insert (box) that only collides with cubes, a palm touch sensor and a TCP site.
 """
 import argparse
@@ -96,8 +97,10 @@ def make_arm(scene, phys, with_camera=False):
               {("name|joint|joint1|joint2", "right_driver_joint"): "85_left_knuckle_joint",
                ("name", "fingers_actuator"): "85_left_knuckle_joint"})
     act = g.actuator("85_left_knuckle_joint")
-    act.set_to_position(kp=100, kv=10)
+    gp = phys.get("gripper", {"kp": 100.0, "kv": 10.0, "force_scale": 1.0})
+    act.set_to_position(kp=gp["kp"], kv=gp["kv"])
     act.ctrlrange = [0, 0.8]
+    act.forcerange = np.asarray(act.forcerange) * gp.get("force_scale", 1.0)
     for geom in g.geoms:
         if geom.classname.name in ("pad_box1", "pad_box2"):
             geom.friction = phys["pads"]["friction"]
@@ -290,7 +293,20 @@ def build(scene, phys):
     w.add_camera(name="side", pos=c["pos"], quat=_axes_quat(xax, np.cross(xax, fwd)), fovy=c["fovy"],
                  resolution=c["resolution"])
     w.add_camera(name="demo", pos=[0.0, -2.3, 1.85], quat=_axes_quat([1, 0, 0], [0, 0.45, 0.89]), fovy=45)
+    for name, c in cams.get("tracking", {}).items():       # v2 flight tracking cameras
+        xax, yax = look_at_axes(c["pos"], c["target"], c.get("up", [0, 0, 1.0]))
+        w.add_camera(name=name, pos=c["pos"], quat=_axes_quat(xax, yax), fovy=c["fovy"], resolution=c["resolution"])
     return spec
+
+
+def look_at_axes(pos, target, up=(0, 0, 1.0)):
+    """Camera x (image right) and y (image up) axes in the world for a MuJoCo camera at pos looking at target
+    (MuJoCo cameras look along -z). Same function as catch_tracker's extrinsics (tested)."""
+    fwd = np.subtract(target, pos).astype(float)
+    fwd /= np.linalg.norm(fwd)
+    xax = np.cross(fwd, up)
+    xax /= np.linalg.norm(xax)
+    return xax, np.cross(xax, fwd)
 
 
 def compile_model(scene=None, phys=None):

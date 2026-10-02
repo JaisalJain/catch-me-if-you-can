@@ -20,5 +20,7 @@ setup(
         "catch_eval = catch_tasks.catch_eval:main",
         "run_demo = catch_tasks.state_machine:main",
         "bag_to_npz = catch_tasks.recorder:bag_to_npz",
+        "tracker_eval = catch_tasks.tracker_eval:main",
+        "reactive_eval = catch_tasks.reactive_eval:main",
     ]},
 )

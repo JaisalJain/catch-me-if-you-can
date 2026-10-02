@@ -1,4 +1,8 @@
-# Preview of the configured throw (release state relative to the stroke start; absolute times are zero).
+# Preview / selection of a throw. With library = "" the configured v1 throw (absolute times zero). With a library,
+# A selects an entry (entry = -1: at random with its seeded generator) and returns its plan; that entry is the one
+# the next /throw goal with the same library and entry executes.
+string library
+int32 entry -1
 ---
 bool success
 ThrowPlan plan

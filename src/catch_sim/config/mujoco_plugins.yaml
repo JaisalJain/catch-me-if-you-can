@@ -6,12 +6,18 @@
         type: "mujoco_ros2_control_plugins/FreeJointStatePublisherPlugin"
       mujoco_camera_plugin:            # key name is hard-coded in the plugin (0.1.1)
         type: "mujoco_ros2_control_plugins/CameraPlugin"
-        camera_publish_rate: 10.0      # one rate for all cameras in 0.1.1
-        overhead_a: {frame_name: overhead_a_optical, info_topic: /cameras/overhead_a/camera_info, image_topic: /cameras/overhead_a/image_raw, depth_topic: /cameras/overhead_a/depth}
-        overhead_b: {frame_name: overhead_b_optical, info_topic: /cameras/overhead_b/camera_info, image_topic: /cameras/overhead_b/image_raw, depth_topic: /cameras/overhead_b/depth}
-        side: {frame_name: side_optical, info_topic: /cameras/side/camera_info, image_topic: /cameras/side/image_raw, depth_topic: /cameras/side/depth}
+        # one publish rate for all STREAMING cameras in 0.1.1 (launch arg camera_rate overrides). The plugin checks
+        # it every 2 ms control cycle and restarts its timer at "now", so 120 Hz would give 100 Hz: use 125 / 62.5.
+        camera_publish_rate: 125.0
+        # v2 flight tracking (catch_tracker): streaming, colour used (depth is rendered too but nobody subscribes)
+        track_side: {frame_name: track_side_optical, info_topic: /cameras/track_side/camera_info, image_topic: /cameras/track_side/image_raw, depth_topic: /cameras/track_side/depth}
+        track_top: {frame_name: track_top_optical, info_topic: /cameras/track_top/camera_info, image_topic: /cameras/track_top/image_raw, depth_topic: /cameras/track_top/depth}
+        # all other cameras: on-demand capture (std_srvs/Trigger); pallet_detector / color_check trigger them
+        overhead_a: {policy: polled, trigger_service_name: /cameras/overhead_a/trigger, frame_name: overhead_a_optical, info_topic: /cameras/overhead_a/camera_info, image_topic: /cameras/overhead_a/image_raw, depth_topic: /cameras/overhead_a/depth}
+        overhead_b: {policy: polled, trigger_service_name: /cameras/overhead_b/trigger, frame_name: overhead_b_optical, info_topic: /cameras/overhead_b/camera_info, image_topic: /cameras/overhead_b/image_raw, depth_topic: /cameras/overhead_b/depth}
+        side: {policy: polled, trigger_service_name: /cameras/side/trigger, frame_name: side_optical, info_topic: /cameras/side/camera_info, image_topic: /cameras/side/image_raw, depth_topic: /cameras/side/depth}
         demo: {policy: disabled}
-        b_robotiq_wrist_cam: {frame_name: b_wrist_cam_optical, info_topic: /cameras/b_wrist/camera_info, image_topic: /cameras/b_wrist/image_raw, depth_topic: /cameras/b_wrist/depth}
+        b_robotiq_wrist_cam: {policy: polled, trigger_service_name: /cameras/b_wrist/trigger, frame_name: b_wrist_cam_optical, info_topic: /cameras/b_wrist/camera_info, image_topic: /cameras/b_wrist/image_raw, depth_topic: /cameras/b_wrist/depth}
 
 # 0.1.1 bug (fixed upstream in 0.1.2, ros-controls/mujoco_ros2_control#291): FreeJointStatePublisherPlugin reads
 # its parameters un-prefixed from the mujoco node.

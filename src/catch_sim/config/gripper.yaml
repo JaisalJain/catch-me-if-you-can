@@ -1,0 +1,16 @@
+# 2F-85 command model for the sim (catch_sim/gripper_model.py), used by every node that commands a gripper.
+# The MJCF actuator (physics.yaml: gripper) only tracks the reference; the 2F-85's own limits are applied here:
+#   * closing/opening speed: the finger GAP moves at most gap_speed. Robotiq 2F-85 product sheet: stroke 85 mm,
+#     closing speed 20-150 mm/s.
+#   * command latency: a command reaches the fingers `latency` after it is sent. Robotiq 2F-85/2F-140 instruction
+#     manual 4.7.1: "200 Hz is the usual speed when commanding / reading from the Robotiq Gripper ... minimum delay
+#     of 5 ms between them", RS-485 115,200 bps -> <= 5 ms slot + ~2 ms Modbus transaction + gripper cycle ~ 10 ms
+#     (estimate, not a measurement).
+# The profile is chosen here or by the environment variable CATCH_GRIPPER_PROFILE (benchmark runs). The MJCF must
+# match the profile's actuator (physics.yaml gripper:, variants via tools/v2_live/mjcf_variant.py).
+gripper_profile: realistic
+profiles:
+  realistic:      {gap_speed: 0.150, latency: 0.010}   # the real 2F-85 at its maximum speed setting
+  fast_close:     {gap_speed: 1.500, latency: 0.010}   # NOT a 2F-85: 10x speed, realistic force (benchmark only)
+  fast_idealized: {gap_speed: 1.500, latency: 0.010}   # NOT a 2F-85: 10x speed and 5x force (benchmark only)
+  v1:             {gap_speed: 10.0, latency: 0.0}      # v1 behaviour (step command), for the v1 comparison only

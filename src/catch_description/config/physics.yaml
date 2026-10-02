@@ -18,3 +18,7 @@ table:
   friction: [0.6, 0.005, 0.0001]
 arm:
   gravcomp: true
+gripper:                    # 2F-85 driver servo (rad). v1: kp 100 (fingers reached ~720 mm/s on a step command,
+  kp: 1000.0                # 3-5x the real 2F-85). v2: kp x10 so the fingers track the rate-limited, delayed
+  kv: 10.0                  # reference of catch_sim/gripper_model.py (150 mm/s, 10 ms); force limit unchanged
+  force_scale: 1.0          # (same grip force as v1). Benchmark variants: tools/v2_live/mjcf_variant.py

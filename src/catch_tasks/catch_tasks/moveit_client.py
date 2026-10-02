@@ -5,7 +5,6 @@ and GripperCommand actions. All calls block (spinning the caller's executor in a
 """
 from __future__ import annotations
 
-import threading
 import time
 
 import numpy as np
@@ -17,9 +16,11 @@ from moveit_msgs.msg import (BoundingVolume, Constraints, JointConstraint, Motio
 from moveit_msgs.srv import GetCartesianPath
 from rclpy.action import ActionClient
 from rclpy.node import Node
-from sensor_msgs.msg import JointState
 from shape_msgs.msg import SolidPrimitive
 from trajectory_msgs.msg import JointTrajectoryPoint
+
+from catch_sim import gripper_model
+from catch_sim.joint_state_cache import JointStateCache
 
 JN = ["shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint", "wrist_1_joint", "wrist_2_joint", "wrist_3_joint"]
 
@@ -42,33 +43,31 @@ class MoveItClient:
         self.move = ActionClient(node, MoveGroup, "/move_action")
         self.exec = ActionClient(node, ExecuteTrajectory, "/execute_trajectory")
         self.cart = node.create_client(GetCartesianPath, "/compute_cartesian_path")
-        # gripper A runs on a JointTrajectoryController (time-stamped loosen during the throw), B on a
-        # GripperActionController (contact-triggered close)
-        self.grippers = {"b": ActionClient(node, GripperCommand, "/gripper_b_controller/gripper_cmd")}
-        self.grip_traj = {"a": ActionClient(node, FollowJointTrajectory, "/gripper_a_controller/follow_joint_trajectory")}
-        self._js = {}
-        self._lock = threading.Lock()
-        node.create_subscription(JointState, "/joint_states", self._on_js, 10)
-
-    def _on_js(self, m):
-        with self._lock:
-            self._js.update(dict(zip(m.name, zip(m.position, m.velocity))))
+        # both grippers run on JointTrajectoryControllers; every command is a rate-limited, delayed ramp
+        # (catch_sim.gripper_model: 2F-85 speed + command latency, config/gripper.yaml)
+        self.grippers = {}
+        self.grip_traj = {r: ActionClient(node, FollowJointTrajectory, f"/gripper_{r}_controller/follow_joint_trajectory")
+                          for r in "ab"}
+        self.gripper_profile = gripper_model.load_profile()
+        self._last_grip_cmd = {}
+        # latest /joint_states on a helper thread (EventsExecutor): a 500 Hz subscription on the caller's
+        # MultiThreadedExecutor cost ~50-95 % of a core (catch_sim.joint_state_cache)
+        self.js = getattr(node, "_joint_state_cache", None) or JointStateCache(node)
+        node._joint_state_cache = self.js
 
     def joints(self, robot):
-        with self._lock:
-            return np.array([self._js[f"{robot}_{j}"][0] for j in JN])
+        return np.array(self.js.positions([f"{robot}_{j}" for j in JN]))
+
+    def joint_velocities(self, robot):
+        return np.array(self.js.velocities([f"{robot}_{j}" for j in JN]))
 
     def gripper_position(self, robot):
-        with self._lock:
-            return self._js[f"{robot}_robotiq_85_left_knuckle_joint"][0]
+        return self.js.position(f"{robot}_robotiq_85_left_knuckle_joint")
 
     def wait_ready(self, timeout=60.0):
         ok = self.move.wait_for_server(timeout_sec=timeout) and self.exec.wait_for_server(timeout_sec=timeout)
         ok = ok and self.cart.wait_for_service(timeout_sec=timeout)
-        t0 = time.monotonic()
-        while not self._js and time.monotonic() - t0 < timeout:
-            time.sleep(0.05)
-        return ok and bool(self._js)
+        return ok and self.js.wait(timeout)
 
     # ---------------------------------------------------------------- goals
     def _request(self, group, constraints):
@@ -157,7 +156,7 @@ class MoveItClient:
 
     def gripper(self, robot, position, max_effort=5.0, timeout=5.0):
         """position: driver joint angle, 0 = open, 0.8 = closed. Returns (ok, result).
-        Blocks until the fingers stop (reached or stalled on an object)."""
+        Blocks until the fingers stop (reached or stalled on an object). Rate-limited + delayed like a 2F-85."""
         if robot in self.grip_traj:
             return self._gripper_traj(robot, position, timeout)
         ac = self.grippers[robot]
@@ -186,10 +185,23 @@ class MoveItClient:
                 positions=[float(q)], time_from_start=Duration(sec=sec, nanosec=int(round((t - sec) * 1e9)))))
         return g
 
-    def _gripper_traj(self, robot, position, timeout, ramp=0.02, still=0.1):
+    def gripper_ramp_goal(self, robot, position, stamp=None, q_hold=None):
+        """2F-85 model ramp from the fingers' actual position to `position`, starting one command latency after
+        `stamp` (default: on receipt)."""
+        q_from = self.gripper_position(robot)
+        if q_hold is None:
+            q_hold = self._last_grip_cmd.get(robot, q_from)
+        prof = self.gripper_profile
+        pts = gripper_model.ramp_points(q_hold, q_from, position, prof["gap_speed"], prof["latency"])
+        # stamp None = zero stamp: the JTC starts the trajectory when it receives it (immediate command; a stamp
+        # of "now" can arrive after a short ramp has already ended and is then rejected). Timed commands pass a stamp.
+        self._last_grip_cmd[robot] = float(position)
+        return self.gripper_traj_goal(robot, pts, stamp=stamp)
+
+    def _gripper_traj(self, robot, position, timeout, still=0.1):
         ac = self.grip_traj[robot]
         ac.wait_for_server(timeout_sec=5.0)
-        h = _wait(ac.send_goal_async(self.gripper_traj_goal(robot, [(ramp, position)])), 5.0)
+        h = _wait(ac.send_goal_async(self.gripper_ramp_goal(robot, position)), 5.0)
         if h is None or not h.accepted:
             return False, None
         r = _wait(h.get_result_async(), timeout)
@@ -199,8 +211,7 @@ class MoveItClient:
         t0 = time.monotonic()
         t_still = None
         while time.monotonic() - t0 < timeout:
-            with self._lock:
-                v = abs(self._js[f"{robot}_robotiq_85_left_knuckle_joint"][1])
+            v = abs(self.js.velocity(f"{robot}_robotiq_85_left_knuckle_joint"))
             if v < 0.01:
                 t_still = t_still or time.monotonic()
                 if time.monotonic() - t_still > still and time.monotonic() - t0 > 0.1:
@@ -212,7 +223,7 @@ class MoveItClient:
 
     def gripper_async(self, robot, position, max_effort=5.0):
         if robot in self.grip_traj:
-            return self.grip_traj[robot].send_goal_async(self.gripper_traj_goal(robot, [(0.02, position)]))
+            return self.grip_traj[robot].send_goal_async(self.gripper_ramp_goal(robot, position))
         g = GripperCommand.Goal()
         g.command.position = float(position)
         g.command.max_effort = float(max_effort)

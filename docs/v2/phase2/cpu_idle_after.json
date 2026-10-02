@@ -1,0 +1,14 @@
+{
+ "camera_tf [476079]": 6.2,
+ "catcher [476086]": 9.8,
+ "color_check [476084]": 22.2,
+ "cpu_probe_run_demo.py [476795]": 11.8,
+ "gpu_check [476078]": 6.6,
+ "ground_truth_tf [476076]": 11.1,
+ "move_group (C++) [476080]": 21.7,
+ "pallet_detector [476083]": 107.7,
+ "ros2_control_node (sim, C++) [476068]": 104.3,
+ "rtf_monitor [476077]": 6.3,
+ "scene_manager [476075]": 6.2,
+ "throw_node [476085]": 9.8
+}

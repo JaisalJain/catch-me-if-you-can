@@ -14,6 +14,8 @@ from rclpy.qos import DurabilityPolicy, QoSProfile
 from tf2_msgs.msg import TFMessage
 from tf2_ros import Buffer
 
+from std_srvs.srv import Trigger
+
 from catch_interfaces.msg import CubeDetection, CubeDetectionArray
 from catch_interfaces.srv import GetColor, GetInHandPose
 from catch_sim.sim_clock import offload_sim_clock
@@ -82,6 +84,14 @@ class PalletDetector(Node):
             self.create_subscription(CameraInfo, f"/cameras/{cam}/camera_info",
                                      lambda m, c=cam: self.info.__setitem__(c, m), 1)
             self.create_subscription(Image, f"/cameras/{cam}/image_raw", lambda m, c=cam: self.on_image(c, m), 1)
+        # v2: the overhead cameras are polled (on-demand capture, mujoco_plugins.yaml); request frames at trigger_hz
+        self.triggers = [self.create_client(Trigger, f"/cameras/{cam}/trigger") for cam in self.pd["cameras"]]
+        self.create_timer(1.0 / self.pd.get("trigger_hz", 4.0), self._trigger)
+
+    def _trigger(self):
+        for c in self.triggers:
+            if c.service_is_ready():
+                c.call_async(Trigger.Request())
 
     def on_image(self, cam, msg):
         if cam not in self.info:
@@ -137,6 +147,7 @@ class ColorCheck(Node):
                                  callback_group=cb)
         self.tf = static_tf_buffer(self, cb)
         self.create_service(GetInHandPose, "/perception/in_hand_pose", self.on_in_hand, callback_group=cb)
+        self.wrist_trigger = {"b_wrist": self.create_client(Trigger, "/cameras/b_wrist/trigger", callback_group=cb)}
 
     def on_req(self, req, res):
         cam = req.camera or self.cc["camera"]
@@ -156,9 +167,12 @@ class ColorCheck(Node):
 
 
     def fresh_image(self, cam, timeout=1.5):
-        """Latest image of `cam` rendered after this request (the camera publishes at 10 Hz)."""
+        """Latest image of `cam` rendered after this request (v2: the wrist camera is polled; trigger a frame)."""
         import time
         t_req = self.get_clock().now().nanoseconds * 1e-9
+        trig = self.wrist_trigger.get(cam)
+        if trig is not None and trig.wait_for_service(timeout_sec=1.0):
+            trig.call_async(Trigger.Request())
         t0 = time.monotonic()
         while time.monotonic() - t0 < timeout:
             msg = self.latest.get(cam)

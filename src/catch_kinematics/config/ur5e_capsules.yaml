@@ -1,0 +1,108 @@
+capsules:
+- frame: 1
+  name: f1_g0
+  p0: [-0.0, -0.1, 0.0]
+  p1: [-0.0, 0.02, 0.0]
+  radius: 0.062
+- frame: 2
+  name: f2_g1
+  p0: [0.425, 0.0, 0.158]
+  p1: [0.425, 0.0, 0.038]
+  radius: 0.062
+- frame: 2
+  name: f2_g2
+  p0: [0.425, 0.0, 0.138]
+  p1: [0.025, -0.0, 0.138]
+  radius: 0.052
+- frame: 3
+  name: f3_g3
+  p0: [0.3922, 0.0, 0.147]
+  p1: [0.3922, 0.0, 0.027]
+  radius: 0.057
+- frame: 3
+  name: f3_g4
+  p0: [0.3822, 0.0, 0.007]
+  p1: [0.0022, 0.0, 0.007]
+  radius: 0.04
+- frame: 4
+  name: f4_g5
+  p0: [0.0, -0.0063, 0.0]
+  p1: [0.0, -0.1463, 0.0]
+  radius: 0.042
+- frame: 5
+  name: f5_g6
+  p0: [0.0, 0.1197, -0.0]
+  p1: [-0.0, -0.0003, -0.0]
+  radius: 0.042
+- frame: 5
+  name: f5_g7
+  p0: [0.0, -0.0003, 0.06]
+  p1: [-0.0, -0.0003, -0.02]
+  radius: 0.042
+- frame: 6
+  name: f6_g8
+  p0: [0.0, 0.0, 0.0004]
+  p1: [-0.0, 0.0, -0.0396]
+  radius: 0.042
+- frame: 6
+  name: f6_grip0
+  p0: [0.05531, 0.0, 0.01137]
+  p1: [-0.07232, 0.0001, 0.04439]
+  radius: 0.05601
+- frame: 6
+  name: f6_grip1
+  p0: [-0.07423, -0.00013, 0.09124]
+  p1: [0.07424, 9.0e-05, 0.09128]
+  radius: 0.07286
+min_clearance: 0.01
+note: 'tools/export_collision.py: capsules in UR5e DH frames (0 base .. 6 tool0), radius incl. 3 mm'
+obstacles:
+- hi: [1.0, 0.4, 0.75]
+  lo: [-1.0, -0.4, 0.71]
+  name: table_top
+- hi: [-0.71, 0.09, 1.1]
+  lo: [-0.89, -0.09, 0.75]
+  name: a_pedestal
+- hi: [0.89, 0.09, 1.1]
+  lo: [0.71, -0.09, 0.75]
+  name: b_pedestal
+- hi: [-0.3, -0.23, 0.768]
+  lo: [-0.6, -0.33, 0.75]
+  name: pallet_a
+- hi: [0.6, -0.23, 0.768]
+  lo: [0.3, -0.33, 0.75]
+  name: pallet_b
+self_pairs:
+- [f1_g0, f3_g3]
+- [f1_g0, f3_g4]
+- [f1_g0, f4_g5]
+- [f1_g0, f5_g6]
+- [f1_g0, f5_g7]
+- [f1_g0, f6_g8]
+- [f1_g0, f6_grip0]
+- [f1_g0, f6_grip1]
+- [f2_g1, f4_g5]
+- [f2_g1, f5_g6]
+- [f2_g1, f5_g7]
+- [f2_g1, f6_g8]
+- [f2_g1, f6_grip0]
+- [f2_g1, f6_grip1]
+- [f2_g2, f4_g5]
+- [f2_g2, f5_g6]
+- [f2_g2, f5_g7]
+- [f2_g2, f6_g8]
+- [f2_g2, f6_grip0]
+- [f2_g2, f6_grip1]
+- [f3_g3, f5_g6]
+- [f3_g3, f5_g7]
+- [f3_g3, f6_g8]
+- [f3_g3, f6_grip0]
+- [f3_g3, f6_grip1]
+- [f3_g4, f5_g6]
+- [f3_g4, f5_g7]
+- [f3_g4, f6_g8]
+- [f3_g4, f6_grip0]
+- [f3_g4, f6_grip1]
+- [f4_g5, f6_g8]
+- [f4_g5, f6_grip0]
+- [f4_g5, f6_grip1]

@@ -17,6 +17,7 @@ from launch_ros.actions import Node
 def generate_launch_description():
     sim = os.path.join(get_package_share_directory("catch_sim"), "launch", "sim.launch.py")
     mg = os.path.join(get_package_share_directory("catch_moveit_config"), "launch", "move_group.launch.py")
+    tracker = os.path.join(get_package_share_directory("catch_tracker"), "launch", "tracker.launch.py")
     rviz_cfg = os.path.join(get_package_share_directory("catch_bringup"), "rviz", "catch.rviz")
     import importlib.util
     spec = importlib.util.spec_from_file_location("mg", mg)
@@ -26,10 +27,16 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument("headless", default_value="false"),
         DeclareLaunchArgument("rviz", default_value="true"),
+        DeclareLaunchArgument("mujoco_model", default_value=""),
+        DeclareLaunchArgument("camera_rate", default_value="125.0"),
+        DeclareLaunchArgument("tracker", default_value="true"),
         SetEnvironmentVariable("__NV_PRIME_RENDER_OFFLOAD", "1"),
         SetEnvironmentVariable("__GLX_VENDOR_LIBRARY_NAME", "nvidia"),
         IncludeLaunchDescription(PythonLaunchDescriptionSource(sim),
-                                 launch_arguments={"headless": LaunchConfiguration("headless")}.items()),
+                                 launch_arguments={"headless": LaunchConfiguration("headless"),
+                                                   "mujoco_model": LaunchConfiguration("mujoco_model"),
+                                                   "camera_rate": LaunchConfiguration("camera_rate")}.items()),
+        IncludeLaunchDescription(PythonLaunchDescriptionSource(tracker), condition=IfCondition(LaunchConfiguration("tracker"))),
         IncludeLaunchDescription(PythonLaunchDescriptionSource(mg)),
         Node(package="catch_perception", executable="pallet_detector", output="log", parameters=[{"use_sim_time": True}]),
         Node(package="catch_perception", executable="color_check", output="both", parameters=[{"use_sim_time": True}]),

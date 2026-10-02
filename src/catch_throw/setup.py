@@ -8,7 +8,7 @@ setup(
     packages=["catch_throw"],
     data_files=[("share/ament_index/resource_index/packages", ["resource/catch_throw"]),
                 ("share/catch_throw", ["package.xml"]),
-                ("share/catch_throw/config", glob("config/*.yaml")),
+                ("share/catch_throw/config", glob("config/*.yaml") + glob("config/*.json")),
                 ("share/catch_throw/launch", glob("launch/*.py"))],
     install_requires=["setuptools"],
     zip_safe=True,

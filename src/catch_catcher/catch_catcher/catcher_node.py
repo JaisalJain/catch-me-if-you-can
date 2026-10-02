@@ -19,7 +19,6 @@ import numpy as np
 import rclpy
 import yaml
 from ament_index_python.packages import get_package_share_directory
-from control_msgs.action import GripperCommand
 from geometry_msgs.msg import Point, WrenchStamped
 from rclpy.action import ActionClient, ActionServer
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup, ReentrantCallbackGroup
@@ -59,7 +58,6 @@ class Catcher(Node):
         cb = ReentrantCallbackGroup()
         self.force_cb = MutuallyExclusiveCallbackGroup()
         self.mi = MoveItClient(self)
-        self.grip = ActionClient(self, GripperCommand, "/gripper_b_controller/gripper_cmd", callback_group=cb)
         self.lock = threading.Lock()
         self.live_plan = None
         self.create_subscription(ThrowPlan, "/throw_plan", self.on_plan,
@@ -104,23 +102,11 @@ class Catcher(Node):
             self.wrench_sub = None
 
     def _close(self):
-        g = GripperCommand.Goal()
-        g.command.position = float(self.cfg["gripper"]["close"])
-        g.command.max_effort = float(self.cfg["gripper"]["effort"])
-        self.grip.send_goal_async(g)
+        """Close at the 2F-85 model speed after its command latency (catch_sim.gripper_model, gripper B JTC)."""
+        self.mi.gripper_async("b", float(self.cfg["gripper"]["close"]))
 
     def _open(self):
-        g = GripperCommand.Goal()
-        g.command.position = float(self.cfg["gripper"]["open"])
-        g.command.max_effort = float(self.cfg["gripper"]["effort"])
-        f = self.grip.send_goal_async(g)
-        t0 = time.monotonic()
-        while not f.done() and time.monotonic() - t0 < 5:
-            time.sleep(0.01)
-        if f.done() and f.result().accepted:
-            r = f.result().get_result_async()
-            while not r.done() and time.monotonic() - t0 < 5:
-                time.sleep(0.01)
+        self.mi.gripper("b", float(self.cfg["gripper"]["open"]), timeout=5.0)
 
     # ------------------------------------------------------------------ action
     def execute(self, gh):
