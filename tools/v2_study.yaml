@@ -6,11 +6,14 @@
 #                   85 mm, closing speed 20-150 mm/s (2F-140: 140 mm, 30-250 mm/s: full stroke ~0.56 s for both,
 #                   so the speed is the rate of the finger GAP). The v1 sim gripper (step command) is faster
 #                   than that: 85 -> 40 mm in 93 ms, up to ~720 mm/s.
-#   fast_idealized: not a real 2F-85. 10x the spec speed and a 20x stiffer, 20x stronger actuator.
+#                   Actuator kp x10 (damping unchanged) so the sim fingers follow the ramp: 137-145 mm/s achieved
+#                   (tools/v2_catch_sim.py --gripper); force limit (= grip force) unchanged from v1.
+#   fast_idealized: NOT a real 2F-85: 10x the spec speed; kp x20 and a 5x force limit (so also 5x grip force)
+#                   to follow it: ~1000-1250 mm/s achieved.
 gripper_profile: realistic
 gripper_profiles:
-  realistic: {gap_speed: 0.150, kp_scale: 1.0, force_scale: 1.0}
-  fast_idealized: {gap_speed: 1.500, kp_scale: 20.0, force_scale: 20.0}
+  realistic: {gap_speed: 0.150, kp_scale: 10.0, kv_scale: 1.0, force_scale: 1.0}
+  fast_idealized: {gap_speed: 1.500, kp_scale: 20.0, kv_scale: 1.0, force_scale: 5.0}
 
 limits:                 # same margins as M1
   vel_ratio: 0.85       # joint speed <= 85 % of 180 deg/s
@@ -20,13 +23,14 @@ limits:                 # same margins as M1
 
 # 1. Ready pose search for B (TCP = cube centre on the palm; approach axis = tool z; closing axis = tool x)
 ready:
-  x: [0.30, 0.35, 0.40, 0.45, 0.50, 0.55]
+  x: [0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50, 0.55]
   y: [0.0, 0.05, 0.10, 0.15, 0.20, 0.25]
-  z: [1.10, 1.15, 1.20, 1.25, 1.30, 1.35]
+  z: [1.10, 1.15, 1.20, 1.25, 1.30, 1.35, 1.40]
   elevation_deg: [0, 15, 30, 45, 60]      # approach axis above horizontal, pointing towards A (-x)
   min_wrist_sin: 0.5                      # |sin(wrist_2)| >= 0.5: >= 30 deg from the wrist singularity
   min_clearance: 0.05                     # arm vs table / pedestals / pallets
-  top_n_envelope: 12                      # best candidates by margins that get the full envelope evaluation
+  # natural candidates: best (joint margin, manipulability, closeness to home) per (elevation, x) cell are scored
+  # by the fraction of the envelope.family throws B can intercept
 
 # 2. Perception
 perception:
@@ -47,6 +51,11 @@ perception:
 envelope:
   t_left_s: [0.15, 0.20, 0.25, 0.30]
   grid_step: 0.025
+  t_decision_s: 0.20        # B commits to a move: 95 % intercept error <= 10 mm at 120 Hz / 2 mm / 25 ms (item 2)
+  # broad prior family of throws used to score ready poses (A feasibility is checked later, item 4): release at
+  # (-0.05, y, 1.25), throw plane parallel to x, crossing z_cross on the way down at x_cross
+  family: {y: [0.10, 0.15, 0.20, 0.25, 0.30, 0.35], angle_deg: [50, 55, 60, 65, 70, 75],
+           x_cross: [0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50], z_cross: 1.15, path_dt: 0.01, z_min: 0.95}
 
 # 4. Random throws for A (release point fixed at the M1 one; targets from B's envelope)
 throws:
@@ -62,8 +71,11 @@ catch_sim:
   seed: 7
   control_dt: 0.002                       # B's PD + inverse-dynamics feed-forward (like the JTC at 500 Hz)
   camera_rate_hz: 120
-  noise_mm: 2.0
+  # measured detector (tools/v2_perception.py --detect, 2 cameras, tumbling cube): white + Gauss-Markov per axis,
+  # fitted to the end-to-end LSQ error of the rendered detections (25/17/13/11 mm at 0.15/0.20/0.25/0.30 s)
+  noise_model: {white_mm: 1.5, corr_mm: 2.0, corr_tau_s: 0.2}
   latency_s: 0.025
+  start_mm: 30.0                          # B commits to an intercept when its predicted 95 % error <= this
   replan: true                            # re-plan B's move on every new estimate (reactive intercept)
   freeze_before_s: 0.040                  # no re-plan in the last 40 ms
   arrive_early_s: 0.030                   # cup: B at rest this long before the predicted arrival

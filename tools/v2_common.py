@@ -8,9 +8,11 @@ import json
 import os
 import sys
 
-import mujoco
-import numpy as np
-import yaml
+os.environ.setdefault("MUJOCO_GL", "egl")       # offscreen on the NVIDIA GPU (docs/m0_toolchain.md)
+os.environ.setdefault("__EGL_VENDOR_LIBRARY_FILENAMES", "/usr/share/glvnd/egl_vendor.d/10_nvidia.json")
+import mujoco  # noqa: E402
+import numpy as np  # noqa: E402
+import yaml  # noqa: E402
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 for _p in ("src/catch_kinematics", "src/catch_ballistics", "src/catch_throw", "src/catch_description/scripts", "tools"):
@@ -88,7 +90,8 @@ def build_model(cameras=None, profile=None, size=(640, 480)):
     if profile:
         a = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_ACTUATOR, "b_robotiq_85_left_knuckle_joint")
         m.actuator_gainprm[a, 0] *= profile["kp_scale"]
-        m.actuator_biasprm[a, 1:3] *= profile["kp_scale"]
+        m.actuator_biasprm[a, 1] *= profile["kp_scale"]
+        m.actuator_biasprm[a, 2] *= profile.get("kv_scale", profile["kp_scale"])
         m.actuator_forcerange[a] *= profile["force_scale"]
     return m, scene, phys
 
@@ -123,7 +126,8 @@ class Quintic:
     """Per-joint quintic from (q0, v0, a0) at t=0 to (q1, v1, a1) at t=T."""
 
     def __init__(self, q0, v0, a0, q1, v1, a1, T):
-        q0, v0, a0, q1, v1, a1 = (np.asarray(x, float) for x in (q0, v0, a0, q1, v1, a1))
+        q0 = np.asarray(q0, float)
+        v0, a0, q1, v1, a1 = (np.broadcast_to(np.asarray(x, float), q0.shape) for x in (v0, a0, q1, v1, a1))
         self.T = float(T)
         T = self.T
         h = q1 - q0 - v0 * T - 0.5 * a0 * T * T
@@ -224,11 +228,19 @@ def rotate_towards(z0, z1, max_angle):
 
 def catch_rotation(z_ready, v, cone_rad, mode):
     """cup: palm normal (tool z) = -v limited to a cone around the ready approach axis.
-    pinch: approach axis = the ready approach axis made orthogonal to the closing axis (natural pose), limited
-    the same way; the closing axis is across v in both modes."""
+    pinch: approach axis = the ready approach axis made orthogonal to the closing axis (natural pose; with an
+    elevated ready pose the cube then flies towards the palm). pinch_side: approach axis also orthogonal to v.
+    The closing axis is across v in all modes."""
     xa = closing_axis_for(v)
     if mode == "cup":
         z, ang = rotate_towards(z_ready, -np.asarray(v) / np.linalg.norm(v), cone_rad)
+    elif mode == "pinch_side":
+        # chopsticks from the side: approach axis across the velocity too (the cube passes between the pads
+        # across the finger width, the palm is not in its way)
+        vn = np.asarray(v, float) / np.linalg.norm(v)
+        z = np.asarray(z_ready, float) - (np.asarray(z_ready) @ xa) * xa
+        z = z - (z @ vn) * vn
+        z, ang = z / np.linalg.norm(z), 0.0
     else:
         z = np.asarray(z_ready, float) - (np.asarray(z_ready) @ xa) * xa
         z, ang = z / np.linalg.norm(z), 0.0

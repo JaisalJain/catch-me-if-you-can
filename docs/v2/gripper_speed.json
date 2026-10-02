@@ -1,0 +1,185 @@
+{
+ "gripper_profile": "realistic",
+ "gripper": {
+  "gap_speed": 0.15,
+  "kp_scale": 1.0,
+  "force_scale": 1.0
+ },
+ "limits": {
+  "vel_ratio": 0.85,
+  "torque_ratio": 0.8,
+  "pos_margin": 0.15,
+  "table_clearance": 0.1
+ },
+ "note": "offline v2 Phase 1 study (tools/v2_*.py); fast_idealized is NOT a real 2F-85",
+ "rows": [
+  {
+   "gripper_profile": "realistic",
+   "gap_speed_cmd_mm_s": 75,
+   "start_gap_mm": 85.2,
+   "t_to_40mm": 0.702999999999989,
+   "achieved_mm_s": 64.29587482219162
+  },
+  {
+   "gripper_profile": "realistic",
+   "gap_speed_cmd_mm_s": 75,
+   "start_gap_mm": 56,
+   "t_to_40mm": 0.3090000000000002,
+   "achieved_mm_s": 51.77993527508087
+  },
+  {
+   "gripper_profile": "realistic",
+   "gap_speed_cmd_mm_s": 150,
+   "start_gap_mm": 85.2,
+   "t_to_40mm": 0.4020000000000003,
+   "achieved_mm_s": 112.43781094527355
+  },
+  {
+   "gripper_profile": "realistic",
+   "gap_speed_cmd_mm_s": 150,
+   "start_gap_mm": 56,
+   "t_to_40mm": 0.19400000000000012,
+   "achieved_mm_s": 82.47422680412366
+  },
+  {
+   "gripper_profile": "realistic",
+   "gap_speed_cmd_mm_s": 300,
+   "start_gap_mm": 85.2,
+   "t_to_40mm": 0.24600000000000016,
+   "achieved_mm_s": 183.73983739837388
+  },
+  {
+   "gripper_profile": "realistic",
+   "gap_speed_cmd_mm_s": 300,
+   "start_gap_mm": 56,
+   "t_to_40mm": 0.12700000000000006,
+   "achieved_mm_s": 125.98425196850388
+  },
+  {
+   "gripper_profile": "realistic",
+   "gap_speed_cmd_mm_s": 600,
+   "start_gap_mm": 85.2,
+   "t_to_40mm": 0.1660000000000001,
+   "achieved_mm_s": 272.28915662650587
+  },
+  {
+   "gripper_profile": "realistic",
+   "gap_speed_cmd_mm_s": 600,
+   "start_gap_mm": 56,
+   "t_to_40mm": 0.08700000000000008,
+   "achieved_mm_s": 183.90804597701134
+  },
+  {
+   "gripper_profile": "realistic",
+   "gap_speed_cmd_mm_s": 1500,
+   "start_gap_mm": 85.2,
+   "t_to_40mm": 0.12300000000000005,
+   "achieved_mm_s": 367.4796747967478
+  },
+  {
+   "gripper_profile": "realistic",
+   "gap_speed_cmd_mm_s": 1500,
+   "start_gap_mm": 56,
+   "t_to_40mm": 0.061000000000000054,
+   "achieved_mm_s": 262.29508196721287
+  },
+  {
+   "gripper_profile": "realistic",
+   "gap_speed_cmd_mm_s": 3000,
+   "start_gap_mm": 85.2,
+   "t_to_40mm": 0.11000000000000004,
+   "achieved_mm_s": 410.90909090909076
+  },
+  {
+   "gripper_profile": "realistic",
+   "gap_speed_cmd_mm_s": 3000,
+   "start_gap_mm": 56,
+   "t_to_40mm": 0.05300000000000005,
+   "achieved_mm_s": 301.8867924528299
+  },
+  {
+   "gripper_profile": "fast_idealized",
+   "gap_speed_cmd_mm_s": 75,
+   "start_gap_mm": 85.2,
+   "t_to_40mm": 0.7039999999999889,
+   "achieved_mm_s": 64.20454545454648
+  },
+  {
+   "gripper_profile": "fast_idealized",
+   "gap_speed_cmd_mm_s": 75,
+   "start_gap_mm": 56,
+   "t_to_40mm": 0.3050000000000002,
+   "achieved_mm_s": 52.45901639344259
+  },
+  {
+   "gripper_profile": "fast_idealized",
+   "gap_speed_cmd_mm_s": 150,
+   "start_gap_mm": 85.2,
+   "t_to_40mm": 0.4020000000000003,
+   "achieved_mm_s": 112.43781094527355
+  },
+  {
+   "gripper_profile": "fast_idealized",
+   "gap_speed_cmd_mm_s": 150,
+   "start_gap_mm": 56,
+   "t_to_40mm": 0.1840000000000001,
+   "achieved_mm_s": 86.95652173913038
+  },
+  {
+   "gripper_profile": "fast_idealized",
+   "gap_speed_cmd_mm_s": 300,
+   "start_gap_mm": 85.2,
+   "t_to_40mm": 0.24500000000000016,
+   "achieved_mm_s": 184.48979591836724
+  },
+  {
+   "gripper_profile": "fast_idealized",
+   "gap_speed_cmd_mm_s": 300,
+   "start_gap_mm": 56,
+   "t_to_40mm": 0.11400000000000005,
+   "achieved_mm_s": 140.3508771929824
+  },
+  {
+   "gripper_profile": "fast_idealized",
+   "gap_speed_cmd_mm_s": 600,
+   "start_gap_mm": 85.2,
+   "t_to_40mm": 0.1650000000000001,
+   "achieved_mm_s": 273.9393939393938
+  },
+  {
+   "gripper_profile": "fast_idealized",
+   "gap_speed_cmd_mm_s": 600,
+   "start_gap_mm": 56,
+   "t_to_40mm": 0.07300000000000006,
+   "achieved_mm_s": 219.17808219178062
+  },
+  {
+   "gripper_profile": "fast_idealized",
+   "gap_speed_cmd_mm_s": 1500,
+   "start_gap_mm": 85.2,
+   "t_to_40mm": 0.12200000000000005,
+   "achieved_mm_s": 370.4918032786884
+  },
+  {
+   "gripper_profile": "fast_idealized",
+   "gap_speed_cmd_mm_s": 1500,
+   "start_gap_mm": 56,
+   "t_to_40mm": 0.04400000000000004,
+   "achieved_mm_s": 363.63636363636334
+  },
+  {
+   "gripper_profile": "fast_idealized",
+   "gap_speed_cmd_mm_s": 3000,
+   "start_gap_mm": 85.2,
+   "t_to_40mm": 0.10900000000000004,
+   "achieved_mm_s": 414.67889908256865
+  },
+  {
+   "gripper_profile": "fast_idealized",
+   "gap_speed_cmd_mm_s": 3000,
+   "start_gap_mm": 56,
+   "t_to_40mm": 0.03500000000000003,
+   "achieved_mm_s": 457.1428571428567
+  }
+ ]
+}
