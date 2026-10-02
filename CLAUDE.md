@@ -1,6 +1,7 @@
 # catch — two UR5e arms that throw and catch colored cubes (ROS 2 Jazzy + MuJoCo)
 
 ## Status
+
 - M0 toolchain ✅ (see `docs/m0_toolchain.md`)
 - M1 feasibility ✅ (scene changed: 0.35 m pedestals, 0.4 m flight — docs/m1_feasibility.md)
 - M2 scene/bringup ✅ (docs/m2_scene_bringup.md)
@@ -12,6 +13,7 @@
 - Progress log: `docs/progress.md`
 
 ## Environment rules
+
 - ROS nodes: system Python + apt only. Never `pip --break-system-packages`, `sudo pip`, `pip --user`.
 - Offline tools (`tools/`): venv `.venv` (isolated). Run with `env -u PYTHONPATH .venv/bin/python ...`
   (ROS setup puts `/opt/ros/.../site-packages` on PYTHONPATH, which leaks into the venv otherwise).
@@ -23,6 +25,7 @@
   `pkill -f "^/opt/ros/jazzy/lib/mujoco_ros2_control/ros2_control_node"`
 
 ## mujoco_ros2_control 0.1.1 gotchas
+
 - ros2_control joint names must equal MJCF joint names. Tendon actuators bind to the joint with the
   actuator's name.
 - Camera plugin yaml key must be exactly `mujoco_camera_plugin`.
@@ -32,12 +35,14 @@
 - JTC gains must be floats (`3000.0`), ints are rejected.
 
 ## Conventions
+
 - World frame at table center, x from A to B, z up, table top z=0.75.
 - Prefixes `a_` (thrower, x=-0.8) and `b_` (catcher, x=+0.8).
 - Parameters (geometry, contact, timings) live in YAML, not code.
 - Commit after each working step; don't push.
 
 ## Build / run
+
 - Build: `source /opt/ros/jazzy/setup.bash && colcon build && source install/setup.bash`
 - Everything (GUI): `ros2 launch catch_bringup bringup.launch.py` (args: `headless:=true rviz:=false`)
 - Scripted runs: `tools/sim_ctl.sh start catch_bringup bringup.launch.py headless:=true rviz:=false`,
@@ -46,7 +51,7 @@
 - M3 checks: `ros2 run catch_perception eval_detection`, `ros2 run catch_tasks pickplace_test`
 - M4: `ros2 run catch_tasks throw_eval --throws 20 [--from-pallet] [--out docs/m4/throws_20.json]`; plots `tools/plot_throws.py`
 - M5: `ros2 run catch_tasks catch_eval --throws 30 [--trigger time] [--no-place] [--no-correction] [--cup-offset 0.015]
-  [--out docs/m5/x.json] [--rec-dir log/m5/x]`; plots `tools/plot_catch.py`; offline `tools/catch_study.py [--sweep|--envelope]`
+[--out docs/m5/x.json] [--rec-dir log/m5/x]`; plots `tools/plot_catch.py`; offline `tools/catch_study.py [--sweep|--envelope]`
 - M6: `ros2 run catch_tasks run_demo --seed 1 [--fault-throw N] [--out docs/m6/run.json]`; recorded batch
   `log/run_m6.sh 1 2 3`-style (record with `install/catch_tasks/lib/catch_tasks/record_run --out x.npz`, stop with SIGINT)
 - Clips / video (venv): `tools/render_replay.py rec.npz --out x.mp4 [--view catch|throw|overview]`,
@@ -56,11 +61,14 @@
 - After changing the URDF/SRDF-relevant geometry: `env -u PYTHONPATH .venv/bin/python tools/gen_srdf.py`
 
 ## Known gotchas (project)
+
 - Never command the gripper beyond 0.70 (palm insert clearance). Cubes must be spawned with the palm facing up.
 - /joint_states lags the free-joint ground truth by ~2.5 ms; the GT topic itself has ~1-2 ms stamp jitter.
 - Don't activate .venv in ROS terminals (colcon/ROS would pick up the venv python); call .venv/bin/python explicitly.
 - Temporary files: use log/ (gitignored).
-- rclpy is slow: every Python node with use_sim_time processes /clock at 1 kHz. Subscribe to 500 Hz topics
+- rclpy is slow: a MultiThreadedExecutor costs ~1 core per 1 kHz topic. /clock (1 kHz) is taken off the node's
+  executor by `catch_sim.sim_clock.offload_sim_clock(node)` (call it after `ex.add_node` in every new sim-time node;
+  simple non-blocking nodes use `spin_events`). Measure with `python3 tools/node_cpu.py`. Subscribe to 500 Hz topics
   (/joint_states, wrench) only while needed, with deep queues (the catcher's palm-force queue is 1000: a lagging
   executor once dropped the 2 ms impact spike). Never time actuation with Python sleeps on the sim clock: the grip
   loosen is a time-stamped trajectory on gripper_a_controller (a JTC); a Python-timed loosen was up to 97 ms late.
@@ -73,8 +81,11 @@
   use a /tf_static-only buffer (a full TransformListener drowns rclpy in 500 Hz /tf).
 
 ## Offline tools / tests
+
 - Regenerate MJCF after editing `src/catch_description/config/{scene,physics}.yaml`:
   `env -u PYTHONPATH .venv/bin/python src/catch_description/scripts/build_mjcf.py`
 - Feasibility sweep + plots: `env -u PYTHONPATH .venv/bin/python tools/feasibility.py && ... tools/plot_feasibility.py`
 - Pure-python unit tests (system python, no build needed):
   `PYTHONPATH=src/catch_ballistics:src/catch_kinematics:src/catch_throw:$PYTHONPATH python3 -m pytest -q src/catch_{ballistics,kinematics,throw}/test`
+
+Do not add claude as co author in git pushes
