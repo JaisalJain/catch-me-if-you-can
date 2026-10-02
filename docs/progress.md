@@ -86,7 +86,7 @@
   at goal start (an rclpy lag dropped an 82 N spike once); carry via home before placing; /tf_static-only TF in
   perception; URDF wrist-camera frame.
 - Open issues: the clean demo sits ~25 mm/s inside the catch envelope's across-path tolerance (±25–50 mm/s); no
-  flight tracking (B trusts the plan); every Python node burns a core on the 1 kHz /clock.
+  flight tracking (B trusts the plan); every Python node burns a core on the 1 kHz /clock (fixed in v1.0).
 - Details: `docs/m5_catch.md`.
 
 ## M6 — Full loop and demo (2026-10-02) ✅
@@ -103,3 +103,35 @@
 - Open issues: drops only via fault injection in this deterministic sim; the reset is a teleport; no flight
   tracking; videos are replays of recorded state (not the live sim window).
 - Details: `docs/m6_full_loop.md`, `README.md`.
+
+## v1.0 housekeeping (2026-10-02)
+- Floating object near B's gripper in `demo_seed1.mp4` (t ≈ 19.6 s): identified by segmentation rendering of the
+  replayed frame as `b_robotiq_wrist_cam_housing` (body `b_robotiq_base`; every other geom there belongs to B's arm,
+  gripper or the caught `cube_red`). It was attached, but 13 cm beside and 15 cm above the gripper base with
+  nothing visible holding it. Added an L-bracket (`scene.yaml: cameras.b_wrist_bracket`): MJCF visual-only boxes
+  (body masses/inertias bit-identical), URDF visual + collision (SRDF regenerated), new test that the URDF housing
+  and bracket boxes match the MJCF geoms (≤ 0.001 mm). Clearances: ≥ 12 mm below the lowest finger point, ≥ 62 mm
+  outside the open fingers. Never in the wrist camera's view; its shadow reaches the cube only outside the color /
+  in-hand windows (0 changed cube pixels in those windows, seeds 1–4). Demo videos and poster re-rendered.
+- README architecture diagram: top-to-bottom (sensing → ROS 2 nodes → controllers → physics, every arrow down),
+  exported to `docs/media/architecture.svg` (plain SVG text, no foreignObject) by `tools/export_architecture.sh`
+  from the README's Mermaid block.
+- Isaac downgrade: **not applied** (`apt-cache policy`: `ros-jazzy-robotiq-description 9.0.1-0noble` and
+  `ros-jazzy-ur-*` `99.2.0-0noble` from isaac.download.nvidia.com still installed; no apt log ever downgraded
+  them; the `isaac-ros-lowprio` pin alone cannot downgrade). Dry run against the ros.org
+  `robotiq-description 0.0.1` .deb: same 9 visual meshes (identical vertices) under `meshes/visual/` instead of
+  `meshes/visual/2f_85/`; `tools/gen_gripper_urdf.py` then changes only those 9 mesh paths (kinematics, inertias,
+  collisions identical) — re-run it after the downgrade. Rebuild + all tests pass: 59 = the 56 before + the
+  housing/bracket test + 2 sim_clock tests (52 system python, 7 venv).
+  Feed-forward table regenerated (scene.yaml changed): torques identical (max |Δ| 0.0), new input hash.
+- /clock CPU: with use_sim_time rclpy subscribes /clock (1 kHz) on the node; under a MultiThreadedExecutor that
+  alone costs 108 % of a core (bare node; SingleThreadedExecutor 21 %, EventsExecutor 7 %).
+  `catch_sim.sim_clock.offload_sim_clock` moves it to a helper node on an EventsExecutor thread (node keeps its
+  executor and use_sim_time; tested incl. sim-time timers); the monitors spin on an EventsExecutor.
+  Idle, % of one core (`tools/node_cpu.py`, 30 s): scene_manager 107.5 → 5.8, color_check 106.1 → 18.1,
+  throw_node 106.7 → 95.2, catcher 80.7 → 51.3, pallet_detector 141.7 → 110.3, monitors 22–32 → 6–10;
+  all Python nodes 643 → 309 %. Regression run_demo seed 1: complete R-G-B, 3 throws, contact trigger −2.3 ms ×3,
+  verify offsets identical to v1; the color step 5.9 → 0.4 s (color_check is no longer saturated), run 95.7 → 85.8 s.
+- Open issues: throw_node, catcher (MoveItClient) and run_demo keep a permanent /joint_states (≈ 470 Hz)
+  subscription on their MultiThreadedExecutor (≈ 95 / 50 / 50 % of a core); pallet_detector processes every
+  overhead image (~12 Hz, ~110 %). The m5 clips in docs/media still show the old housing without the bracket.

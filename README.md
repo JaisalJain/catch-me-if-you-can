@@ -52,37 +52,75 @@ Evaluations (each needs the bringup running):
 | catch + place, 30 throws | `ros2 run catch_tasks catch_eval --throws 30 [--trigger time] [--no-correction]` |
 | full loop, recorded | `log/run_m6.sh 1 2 3` (sim, recorder, `run_demo` per seed) |
 | demo video | `env -u PYTHONPATH .venv/bin/python tools/render_demo.py log/m6/run_seed1.npz docs/m6/run_seed1.json --out docs/media/demo_seed1.mp4` |
+| architecture diagram | `tools/export_architecture.sh` (README Mermaid block → `docs/media/architecture.svg`) |
+| CPU per node | `python3 tools/node_cpu.py --seconds 30` (sim running) |
 
 ## Architecture
 
+![architecture: sensing plugins on top, ROS 2 nodes in the middle, controllers and MuJoCo at the bottom](docs/media/architecture.svg)
+
+Top to bottom: sensing (sim plugins) → perception and decisions (ROS 2 nodes) → controllers → physics; every
+arrow points down. Ground truth is published for evaluation only and feeds nothing.
+
+<details><summary>Mermaid source (the SVG is exported from this block by <code>tools/export_architecture.sh</code>)</summary>
+
 ```mermaid
-flowchart LR
-  subgraph sim["mujoco_ros2_control (C++, 1 ms step, 500 Hz control)"]
-    MJ["MuJoCo scene<br/>(generated MJCF)"]
-    JTC_A["arm_a_controller<br/>JTC effort + torque FF"]
-    GA["gripper_a_controller<br/>JTC position"]
-    JTC_B["arm_b_controller<br/>JTC effort"]
-    GB["gripper_b_controller<br/>GripperAction"]
-    FT["b_palm_ft_broadcaster"]
-    CAM["camera plugin<br/>overhead A/B, side, B wrist"]
-    GT["free-joint ground truth<br/>(evaluation only)"]
+---
+config:
+  htmlLabels: false
+  flowchart:
+    htmlLabels: false
+---
+flowchart TB
+  subgraph sense["`mujoco_ros2_control plugins: sensing`"]
+    CAM["`camera plugin
+overhead A/B, side, B wrist`"]
+    FT["`b_palm_ft_broadcaster
+palm force/torque, 500 Hz`"]
+    GT["`free-joint ground truth
+(evaluation only)`"]
   end
-  MG["move_group<br/>(MoveIt 2)"]
-  PER["catch_perception<br/>pallet_detector · color_check · in_hand_pose"]
-  TH["catch_throw<br/>throw_node (/throw)"]
-  CA["catch_catcher<br/>catcher (/catch)"]
-  SM["catch_tasks<br/>run_demo state machine + skills"]
-  SM -- "pick / place (MoveIt)" --> MG --> JTC_A & JTC_B & GA & GB
-  SM -- "/throw" --> TH
-  SM -- "/catch (plan preview)" --> CA
-  TH -- "trajectory + FF torques" --> JTC_A
-  TH -- "time-stamped loosen" --> GA
-  TH -- "/throw_plan (latched)" --> CA
-  FT -- "palm wrench" --> CA -- "close" --> GB
-  CA -- "cup pose" --> MG
-  CAM --> PER
-  PER -- "detections / color / in-hand pose" --> SM
+
+  PER["`**catch_perception**
+pallet_detector · color_check · in_hand_pose`"]
+  SM["`**catch_tasks**
+run_demo state machine + skills`"]
+  TH["`**catch_throw**
+throw_node (/throw)`"]
+  CA["`**catch_catcher**
+catcher (/catch)`"]
+  MG["`**move_group**
+MoveIt 2`"]
+
+  subgraph act["`mujoco_ros2_control (C++): control + physics, 1 ms step, 500 Hz control`"]
+    JTC_A["`arm_a_controller
+JTC effort + torque FF`"]
+    GA["`gripper_a_controller
+JTC position`"]
+    JTC_B["`arm_b_controller
+JTC effort`"]
+    GB["`gripper_b_controller
+GripperAction`"]
+    MJ["`MuJoCo scene
+(generated MJCF)`"]
+  end
+
+  CAM -- "`images`" --> PER
+  PER -- "`detections / color / in-hand pose`" --> SM
+  SM -- "`/throw`" --> TH
+  SM -- "`/catch (plan preview)`" --> CA
+  SM -- "`pick / place`" --> MG
+  TH -- "`/throw_plan (latched)`" --> CA
+  FT -- "`palm wrench`" --> CA
+  CA -- "`cup pose`" --> MG
+  TH -- "`trajectory + FF torques`" --> JTC_A
+  TH -- "`time-stamped loosen`" --> GA
+  CA -- "`close`" --> GB
+  MG --> JTC_A & GA & JTC_B & GB
+  JTC_A & GA & JTC_B & GB --> MJ
 ```
+
+</details>
 
 Packages: `catch_description` (scene YAML → URDF + generated MJCF, FK tests), `catch_sim` (controllers, scene
 reset/spawn, monitors), `catch_moveit_config`, `catch_ballistics` (numpy/scipy-only projectile + solvers),
@@ -106,6 +144,7 @@ All in simulation; ground truth (MuJoCo free-joint state) is used only to *evalu
 | **Place error**, 30 catches | **30 / 30 in slot**, x −0.70 ± 0.07 mm, **yaw 0.00°** (without in-hand correction: +1.67 ± 1.19 mm; off-centre catches uncorrected: 0 / 9 in slot) |
 | Full loop, 3 seeds + 1 injected fault (M6) | 4 / 4 runs complete, 96–99 s per run (124 s with one recovery), VERIFY agrees with ground truth 12 / 12 |
 | Real-time factor | 1.000 (one 30 s window at 0.83 while rendering video offline in parallel) |
+| Python node CPU at idle (v1.0) | all nodes 309 % of a core (643 % before taking /clock off the multi-threaded executors) |
 
 ## What is idealized (read this before trusting the numbers)
 * **Exact-model torque feed-forward.** The throw's feed-forward torques come from inverse dynamics of *the same*

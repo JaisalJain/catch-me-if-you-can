@@ -14,6 +14,7 @@ from moveit_msgs.msg import Constraints, JointConstraint
 from rclpy.executors import MultiThreadedExecutor
 
 from catch_kinematics.transforms import make_tf
+from catch_sim.sim_clock import offload_sim_clock
 from .moveit_client import MoveItClient, pose_from
 
 
@@ -22,6 +23,7 @@ def main():
     node = rclpy.create_node("jog_test", parameter_overrides=[rclpy.parameter.Parameter("use_sim_time", value=True)])
     ex = MultiThreadedExecutor()
     ex.add_node(node)
+    offload_sim_clock(node)          # /clock off the MultiThreadedExecutor (catch_sim.sim_clock)
     threading.Thread(target=ex.spin, daemon=True).start()
     mi = MoveItClient(node)
     if not mi.wait_ready(60):

@@ -144,6 +144,10 @@ def make_arm(scene, phys, with_camera=False):
         base.add_geom(name="wrist_cam_housing", type=mujoco.mjtGeom.mjGEOM_BOX, size=[0.012, 0.015, 0.012],
                       pos=(p - 0.014 * fwd).tolist(), contype=0, conaffinity=0, group=2,
                       rgba=[0.1, 0.1, 0.1, 1])
+        for k, (lo, hi) in enumerate(scene["cameras"]["b_wrist_bracket"]):   # visual only, like the housing
+            lo, hi = np.array(lo, float), np.array(hi, float)
+            base.add_geom(name=f"wrist_cam_bracket_{k}", type=mujoco.mjtGeom.mjGEOM_BOX, size=((hi - lo) / 2).tolist(),
+                          pos=((hi + lo) / 2).tolist(), contype=0, conaffinity=0, group=2, rgba=[0.32, 0.33, 0.35, 1])
     ur.attach(g, prefix="robotiq_", site=ur.site("attachment_site"))
     return ur
 

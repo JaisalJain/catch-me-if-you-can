@@ -133,6 +133,27 @@
     <!-- MJCF housing: 14 mm behind the lens along the view axis, box axes = Menagerie base axes -->
     <origin xyz="0 0 -0.014" rpy="${-atan2(-cos(wc_phi), -sin(wc_phi))} 0 0"/>
   </joint>
+  <!-- bracket holding the housing to the gripper base; link frame = Menagerie gripper base frame (the TCP frame is
+       that frame rotated +90 deg about z and raised to the cube centre). Collision boxes 1 mm larger per side. -->
+  <xacro:macro name="bracket_box" params="lo hi grow">
+    <origin xyz="${(lo[0] + hi[0]) / 2} ${(lo[1] + hi[1]) / 2} ${(lo[2] + hi[2]) / 2}"/>
+    <geometry><box size="${hi[0] - lo[0] + 2 * grow} ${hi[1] - lo[1] + 2 * grow} ${hi[2] - lo[2] + 2 * grow}"/></geometry>
+  </xacro:macro>
+  <link name="b_wrist_cam_bracket">
+    <xacro:property name="bk" value="${scene['cameras']['b_wrist_bracket']}"/>
+    <xacro:property name="bk0" value="${bk[0]}"/>
+    <xacro:property name="bk1" value="${bk[1]}"/>
+    <visual><xacro:bracket_box lo="${bk0[0]}" hi="${bk0[1]}" grow="0"/>
+      <material name="b_wrist_bracket_mat"><color rgba="0.32 0.33 0.35 1"/></material></visual>
+    <visual><xacro:bracket_box lo="${bk1[0]}" hi="${bk1[1]}" grow="0"/>
+      <material name="b_wrist_bracket_mat"/></visual>
+    <collision><xacro:bracket_box lo="${bk0[0]}" hi="${bk0[1]}" grow="0.001"/></collision>
+    <collision><xacro:bracket_box lo="${bk1[0]}" hi="${bk1[1]}" grow="0.001"/></collision>
+  </link>
+  <joint name="b_wrist_cam_bracket_joint" type="fixed">
+    <parent link="b_tcp"/><child link="b_wrist_cam_bracket"/>
+    <origin xyz="0 0 ${-(ins['top_z'] + edge / 2)}" rpy="0 0 ${-pi / 2}"/>
+  </joint>
 
   <xacro:if value="$(arg ros2_control)">
     <ros2_control name="MujocoSystem" type="system">

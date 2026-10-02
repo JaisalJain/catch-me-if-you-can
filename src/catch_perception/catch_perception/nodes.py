@@ -16,6 +16,7 @@ from tf2_ros import Buffer
 
 from catch_interfaces.msg import CubeDetection, CubeDetectionArray
 from catch_interfaces.srv import GetColor, GetInHandPose
+from catch_sim.sim_clock import offload_sim_clock
 
 from .vision import cube_blobs, dominant_color, in_hand_pose, pixel_ray_plane
 
@@ -207,6 +208,7 @@ def _run(cls):
     n = cls()
     ex = MultiThreadedExecutor()
     ex.add_node(n)
+    offload_sim_clock(n)          # /clock off the MultiThreadedExecutor (catch_sim.sim_clock)
     try:
         ex.spin()
     except KeyboardInterrupt:

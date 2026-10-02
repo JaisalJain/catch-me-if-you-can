@@ -25,6 +25,7 @@ from sensor_msgs.msg import JointState
 from catch_interfaces.action import Throw
 from catch_interfaces.msg import CubeDetectionArray
 from catch_interfaces.srv import ResetScene, SpawnCube
+from catch_sim.sim_clock import offload_sim_clock
 from catch_throw.throw_node import build_plan
 from mujoco_ros2_control_msgs.msg import FreeJointStateArray
 
@@ -65,6 +66,7 @@ class Eval:
         self.node = rclpy.create_node("throw_eval", parameter_overrides=[rclpy.parameter.Parameter("use_sim_time", value=True)])
         ex = MultiThreadedExecutor()
         ex.add_node(self.node)
+        offload_sim_clock(self.node)          # /clock off the MultiThreadedExecutor (catch_sim.sim_clock)
         threading.Thread(target=ex.spin, daemon=True).start()
         self.sk = Skills(self.node)
         assert self.sk.mi.wait_ready(60)

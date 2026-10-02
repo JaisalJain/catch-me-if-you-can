@@ -40,6 +40,7 @@ from rcl_interfaces.msg import Parameter, ParameterType, ParameterValue
 from rcl_interfaces.srv import SetParameters
 from catch_kinematics.transforms import make_tf, rot_x
 from catch_sim.scene_config import slot_position
+from catch_sim.sim_clock import offload_sim_clock
 from catch_throw.throw_node import build_plan
 
 from .moveit_client import _wait
@@ -73,6 +74,7 @@ class Demo:
         self.node = rclpy.create_node("run_demo", parameter_overrides=[rclpy.parameter.Parameter("use_sim_time", value=True)])
         ex = MultiThreadedExecutor()
         ex.add_node(self.node)
+        offload_sim_clock(self.node)          # /clock off the MultiThreadedExecutor (catch_sim.sim_clock)
         threading.Thread(target=ex.spin, daemon=True).start()
         share = get_package_share_directory("catch_tasks")
         self.cfg = yaml.safe_load(open(os.path.join(share, "config", "demo.yaml")))

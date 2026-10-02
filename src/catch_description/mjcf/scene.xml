@@ -429,6 +429,8 @@
                       <geom class="b_robotiq_visual" material="b_robotiq_black" mesh="b_robotiq_base"/>
                       <geom class="b_robotiq_collision" mesh="b_robotiq_base"/>
                       <geom name="b_robotiq_wrist_cam_housing" size="0.012 0.015 0.012" pos="0 0.13381 0.152302" type="box" contype="0" conaffinity="0" group="2" rgba="0.1 0.1 0.1 1"/>
+                      <geom name="b_robotiq_wrist_cam_bracket_0" size="0.01 0.055 0.009" pos="0 0.093 0.024" type="box" contype="0" conaffinity="0" group="2" rgba="0.32 0.33 0.35 1"/>
+                      <geom name="b_robotiq_wrist_cam_bracket_1" size="0.01 0.006 0.063" pos="0 0.142 0.078" type="box" contype="0" conaffinity="0" group="2" rgba="0.32 0.33 0.35 1"/>
                       <site name="b_robotiq_pinch" group="5" pos="0 0 0.145" rgba="0.9 0.9 0.9 1"/>
                       <site name="b_robotiq_tcp" quat="0.707107 0 0 0.707107" size="0.004" group="4" pos="0 0 0.13" rgba="1 1 0 0"/>
                       <camera name="b_robotiq_wrist_cam" quat="0 0 0.646375 0.76302" resolution="320 240" pos="0 0.12 0.15" fovy="60"/>

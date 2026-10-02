@@ -9,6 +9,7 @@
   <exec_depend>control_msgs</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>catch_interfaces</exec_depend>
+  <exec_depend>catch_sim</exec_depend>
   <exec_depend>catch_ballistics</exec_depend>
   <exec_depend>catch_kinematics</exec_depend>
   <exec_depend>catch_throw</exec_depend>

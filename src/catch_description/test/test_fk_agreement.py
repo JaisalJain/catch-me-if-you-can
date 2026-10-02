@@ -172,3 +172,51 @@ def test_gripper_pads_and_collision_geometry_agree(models, p):
             assert best < POS_TOL, f"{gname or bname}: URDF collision vertices {best * 1000:.2f} mm from MJCF"
     print(f"\n[{p}] gripper: worst pad frame {worst_pad[0] * 1000:.3f} mm / {np.degrees(worst_pad[1]):.3f} deg, "
           f"worst collision vertex {worst_vert * 1000:.3f} mm over knuckle {GRIPPER_ANGLES}")
+
+
+def test_wrist_camera_housing_and_bracket_agree(models):
+    """B's wrist-camera housing and its bracket (visual-only boxes on the MJCF gripper base): every box corner of
+    the URDF visual twin within 1 mm of the MJCF geom, at random arm configurations."""
+    import xml.etree.ElementTree as ET
+    from catch_kinematics.transforms import rpy_to_matrix
+    chain, m, d = models
+    urdf = subprocess.check_output(["xacro", os.path.join(PKG, "urdf", "scene.urdf.xacro")], env=ros_env()).decode()
+    boxes = []                    # (link, size, T_link_geom) of the URDF visuals
+    for link in ET.fromstring(urdf).findall("link"):
+        if link.get("name") not in ("b_wrist_cam_housing", "b_wrist_cam_bracket"):
+            continue
+        for v in link.findall("visual"):
+            o = v.find("origin")
+            xyz = [float(x) for x in o.get("xyz", "0 0 0").split()] if o is not None else [0.0] * 3
+            rpy = [float(x) for x in o.get("rpy", "0 0 0").split()] if o is not None else [0.0] * 3
+            size = np.array([float(x) for x in v.find("geometry/box").get("size").split()])
+            boxes.append((link.get("name"), size, make_tf(rpy_to_matrix(*rpy), xyz)))
+    geoms = [g for g in range(m.ngeom) if (mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_GEOM, g) or "").startswith(
+        ("b_robotiq_wrist_cam_housing", "b_robotiq_wrist_cam_bracket"))]
+    assert len(geoms) == len(boxes) >= 2
+    qadr = [m.jnt_qposadr[mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_JOINT, f"b_{j}")] for j in JN]
+    rng = np.random.default_rng(44)
+    worst = 0.0
+    for _ in range(10):
+        q = rng.uniform(-np.pi, np.pi, 6)
+        d.qpos[:] = m.qpos0
+        d.qpos[qadr] = q
+        mujoco.mj_kinematics(m, d)
+        qd = {f"b_{j}": v for j, v in zip(JN, q)}
+        for g in geoms:
+            s = m.geom_size[g]
+            corners = np.array([[sx, sy, sz] for sx in (-1, 1) for sy in (-1, 1) for sz in (-1, 1)])
+            pts_m = (d.geom_xmat[g].reshape(3, 3) @ (corners * s).T).T + d.geom_xpos[g]
+            best = np.inf
+            for link, size, Tlg in boxes:
+                Tw = chain.link_pose(link, qd) @ Tlg
+                for perm in ((0, 1, 2), (1, 0, 2), (0, 2, 1), (2, 1, 0), (1, 2, 0), (2, 0, 1)):  # box axes may be permuted
+                    if not np.allclose(size[list(perm)], 2 * s, atol=1e-6):
+                        continue
+                    pts_u = (Tw[:3, :3] @ (corners * size / 2).T).T + Tw[:3, 3]
+                    # same corner set, any order
+                    dist = max(np.min(np.linalg.norm(pts_u - p, axis=1)) for p in pts_m)
+                    best = min(best, float(dist))
+            worst = max(worst, best)
+            assert best < POS_TOL, f"{mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_GEOM, g)}: {best * 1000:.2f} mm"
+    print(f"\n[b] wrist camera housing + bracket: worst corner {worst * 1000:.4f} mm ({len(geoms)} boxes)")

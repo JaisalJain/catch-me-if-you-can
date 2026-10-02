@@ -14,6 +14,7 @@ from tf2_ros import StaticTransformBroadcaster, TransformBroadcaster
 from mujoco_ros2_control_msgs.msg import FreeJointStateArray
 
 from .scene_config import RX_PI, load_scene, mujoco_camera_rotations
+from .sim_clock import spin_events
 
 
 def _quat_xyzw(R):
@@ -138,7 +139,7 @@ def _run(cls):
     rclpy.init()
     n = cls()
     try:
-        rclpy.spin(n)
+        spin_events(n)        # simple non-blocking callbacks: EventsExecutor (catch_sim.sim_clock)
     except (KeyboardInterrupt, SystemExit):
         pass
     finally:

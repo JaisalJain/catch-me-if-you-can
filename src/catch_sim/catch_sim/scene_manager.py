@@ -9,6 +9,7 @@ from mujoco_ros2_control_msgs.msg import FreeJointState
 from mujoco_ros2_control_msgs.srv import SetFreeJointState
 
 from .scene_config import load_scene, slot_position, tcp_in_gripper_base
+from .sim_clock import offload_sim_clock
 
 COLORS = ("red", "green", "blue")
 
@@ -66,4 +67,5 @@ def main():
     node = SceneManager()
     ex = MultiThreadedExecutor()
     ex.add_node(node)
+    offload_sim_clock(node)          # /clock off the MultiThreadedExecutor (catch_sim.sim_clock)
     ex.spin()

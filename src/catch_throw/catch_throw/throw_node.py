@@ -33,6 +33,7 @@ from catch_interfaces.msg import ThrowPlan
 from catch_interfaces.srv import GetThrowPlan
 from catch_kinematics import UR5e
 from catch_kinematics.transforms import make_tf, rot_z
+from catch_sim.sim_clock import offload_sim_clock
 
 from .generator import generate_throw
 from .profile import ProfileParams
@@ -242,4 +243,5 @@ def main():
     n = ThrowNode()
     ex = MultiThreadedExecutor()
     ex.add_node(n)
+    offload_sim_clock(n)          # /clock off the MultiThreadedExecutor (catch_sim.sim_clock)
     ex.spin()

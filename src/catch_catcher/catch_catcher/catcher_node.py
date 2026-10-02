@@ -31,6 +31,7 @@ from catch_interfaces.action import Catch
 from catch_interfaces.msg import ThrowPlan
 from catch_kinematics import UR5e
 from catch_kinematics.transforms import make_tf, rot_z
+from catch_sim.sim_clock import offload_sim_clock
 from catch_tasks.moveit_client import MoveItClient
 
 from .intercept import choose_intercept
@@ -237,4 +238,5 @@ def main():
     n = Catcher()
     ex = MultiThreadedExecutor(num_threads=6)
     ex.add_node(n)
+    offload_sim_clock(n)          # /clock off the MultiThreadedExecutor (catch_sim.sim_clock)
     ex.spin()

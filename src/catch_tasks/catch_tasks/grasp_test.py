@@ -29,6 +29,7 @@ from catch_interfaces.srv import ResetScene, SpawnCube
 from catch_kinematics import UR5e
 from catch_kinematics.transforms import make_tf, quat_wxyz_to_matrix, rot_z
 from catch_sim.scene_config import load_scene, robot_base_xyz
+from catch_sim.sim_clock import offload_sim_clock
 from mujoco_ros2_control_msgs.msg import FreeJointStateArray
 
 from .moveit_client import JN, MoveItClient, _wait
@@ -52,6 +53,7 @@ def main():
     node = rclpy.create_node("grasp_test", parameter_overrides=[rclpy.parameter.Parameter("use_sim_time", value=True)])
     ex = MultiThreadedExecutor()
     ex.add_node(node)
+    offload_sim_clock(node)          # /clock off the MultiThreadedExecutor (catch_sim.sim_clock)
     threading.Thread(target=ex.spin, daemon=True).start()
     mi = MoveItClient(node)
     assert mi.wait_ready(60), "move_group not ready"

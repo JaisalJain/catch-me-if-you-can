@@ -16,6 +16,7 @@ from rclpy.executors import MultiThreadedExecutor
 from catch_interfaces.msg import CubeDetectionArray
 from catch_interfaces.srv import ResetScene
 from catch_sim.scene_config import load_scene, slot_position
+from catch_sim.sim_clock import offload_sim_clock
 from mujoco_ros2_control_msgs.msg import FreeJointState, FreeJointStateArray
 from mujoco_ros2_control_msgs.srv import SetFreeJointState
 
@@ -39,6 +40,7 @@ def main():
     n = rclpy.create_node("eval_detection", parameter_overrides=[rclpy.parameter.Parameter("use_sim_time", value=True)])
     ex = MultiThreadedExecutor()
     ex.add_node(n)
+    offload_sim_clock(n)          # /clock off the MultiThreadedExecutor (catch_sim.sim_clock)
     threading.Thread(target=ex.spin, daemon=True).start()
     st = {}
     n.create_subscription(CubeDetectionArray, "/perception/overhead_a/cubes", lambda m: st.__setitem__("det", m), 1)
