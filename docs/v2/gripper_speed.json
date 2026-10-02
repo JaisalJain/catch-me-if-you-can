@@ -2,7 +2,8 @@
  "gripper_profile": "realistic",
  "gripper": {
   "gap_speed": 0.15,
-  "kp_scale": 1.0,
+  "kp_scale": 10.0,
+  "kv_scale": 1.0,
   "force_scale": 1.0
  },
  "limits": {
@@ -17,169 +18,169 @@
    "gripper_profile": "realistic",
    "gap_speed_cmd_mm_s": 75,
    "start_gap_mm": 85.2,
-   "t_to_40mm": 0.702999999999989,
-   "achieved_mm_s": 64.29587482219162
+   "t_to_40mm": 0.6129999999999989,
+   "achieved_mm_s": 73.73572593800992
   },
   {
    "gripper_profile": "realistic",
    "gap_speed_cmd_mm_s": 75,
    "start_gap_mm": 56,
-   "t_to_40mm": 0.3090000000000002,
-   "achieved_mm_s": 51.77993527508087
+   "t_to_40mm": 0.22400000000000014,
+   "achieved_mm_s": 71.42857142857139
   },
   {
    "gripper_profile": "realistic",
    "gap_speed_cmd_mm_s": 150,
    "start_gap_mm": 85.2,
-   "t_to_40mm": 0.4020000000000003,
-   "achieved_mm_s": 112.43781094527355
+   "t_to_40mm": 0.3120000000000002,
+   "achieved_mm_s": 144.87179487179478
   },
   {
    "gripper_profile": "realistic",
    "gap_speed_cmd_mm_s": 150,
    "start_gap_mm": 56,
-   "t_to_40mm": 0.19400000000000012,
-   "achieved_mm_s": 82.47422680412366
+   "t_to_40mm": 0.11700000000000005,
+   "achieved_mm_s": 136.7521367521367
   },
   {
    "gripper_profile": "realistic",
    "gap_speed_cmd_mm_s": 300,
    "start_gap_mm": 85.2,
-   "t_to_40mm": 0.24600000000000016,
-   "achieved_mm_s": 183.73983739837388
+   "t_to_40mm": 0.1610000000000001,
+   "achieved_mm_s": 280.7453416149067
   },
   {
    "gripper_profile": "realistic",
    "gap_speed_cmd_mm_s": 300,
    "start_gap_mm": 56,
-   "t_to_40mm": 0.12700000000000006,
-   "achieved_mm_s": 125.98425196850388
+   "t_to_40mm": 0.06400000000000006,
+   "achieved_mm_s": 249.99999999999977
   },
   {
    "gripper_profile": "realistic",
    "gap_speed_cmd_mm_s": 600,
    "start_gap_mm": 85.2,
-   "t_to_40mm": 0.1660000000000001,
-   "achieved_mm_s": 272.28915662650587
+   "t_to_40mm": 0.08600000000000008,
+   "achieved_mm_s": 525.5813953488367
   },
   {
    "gripper_profile": "realistic",
    "gap_speed_cmd_mm_s": 600,
    "start_gap_mm": 56,
-   "t_to_40mm": 0.08700000000000008,
-   "achieved_mm_s": 183.90804597701134
+   "t_to_40mm": 0.03700000000000003,
+   "achieved_mm_s": 432.43243243243205
   },
   {
    "gripper_profile": "realistic",
    "gap_speed_cmd_mm_s": 1500,
    "start_gap_mm": 85.2,
-   "t_to_40mm": 0.12300000000000005,
-   "achieved_mm_s": 367.4796747967478
+   "t_to_40mm": 0.051000000000000045,
+   "achieved_mm_s": 886.2745098039209
   },
   {
    "gripper_profile": "realistic",
    "gap_speed_cmd_mm_s": 1500,
    "start_gap_mm": 56,
-   "t_to_40mm": 0.061000000000000054,
-   "achieved_mm_s": 262.29508196721287
+   "t_to_40mm": 0.028000000000000025,
+   "achieved_mm_s": 571.4285714285709
   },
   {
    "gripper_profile": "realistic",
    "gap_speed_cmd_mm_s": 3000,
    "start_gap_mm": 85.2,
-   "t_to_40mm": 0.11000000000000004,
-   "achieved_mm_s": 410.90909090909076
+   "t_to_40mm": 0.051000000000000045,
+   "achieved_mm_s": 886.2745098039209
   },
   {
    "gripper_profile": "realistic",
    "gap_speed_cmd_mm_s": 3000,
    "start_gap_mm": 56,
-   "t_to_40mm": 0.05300000000000005,
-   "achieved_mm_s": 301.8867924528299
+   "t_to_40mm": 0.028000000000000025,
+   "achieved_mm_s": 571.4285714285709
   },
   {
    "gripper_profile": "fast_idealized",
    "gap_speed_cmd_mm_s": 75,
    "start_gap_mm": 85.2,
-   "t_to_40mm": 0.7039999999999889,
-   "achieved_mm_s": 64.20454545454648
+   "t_to_40mm": 0.6079999999999994,
+   "achieved_mm_s": 74.34210526315798
   },
   {
    "gripper_profile": "fast_idealized",
    "gap_speed_cmd_mm_s": 75,
    "start_gap_mm": 56,
-   "t_to_40mm": 0.3050000000000002,
-   "achieved_mm_s": 52.45901639344259
+   "t_to_40mm": 0.21900000000000014,
+   "achieved_mm_s": 73.05936073059357
   },
   {
    "gripper_profile": "fast_idealized",
    "gap_speed_cmd_mm_s": 150,
    "start_gap_mm": 85.2,
-   "t_to_40mm": 0.4020000000000003,
-   "achieved_mm_s": 112.43781094527355
+   "t_to_40mm": 0.3070000000000002,
+   "achieved_mm_s": 147.2312703583061
   },
   {
    "gripper_profile": "fast_idealized",
    "gap_speed_cmd_mm_s": 150,
    "start_gap_mm": 56,
-   "t_to_40mm": 0.1840000000000001,
-   "achieved_mm_s": 86.95652173913038
+   "t_to_40mm": 0.11200000000000004,
+   "achieved_mm_s": 142.8571428571428
   },
   {
    "gripper_profile": "fast_idealized",
    "gap_speed_cmd_mm_s": 300,
    "start_gap_mm": 85.2,
-   "t_to_40mm": 0.24500000000000016,
-   "achieved_mm_s": 184.48979591836724
+   "t_to_40mm": 0.15600000000000008,
+   "achieved_mm_s": 289.7435897435896
   },
   {
    "gripper_profile": "fast_idealized",
    "gap_speed_cmd_mm_s": 300,
    "start_gap_mm": 56,
-   "t_to_40mm": 0.11400000000000005,
-   "achieved_mm_s": 140.3508771929824
+   "t_to_40mm": 0.05900000000000005,
+   "achieved_mm_s": 271.18644067796583
   },
   {
    "gripper_profile": "fast_idealized",
    "gap_speed_cmd_mm_s": 600,
    "start_gap_mm": 85.2,
-   "t_to_40mm": 0.1650000000000001,
-   "achieved_mm_s": 273.9393939393938
+   "t_to_40mm": 0.08100000000000007,
+   "achieved_mm_s": 558.0246913580243
   },
   {
    "gripper_profile": "fast_idealized",
    "gap_speed_cmd_mm_s": 600,
    "start_gap_mm": 56,
-   "t_to_40mm": 0.07300000000000006,
-   "achieved_mm_s": 219.17808219178062
+   "t_to_40mm": 0.03200000000000003,
+   "achieved_mm_s": 499.99999999999955
   },
   {
    "gripper_profile": "fast_idealized",
    "gap_speed_cmd_mm_s": 1500,
    "start_gap_mm": 85.2,
-   "t_to_40mm": 0.12200000000000005,
-   "achieved_mm_s": 370.4918032786884
+   "t_to_40mm": 0.03600000000000003,
+   "achieved_mm_s": 1255.5555555555545
   },
   {
    "gripper_profile": "fast_idealized",
    "gap_speed_cmd_mm_s": 1500,
    "start_gap_mm": 56,
-   "t_to_40mm": 0.04400000000000004,
-   "achieved_mm_s": 363.63636363636334
+   "t_to_40mm": 0.016000000000000014,
+   "achieved_mm_s": 999.9999999999991
   },
   {
    "gripper_profile": "fast_idealized",
    "gap_speed_cmd_mm_s": 3000,
    "start_gap_mm": 85.2,
-   "t_to_40mm": 0.10900000000000004,
-   "achieved_mm_s": 414.67889908256865
+   "t_to_40mm": 0.02200000000000002,
+   "achieved_mm_s": 2054.5454545454527
   },
   {
    "gripper_profile": "fast_idealized",
    "gap_speed_cmd_mm_s": 3000,
    "start_gap_mm": 56,
-   "t_to_40mm": 0.03500000000000003,
-   "achieved_mm_s": 457.1428571428567
+   "t_to_40mm": 0.013000000000000012,
+   "achieved_mm_s": 1230.7692307692296
   }
  ]
 }

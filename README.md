@@ -172,6 +172,16 @@ All in simulation; ground truth (MuJoCo free-joint state) is used only to *evalu
 * **Scene reset.** Recovering from a drop teleports the cube back to A's pallet (sim service), it is not picked
   up from the floor.
 
+## v2 (in progress): random throws, vision-only catch
+Phase 1 is an offline feasibility study (`docs/v2_phase1_feasibility.md`, tools `tools/v2_*.py`, config
+`tools/v2_study.yaml`); the ROS pipeline above is unchanged. Headline numbers (offline MuJoCo, vision-only B, 120
+throws each; **gripper_profile** in brackets — `fast_idealized` is not a real 2F-85):
+* pinch from a natural raised pose, timed close: 86–87 % **[realistic]**, 100 % **[fast_idealized]**;
+* cup with fingers pre-closed to 56 mm, square-arrival throws: 90 % **[realistic]**, 98 % **[fast_idealized]**;
+* side "chopsticks" and velocity matching: not feasible within the UR5e limits (any profile).
+The M5 cup's 30/30 used the v1 sim gripper, which closes 3–5× faster than the real 2F-85 (150 mm/s).
+
 ## Documentation
 `docs/progress.md` (milestone log) and per milestone `docs/m0_toolchain.md`, `m1_feasibility.md`,
-`m2_scene_bringup.md`, `m3_perception_pick_place.md`, `m4_throw.md`, `m5_catch.md`, `m6_full_loop.md`.
+`m2_scene_bringup.md`, `m3_perception_pick_place.md`, `m4_throw.md`, `m5_catch.md`, `m6_full_loop.md`;
+v2: `v2_phase1_feasibility.md`.

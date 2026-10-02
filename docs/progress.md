@@ -163,3 +163,22 @@
   `docs/m5_catch.md`).
 - Still open for v2 Phase 2: permanent /joint_states subscriptions in throw_node, catcher and run_demo.
 
+## v2 Phase 1 — offline feasibility (2026-10-02) ✅
+- Scope: random throws, vision-only B, chopsticks vs cup; offline only (`tools/v2_*.py`, `tools/v2_study.yaml`,
+  `docs/v2/`), ROS pipeline unchanged. `gripper_profile: realistic | fast_idealized` (default realistic) in every
+  result; fast_idealized is not a real 2F-85.
+- Ready pose: TCP (0.30, 0.25, 1.10), approach 60° up towards A, fingers across the flight; min joint margin
+  1.25 rad, 84 mm clearance; 58 % of a broad throw family catchable at a 0.20 s decision.
+- Perception: 2 orthogonal cameras required (1 camera: ~10 cm depth error); measured stereo noise ~0.8/0.8/1.9 mm
+  + 2 mm z bias, correlated (end-to-end 1.7× the white-noise model); 120 Hz/2 mm/25 ms → 10 mm at 0.21 s;
+  rendering 1.4 ms per 320×240 camera, physics RTF unaffected (plugin renders on its own thread).
+- Throws: 259 of 1080 (target, angle) pairs feasible for A, 213 also catchable; square-arrival palm pitch → 150 /
+  121. Library recommended over online ID (pinocchio = MuJoCo exactly with the same parameters; the URDF's
+  inertias differ by up to 14 N·m; ros-jazzy-pinocchio 4.1.0 exists but is not installed).
+- Catch (120 throws per row): realistic 2F-85 speed — natural pinch 86–87 % (close 10 ms after nominal), cup
+  pre-closed 90 % on square throws (40 % with open fingers on random throws: tilted cubes slide out before the
+  150 mm/s fingers close); fast_idealized — 98–100 %. Side chopsticks: 0 % within limits (plans 2.5–51× over);
+  velocity matching: ≤ 40 % deliverable, no benefit.
+- Finding for v1: the v1 sim gripper closes 3–5× faster than the real 2F-85 (M5's 30/30 cup used it).
+- Details and Phase 2 plan: `docs/v2_phase1_feasibility.md`.
+

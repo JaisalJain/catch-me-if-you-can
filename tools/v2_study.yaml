@@ -88,6 +88,8 @@ catch_sim:
   settle_s: 0.8
   cup_cone_deg: [0, 10, 20, 30, 45, 60, 180]
   pinch_pre_gap_mm: 56                    # pre-opened finger gap (cube 40 mm: +-8 mm)
+  pinch_pre_gap_sweep_mm: [46, 50, 56, 64]  # realistic gripper: pre-gap sweep
+  pinch_close_lead_ms: [-60, -40, -30, -20, -10, 10, 20, 30]  # realistic gripper: close this much earlier (0 = pads at 40 mm on arrival)
   pinch_gap_speeds_mm_s: [75, 150, 300, 600, 1500, 3000]
   pinch_match: [0.0, 0.25, 0.5, 1.0]       # commanded fraction of the cube velocity matched at the intercept
   pinch_cone_deg: 30

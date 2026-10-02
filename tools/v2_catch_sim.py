@@ -133,9 +133,11 @@ class CatchSim:
 
     # --------------------------------------------------------------------- trial ------------------------------
     def run(self, throw, mode="cup", cone_deg=30.0, match=0.0, rng=None, perception="measured", replan=None,
-            gap_speed=None, cup_pre_gap=None):
+            gap_speed=None, cup_pre_gap=None, pinch_pre_gap=None, close_lead=0.0, ready=None):
         c, cs = self.c, self.c["catch_sim"]
         rng = rng or np.random.default_rng(0)
+        if ready is not None:           # another ready pose (q, approach elevation) for this trial
+            self.q_ready, self.z_ready = np.array(ready[0]), V.ready_rotation(ready[1])[:, 2]
         replan = cs["replan"] if replan is None else replan
         gap_speed = gap_speed or self.gap_speed
         cone = np.radians(min(cone_deg, 180.0))
@@ -144,7 +146,7 @@ class CatchSim:
         d.qpos[self.qa["a"]] = self.poses["a"]["home"]
         d.qpos[self.qa["b"]] = self.q_ready
         pinch = mode.startswith("pinch")
-        pre_gap = c["catch_sim"]["pinch_pre_gap_mm"] if pinch else (cup_pre_gap or 85.2)
+        pre_gap = (pinch_pre_gap or c["catch_sim"]["pinch_pre_gap_mm"]) if pinch else (cup_pre_gap or 85.2)
         k_open = V.knuckle_for_gap(pre_gap)
         park = {"red": [0.0, -0.25, 0.8], "green": [0.0, -0.3, 0.8], "blue": [0.0, -0.35, 0.8]}
         for col, pos in park.items():
@@ -257,7 +259,7 @@ class CatchSim:
                         # fingers reach the cube width at the predicted arrival
                         k_rate = gap_speed * 1000.0
                         t_close = (pre_gap - 40.0) / k_rate
-                        t_cmd = t_c - t_close
+                        t_cmd = t_c - t_close - close_lead
                         k_ref_fn = (lambda tc0: (lambda t: k_open if t < tc0 else
                                                  V.knuckle_for_gap(max(pre_gap - k_rate * (t - tc0), 0.0))))(t_cmd)
             # cup trigger: palm touch sensor (contact only)
@@ -284,8 +286,10 @@ class CatchSim:
         rel = R_t.T @ (d.xpos[self.cube] - d.site_xpos[self.tcp])
         k = d.qpos[self.kq]
         speed = np.linalg.norm(d.qvel[self.cv:self.cv + 3])
-        held_raw = bool(planned and np.linalg.norm(rel) < 0.025 and 0.30 <= k <= 0.60 and speed < 0.05
-                        and d.xpos[self.cube][2] > self.table_z + 0.05)
+        at_rest = bool(planned and 0.30 <= k <= 0.60 and speed < 0.05 and d.xpos[self.cube][2] > self.table_z + 0.05)
+        held_raw = at_rest and bool(np.linalg.norm(rel) < 0.025)
+        # gripped, but at the fingertips (cube centre >= 25 mm out of the pad centre): reported, not counted
+        info["fingertip_grasp"] = at_rest and not held_raw and bool(np.linalg.norm(rel) < 0.05)
         within = bool(ratios) and max(ratios) <= 1.02        # every executed (re)plan within 85 % speed / 80 % torque
         held = held_raw and within
         info.update(held=held, held_ignoring_limits=held_raw, within_limits=within, planned=planned, touched=touched_b, rel_mm=(1000 * rel).round(1).tolist(), knuckle=float(k),
@@ -363,6 +367,7 @@ def summarize(rows):
     lo, hi = wilson(held, n)
     return dict(n=n, held=held, rate=k, ci95=[lo, hi], outcomes=dict(Counter(r["outcome"] for r in rows)),
                 held_ignoring_limits=sum(r["held_ignoring_limits"] for r in rows),
+                fingertip_grasps=sum(bool(r.get("fingertip_grasp")) for r in rows),
                 match_used_mean=float(np.mean([r.get("match", 0.0) for r in rows if r["planned"]] or [0])),
                 plan_ratio_max=float(max([r["max_plan_ratio"] or 0 for r in rows] or [0])))
 
@@ -389,6 +394,7 @@ def main():
     ap.add_argument("--gripper-profile", default=None)
     ap.add_argument("--perception", default="measured")
     ap.add_argument("--n", type=int)
+    ap.add_argument("--only", default=None, help="run only rows whose key contains this text")
     ap.add_argument("--throws", default="random", choices=["random", "square"],
                     help="throw distribution: random palm pitch (min joint speed) or square arrival on B's palm")
     a = ap.parse_args()
@@ -427,7 +433,7 @@ def main():
             for cone in (10, 30, 180):       # pre-closed cup: fingers pre-opened to the pinch gap, same contact trigger
                 specs.append((f"{prof}|{cone}|measured|pregap", prof,
                               dict(mode="cup", cone_deg=cone, cup_pre_gap=cs["pinch_pre_gap_mm"]), None))
-        run_rows(f"catch_cup{sfx}.json", specs, ths, c, prof_name, a.throws)
+        run_rows(f"catch_cup{sfx}.json", [sp for sp in specs if not a.only or a.only in sp[0]], ths, c, prof_name, a.throws)
     if a.pinch:
         cone = cs["pinch_cone_deg"]
         specs = []
@@ -437,12 +443,29 @@ def main():
         for gs in cs["pinch_gap_speeds_mm_s"]:
             for mt in (0.0, 1.0):
                 specs.append((f"speed|{gs}|pinch|{mt}", "fast_idealized", dict(mode="pinch", cone_deg=cone, match=mt), gs / 1000))
+        for lead in cs["pinch_close_lead_ms"]:      # realistic gripper: start closing earlier than "40 mm at arrival"
+            specs.append((f"lead|{lead}|pinch|0.0|realistic", "realistic",
+                          dict(mode="pinch", cone_deg=cone, match=0.0, close_lead=lead / 1000), None))
+        for g in cs["pinch_pre_gap_sweep_mm"]:      # realistic gripper: smaller pre-gap = shorter close, less tolerance
+            for mt in (0.0, 1.0):
+                specs.append((f"pregap|{g}|pinch|{mt}|realistic", "realistic",
+                              dict(mode="pinch", cone_deg=cone, match=mt, pinch_pre_gap=g), None))
+        # how much the pinch relies on the cube flying towards the palm: flatter ready orientations, same ready TCP
+        rd = json.load(open(os.path.join(V.OUT, "ready_envelope.json")))
+        p_r = rd["chosen"]["p"]
+        for elev in (30, 45):
+            cand = [r for r in rd["candidates"] if r["ok"] and r["elev"] == elev and np.allclose(r["p"], p_r)]
+            if not cand:
+                continue
+            for prof in ("realistic", "fast_idealized"):
+                specs.append((f"elev|{elev}|pinch|0.0|{prof}|lead-10", prof,
+                              dict(mode="pinch", cone_deg=cone, match=0.0, close_lead=-0.010, ready=(cand[0]["q"], elev)), None))
         # side chopsticks: over the arm limits in every trial of the first run (all matches, all closing speeds);
         # kept at two points per profile
         for prof in ("realistic", "fast_idealized"):
             for mt in (0.0, 1.0):
                 specs.append((f"profile|{prof}|pinch_side|{mt}", prof, dict(mode="pinch_side", cone_deg=cone, match=mt), None))
-        run_rows(f"catch_pinch{sfx}.json", specs, ths, c, prof_name, a.throws,
+        run_rows(f"catch_pinch{sfx}.json", [sp for sp in specs if not a.only or a.only in sp[0]], ths, c, prof_name, a.throws,
                  note="keys profile|<gripper_profile>|<mode>|<match commanded>, speed|<gap mm/s>|<mode>|<match> "
                       "(speed sweep: fast_idealized actuator, the ramp speed is the variable)")
 

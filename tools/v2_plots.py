@@ -72,78 +72,135 @@ def perception_figure():
     fig.savefig(os.path.join(V.OUT, "perception_detection_bench.png"), dpi=105)
 
 
+def _rate(rows, key):
+    r = rows.get(key)
+    return None if r is None else r["summary"]
+
+
+def _cup_panel(ax, cup, title):
+    rows = cup["rows"]
+    cones = [0, 10, 20, 30, 45, 60, 180]
+    for prof, col in (("realistic", "#1b9e77"), ("fast_idealized", "#d95f02")):
+        xs, r, lo, hi = [], [], [], []
+        for cn in cones:
+            sm = _rate(rows, f"{prof}|{cn}|measured")
+            if sm:
+                xs.append(min(cn, 90))
+                r.append(100 * sm["rate"])
+                lo.append(100 * sm["ci95"][0])
+                hi.append(100 * sm["ci95"][1])
+        if xs:
+            ax.plot(xs, r, "o-", color=col, label=f"{prof}, measured perception")
+            ax.fill_between(xs, lo, hi, color=col, alpha=0.15)
+        pp = [(min(cn, 90), 100 * _rate(rows, f"{prof}|{cn}|perfect")["rate"]) for cn in cones if _rate(rows, f"{prof}|{cn}|perfect")]
+        if pp:
+            ax.plot(*zip(*pp), "x:", color=col, ms=8, label=f"{prof}, perfect perception")
+        pg = [(min(cn, 90), 100 * _rate(rows, f"{prof}|{cn}|measured|pregap")["rate"]) for cn in cones
+              if _rate(rows, f"{prof}|{cn}|measured|pregap")]
+        if pg:
+            ax.plot(*zip(*pg), "s--", color=col, mfc="none", ms=8, label=f"{prof}, fingers pre-closed to 56 mm")
+    ax.set_xticks([0, 10, 20, 30, 45, 60, 90], ["0", "10", "20", "30", "45", "60", "free"])
+    ax.set_xlabel("cup: cone half-angle around the ready approach axis [deg]")
+    ax.set_ylabel("caught within limits [%] (95 % CI shaded)")
+    ax.set_ylim(-3, 103)
+    ax.grid(alpha=0.3)
+    ax.legend(fontsize=7)
+    ax.set_title(title, fontsize=10)
+
+
 def catch_figure():
-    cup, pinch = load("catch_cup.json"), load("catch_pinch.json")
-    if not cup and not pinch:
+    import v2_throws as T
+    cupr, cups = load("catch_cup.json"), load("catch_cup_square.json")
+    pinr, pins = load("catch_pinch.json"), load("catch_pinch_square.json")
+    if not (cupr or cups or pinr or pins):
         return
-    fig, axs = plt.subplots(1, 3, figsize=(18, 5))
-    if cup:
-        rows = cup["rows"]
-        profs = sorted({k.split("|")[0] for k in rows})
-        cones = sorted({float(k.split("|")[1]) for k in rows})
-        for prof, col in zip(profs, ("#1b9e77", "#d95f02")):
-            for perc, ls in (("measured", "-"), ("perfect", ":")):
-                ys = [rows[f"{prof}|{c:g}|{perc}"]["summary"] for c in cones if f"{prof}|{c:g}|{perc}" in rows]
-                cs = [c for c in cones if f"{prof}|{c:g}|{perc}" in rows]
-                if not ys:
-                    continue
-                r = np.array([y["rate"] for y in ys]) * 100
-                lo = np.array([y["ci95"][0] for y in ys]) * 100
-                hi = np.array([y["ci95"][1] for y in ys]) * 100
-                xs = np.minimum(cs, 90)
-                axs[0].plot(xs, r, "o" + ls, color=col, label=f"{prof}, perception {perc}")
-                if perc == "measured":
-                    axs[0].fill_between(xs, lo, hi, color=col, alpha=0.15)
-        axs[0].set_xticks([0, 10, 20, 30, 45, 60, 90], ["0", "10", "20", "30", "45", "60", "free"])
-        axs[0].set_xlabel("cone half-angle around the ready approach axis [deg]")
-        axs[0].set_ylabel("caught [%] (95 % CI shaded)")
-        axs[0].set_ylim(-3, 103)
-        axs[0].grid(alpha=0.3)
-        axs[0].legend(fontsize=8)
-        axs[0].set_title(f"(a) natural cup vs cone, n={ys[0]['n']} throws each")
-    if pinch:
-        rows = pinch["rows"]
-        for mode, ax_i, ttl in (("pinch", 1, "(b) pinch, natural approach"), ("pinch_side", 1, None)):
-            pass
+    fig, axs = plt.subplots(2, 3, figsize=(19, 10.5))
+    if cupr:
+        _cup_panel(axs[0, 0], cupr, f"(a) cup, random throws (palm pitch for min joint speed), n={cupr['n_throws'] if 'n_throws' in cupr else 120}")
+    if cups:
+        _cup_panel(axs[0, 1], cups, f"(b) cup, square-arrival throws, n={cups.get('n_throws', 120)}")
+    if cupr:
+        # cup success vs the cube's tilt on arrival (random throws, cone 30, measured perception)
+        import v2_catch_sim as CS
+        ths = CS.throws(V.cfg(), cupr.get("n_throws"), "random")
+        z_ready = V.ready_rotation(json.load(open(os.path.join(V.OUT, "ready_envelope.json")))["chosen"]["elev"])[:, 2]
+        bins = [(0, 5), (5, 10), (10, 20), (20, 46)]
+        for k, (prof, col) in enumerate((("realistic", "#1b9e77"), ("fast_idealized", "#d95f02"))):
+            tr = cupr["rows"][f"{prof}|30|measured"]["trials"]
+            tilt = np.array([abs(T.arrival_tilt(np.array(th["p_release"]), np.array(th["v_release"]), th["spin"], t["t_intercept"], z_ready))
+                             if t.get("t_intercept") else 99 for t, th in zip(tr, ths)])
+            held = np.array([t["held"] for t in tr])
+            rates = [100 * held[(tilt >= lo) & (tilt < hi)].mean() if np.any((tilt >= lo) & (tilt < hi)) else 0 for lo, hi in bins]
+            ns = [int(np.sum((tilt >= lo) & (tilt < hi))) for lo, hi in bins]
+            xb = np.arange(len(bins)) + (k - 0.5) * 0.38
+            axs[0, 2].bar(xb, rates, 0.38, color=col, label=prof)
+            for x_, r_, n_ in zip(xb, rates, ns):
+                axs[0, 2].text(x_, r_ + 1.5, f"n={n_}", ha="center", fontsize=7)
+        axs[0, 2].set_xticks(range(len(bins)), [f"{lo}-{hi if hi < 46 else 45}" for lo, hi in bins])
+        axs[0, 2].set_xlabel("cube tilt relative to B's palm at arrival [deg] (about the closing axis)")
+        axs[0, 2].set_ylabel("caught [%]")
+        axs[0, 2].set_ylim(0, 110)
+        axs[0, 2].legend(fontsize=8)
+        axs[0, 2].set_title("(c) cup (30 deg cone, random throws): the cube must land square", fontsize=10)
+    for pin, ls, lab in ((pinr, "--", "random"), (pins, "-", "square")):
+        if not pin:
+            continue
+        rows = pin["rows"]
         for prof, col in (("realistic", "#1b9e77"), ("fast_idealized", "#d95f02")):
-            for mode, ls in (("pinch", "-"), ("pinch_side", "--")):
-                keys = sorted([k for k in rows if k.startswith(f"profile|{prof}|{mode}|")], key=lambda k: float(k.split("|")[3]))
-                if not keys:
-                    continue
+            keys = sorted([k for k in rows if k.startswith(f"profile|{prof}|pinch|")], key=lambda k: float(k.split("|")[3]))
+            if keys:
                 mt = [float(k.split("|")[3]) for k in keys]
-                used = [rows[k]["summary"]["match_used_mean"] for k in keys]
-                r = [rows[k]["summary"]["rate"] * 100 for k in keys]
-                axs[1].plot(mt, r, "o" + ls, color=col, label=f"{prof}, {mode}")
-                for x_, y_, u in zip(mt, r, used):
-                    axs[1].annotate(f"{u:.2f}", (x_, y_), fontsize=6, xytext=(2, 3), textcoords="offset points", color=col)
-        axs[1].set_xlabel("commanded velocity-matching fraction (labels: delivered within limits, mean)")
-        axs[1].set_ylabel("caught within limits [%]")
-        axs[1].set_ylim(-3, 103)
-        axs[1].grid(alpha=0.3)
-        axs[1].legend(fontsize=8)
-        axs[1].set_title("(b) pinch vs velocity matching")
-        keys = [k for k in rows if k.startswith("speed|")]
-        speeds = sorted({int(k.split("|")[1]) for k in keys})
-        for mode in ("pinch", "pinch_side"):
-            for mt, col in ((0.0, "#7570b3"), (0.5, "#1b9e77"), (1.0, "#d95f02")):
-                ks = [f"speed|{s}|{mode}|{mt}" for s in speeds if f"speed|{s}|{mode}|{mt}" in rows]
-                if not ks:
-                    continue
-                axs[2].plot([int(k.split("|")[1]) for k in ks], [rows[k]["summary"]["rate"] * 100 for k in ks],
-                            "o" + ("-" if mode == "pinch" else "--"), color=col, label=f"{mode}, match cmd {mt}")
-        axs[2].axvline(150, color="grey", ls=":", lw=1)
-        axs[2].text(155, 5, "2F-85 max\n150 mm/s", fontsize=7, color="grey")
-        axs[2].set_xscale("log")
-        axs[2].set_xlabel("finger gap closing speed [mm/s] (fast_idealized actuator for the whole sweep)")
-        axs[2].set_ylabel("caught within limits [%]")
-        axs[2].set_ylim(-3, 103)
-        axs[2].grid(alpha=0.3, which="both")
-        axs[2].legend(fontsize=7)
-        axs[2].set_title("(c) pinch vs closing speed")
-    fig.suptitle("Catch modes, offline MuJoCo, vision-only B (120 Hz, measured-detector noise, 25 ms latency); "
-                 "gripper_profile per curve — fast_idealized is NOT a real 2F-85")
+                r = [100 * rows[k]["summary"]["rate"] for k in keys]
+                axs[1, 0].plot(mt, r, "o" + ls, color=col, label=f"{prof}, {lab} throws")
+                for x_, y_, k in zip(mt, r, keys):
+                    axs[1, 0].annotate(f"{rows[k]['summary']['match_used_mean']:.2f}", (x_, y_), fontsize=6, xytext=(2, 3),
+                                       textcoords="offset points", color=col)
+        speeds = sorted({int(k.split("|")[1]) for k in rows if k.startswith("speed|")})
+        for mt, col in ((0.0, "#7570b3"), (1.0, "#e7298a")):
+            pts = [(sp, 100 * rows[f"speed|{sp}|pinch|{mt}"]["summary"]["rate"]) for sp in speeds if f"speed|{sp}|pinch|{mt}" in rows]
+            if pts:
+                axs[1, 1].plot(*zip(*pts), "o" + ls, color=col, label=f"match cmd {mt}, {lab} throws")
+    axs[1, 0].set_xlabel("pinch: commanded velocity-matching fraction (labels: delivered within limits, mean)")
+    axs[1, 0].set_ylabel("caught within limits [%]")
+    axs[1, 0].set_ylim(-3, 103)
+    axs[1, 0].grid(alpha=0.3)
+    axs[1, 0].legend(fontsize=7)
+    axs[1, 0].set_title("(d) pinch (natural approach, 56 mm pre-gap, timed close) vs velocity matching", fontsize=10)
+    axs[1, 1].axvline(150, color="grey", ls=":", lw=1)
+    axs[1, 1].text(155, 5, "2F-85 max\n150 mm/s", fontsize=7, color="grey")
+    axs[1, 1].set_xscale("log")
+    axs[1, 1].set_xlabel("finger gap closing speed [mm/s] (fast_idealized actuator for the whole sweep)")
+    axs[1, 1].set_ylabel("caught within limits [%]")
+    axs[1, 1].set_ylim(-3, 103)
+    axs[1, 1].grid(alpha=0.3, which="both")
+    axs[1, 1].legend(fontsize=7)
+    axs[1, 1].set_title("(e) pinch vs closing speed", fontsize=10)
+    # (f) summary, square throws (fallback random)
+    ax = axs[1, 2]
+    src_c, src_p = (cups or cupr), (pins or pinr)
+    items = []
+    for prof in ("realistic", "fast_idealized"):
+        for lab, src, key in (("cup 30", src_c, f"{prof}|30|measured"), ("cup 10 pre-closed", src_c, f"{prof}|10|measured|pregap"),
+                              ("cup 30 pre-closed", src_c, f"{prof}|30|measured|pregap"),
+                              ("pinch natural", src_p, f"profile|{prof}|pinch|0.0"),
+                              ("pinch natural + match", src_p, f"profile|{prof}|pinch|1.0"),
+                              ("pinch side + match", src_p, f"profile|{prof}|pinch_side|1.0")):
+            sm = _rate(src["rows"], key) if src else None
+            if sm:
+                items.append((f"{lab}\n{prof}", 100 * sm["rate"], sm["ci95"], "#1b9e77" if prof == "realistic" else "#d95f02"))
+    if items:
+        y = np.arange(len(items))
+        ax.barh(y, [i[1] for i in items], color=[i[3] for i in items],
+                xerr=np.array([[i[1] - 100 * i[2][0], 100 * i[2][1] - i[1]] for i in items]).T, capsize=3)
+        ax.set_yticks(y, [i[0] for i in items], fontsize=7)
+        ax.set_xlim(0, 105)
+        ax.invert_yaxis()
+        ax.set_xlabel("caught within limits [%]")
+        ax.set_title(f"(f) summary ({'square-arrival' if cups else 'random'} throws, measured perception)", fontsize=10)
+    fig.suptitle("Catch modes in offline MuJoCo, vision-only B (120 Hz, measured-detector noise, 25 ms latency, re-planning). "
+                 "gripper_profile per curve: realistic = 2F-85 150 mm/s; fast_idealized is NOT a real 2F-85", fontsize=11)
     fig.tight_layout()
-    fig.savefig(os.path.join(V.OUT, "catch_modes.png"), dpi=105)
+    fig.savefig(os.path.join(V.OUT, "catch_modes.png"), dpi=100)
 
 
 def main():
