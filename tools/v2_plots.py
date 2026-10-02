@@ -35,7 +35,7 @@ def perception_figure():
         axs[0].errorbar(x + (k - 0.5) * 0.35, r["bias_mm"], fmt="kx", ms=8)
     axs[0].set_xticks(x, ["x", "y", "z"])
     axs[0].set_ylabel("mm")
-    axs[0].set_title("Measured per-frame stereo error (side_front + top, tumbling cube); x = bias")
+    axs[0].set_title("Per-frame stereo error, tumbling cube (bars std, x bias)", fontsize=9)
     axs[0].legend(fontsize=8)
     t = det["results"][sizes[0]]["end_to_end_t"]
     for sz in sizes:
@@ -49,7 +49,7 @@ def perception_figure():
     axs[1].set_xlim(100, 350)
     axs[1].set_xlabel("time since release [ms]")
     axs[1].set_ylabel("95 % error of predicted intercept [mm]")
-    axs[1].set_title("End to end: LSQ on rendered detections, 120 Hz, 25 ms latency")
+    axs[1].set_title("End to end: LSQ on rendered detections (120 Hz, 25 ms)", fontsize=9)
     axs[1].grid(alpha=0.3)
     axs[1].legend(fontsize=8)
     rows = bench["rows"]
@@ -64,7 +64,7 @@ def perception_figure():
     ax2.set_yscale("log")
     axs[2].set_xticks(xx, labels, fontsize=6)
     axs[2].set_ylabel("% of one core")
-    axs[2].set_title("Render cost (RGB + depth, NVIDIA EGL) and physics headroom")
+    axs[2].set_title("Render cost (RGB + depth, EGL) and physics headroom", fontsize=9)
     h1, l1 = axs[2].get_legend_handles_labels()
     h2, l2 = ax2.get_legend_handles_labels()
     axs[2].legend(h1 + h2, l1 + l2, fontsize=7, loc="upper left")

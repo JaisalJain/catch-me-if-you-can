@@ -64,6 +64,9 @@ throws:
   target_x: [0.25, 0.30, 0.35, 0.40, 0.45]
   target_y: [0.10, 0.15, 0.20, 0.25, 0.30, 0.35]
   target_z: [1.05, 1.10, 1.15, 1.20, 1.25, 1.30]
+  # --square: palm pitch rate chosen so the cube's spin squares it to B's cup palm at the arrival (tilt about the
+  # closing axis within this tolerance). Cup catches: tilt <= 5 deg held 40/47 (realistic), > 10 deg 1/55.
+  square_tol_deg: 5.0
 
 # 5. Catch simulations
 catch_sim:
@@ -86,5 +89,5 @@ catch_sim:
   cup_cone_deg: [0, 10, 20, 30, 45, 60, 180]
   pinch_pre_gap_mm: 56                    # pre-opened finger gap (cube 40 mm: +-8 mm)
   pinch_gap_speeds_mm_s: [75, 150, 300, 600, 1500, 3000]
-  pinch_match: [0.0, 0.25, 0.5, 0.75, 1.0]  # commanded fraction of the cube velocity matched at the intercept
+  pinch_match: [0.0, 0.25, 0.5, 1.0]       # commanded fraction of the cube velocity matched at the intercept
   pinch_cone_deg: 30

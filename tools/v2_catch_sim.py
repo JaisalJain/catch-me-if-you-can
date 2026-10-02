@@ -2,7 +2,8 @@
 """v2 Phase 1, item 5: catch modes in offline MuJoCo (the generated scene the ROS sim loads), vision-only B.
 
     env -u PYTHONPATH .venv/bin/python tools/v2_catch_sim.py --gripper          # achieved closing speeds
-    env -u PYTHONPATH .venv/bin/python tools/v2_catch_sim.py --cup              # natural cup vs cone angle
+    env -u PYTHONPATH .venv/bin/python tools/v2_catch_sim.py --cup [--throws square]   # natural cup vs cone angle
+    (results are saved after every row; a rerun resumes and skips rows already in docs/v2/catch_*.json)
     env -u PYTHONPATH .venv/bin/python tools/v2_catch_sim.py --pinch            # pinch: closing speed x velocity matching
     env -u PYTHONPATH .venv/bin/python tools/v2_catch_sim.py --one N --mode cup --cone 30 [--gripper-profile fast_idealized]
     (--gripper-profile overrides v2_study.yaml's gripper_profile; every result row carries it)
@@ -132,7 +133,7 @@ class CatchSim:
 
     # --------------------------------------------------------------------- trial ------------------------------
     def run(self, throw, mode="cup", cone_deg=30.0, match=0.0, rng=None, perception="measured", replan=None,
-            gap_speed=None):
+            gap_speed=None, cup_pre_gap=None):
         c, cs = self.c, self.c["catch_sim"]
         rng = rng or np.random.default_rng(0)
         replan = cs["replan"] if replan is None else replan
@@ -143,8 +144,8 @@ class CatchSim:
         d.qpos[self.qa["a"]] = self.poses["a"]["home"]
         d.qpos[self.qa["b"]] = self.q_ready
         pinch = mode.startswith("pinch")
-        pre_gap = c["catch_sim"]["pinch_pre_gap_mm"] if pinch else 85.2
-        k_open = V.knuckle_for_gap(pre_gap) if pinch else 0.0
+        pre_gap = c["catch_sim"]["pinch_pre_gap_mm"] if pinch else (cup_pre_gap or 85.2)
+        k_open = V.knuckle_for_gap(pre_gap)
         park = {"red": [0.0, -0.25, 0.8], "green": [0.0, -0.3, 0.8], "blue": [0.0, -0.35, 0.8]}
         for col, pos in park.items():
             b = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, f"cube_{col}")
@@ -179,7 +180,7 @@ class CatchSim:
         frames, pending = [], []          # (t_frame, measured position); (t_available, index)
         planned = False
         t_c = None
-        info = dict(mode=mode, cone_deg=cone_deg, match_cmd=match, gripper_profile=self.profile_name,
+        info = dict(mode=mode, cone_deg=cone_deg, match_cmd=match, gripper_profile=self.profile_name, pre_gap_mm=pre_gap,
                     gap_speed=gap_speed, perception=perception, replan=replan)
         k_ref_fn = lambda t: k_open
         t_hit = t_cmd = None
@@ -264,8 +265,8 @@ class CatchSim:
                 t_hit = now
                 t_cmd = now + cs["trigger_latency_s"]
                 k_rate = gap_speed * 1000.0
-                k_ref_fn = (lambda tc0: (lambda t: 0.0 if t < tc0 else
-                                         V.knuckle_for_gap(max(85.2 - k_rate * (t - tc0), 0.0))))(t_cmd)
+                k_ref_fn = (lambda tc0: (lambda t: k_open if t < tc0 else
+                                         V.knuckle_for_gap(max(pre_gap - k_rate * (t - tc0), 0.0))))(t_cmd)
             k_ref = min(k_ref_fn(now), cs["close_to"])
             self._control(traj, k_ref)
             mujoco.mj_step(m, d)
@@ -340,8 +341,9 @@ def _job(args):
     return sim.run(throw, rng=np.random.default_rng(seed), **kw)
 
 
-def throws(c, n=None):
-    dist = json.load(open(os.path.join(V.OUT, "throw_distribution.json")))["distribution"]
+def throws(c, n=None, kind="random"):
+    sfx = "_square" if kind == "square" else ""
+    dist = json.load(open(os.path.join(V.OUT, f"throw_distribution{sfx}.json")))["distribution"]
     rng = np.random.default_rng(c["catch_sim"]["seed"])
     n = n or c["catch_sim"]["n_throws"]
     idx = rng.choice(len(dist), size=n, replace=len(dist) < n)
@@ -387,6 +389,8 @@ def main():
     ap.add_argument("--gripper-profile", default=None)
     ap.add_argument("--perception", default="measured")
     ap.add_argument("--n", type=int)
+    ap.add_argument("--throws", default="random", choices=["random", "square"],
+                    help="throw distribution: random palm pitch (min joint speed) or square arrival on B's palm")
     a = ap.parse_args()
     c = V.cfg()
     prof_name = V.gripper_profile(c, a.gripper_profile)[0]
@@ -405,45 +409,62 @@ def main():
         V.save_json("gripper_speed.json", dict(V.flags(c, prof_name), rows=rows))
     if a.one is not None:
         sim = CatchSim(prof_name)
-        th = throws(c)[a.one]
+        th = throws(c, kind=a.throws)[a.one]
         print(json.dumps(sim.run(th, mode=a.mode, cone_deg=a.cone, match=a.match, perception=a.perception), indent=1))
     if not (a.cup or a.pinch):
         return
-    ths = throws(c, a.n)
+    ths = throws(c, a.n, a.throws)
+    sfx = "_square" if a.throws == "square" else ""
+    cs = c["catch_sim"]
+    other = "fast_idealized" if prof_name == "realistic" else "realistic"
     if a.cup:
-        out = dict(V.flags(c, prof_name), perception=c["catch_sim"], rows={})
-        for prof in (prof_name, "fast_idealized" if prof_name == "realistic" else "realistic"):
-            for cone in c["catch_sim"]["cup_cone_deg"]:
-                for perc in ("measured", "perfect"):
-                    rows = batch(prof, dict(mode="cup", cone_deg=cone, perception=perc), ths)
-                    s = summarize(rows)
-                    out["rows"][f"{prof}|{cone}|{perc}"] = dict(summary=s, trials=rows)
-                    print(f"[{prof}] cup cone {cone:3.0f} deg, perception {perc:8s}: {s['held']}/{s['n']} held within limits "
-                          f"({100 * s['rate']:.0f} %, CI {100 * s['ci95'][0]:.0f}-{100 * s['ci95'][1]:.0f}) {s['outcomes']}", flush=True)
-        V.save_json("catch_cup.json", out)
+        specs = []
+        for prof in (prof_name, other):
+            for cone in cs["cup_cone_deg"]:
+                specs.append((f"{prof}|{cone}|measured", prof, dict(mode="cup", cone_deg=cone), None))
+            for cone in (0, 30, 180):
+                specs.append((f"{prof}|{cone}|perfect", prof, dict(mode="cup", cone_deg=cone, perception="perfect"), None))
+            for cone in (10, 30, 180):       # pre-closed cup: fingers pre-opened to the pinch gap, same contact trigger
+                specs.append((f"{prof}|{cone}|measured|pregap", prof,
+                              dict(mode="cup", cone_deg=cone, cup_pre_gap=cs["pinch_pre_gap_mm"]), None))
+        run_rows(f"catch_cup{sfx}.json", specs, ths, c, prof_name, a.throws)
     if a.pinch:
-        out = dict(V.flags(c, prof_name), perception=c["catch_sim"], rows={},
-                   note="keys profile|<gripper_profile>|<mode>|<match commanded>, speed|<gap mm/s>|<mode>|<match> "
-                        "(speed sweep: fast_idealized actuator, the ramp speed is the variable)")
-        cone = c["catch_sim"]["pinch_cone_deg"]
-        for mode in ("pinch", "pinch_side"):
-            for prof in ("realistic", "fast_idealized"):
-                for mt in c["catch_sim"]["pinch_match"]:
-                    rows = batch(prof, dict(mode=mode, cone_deg=cone, match=mt), ths)
-                    s = summarize(rows)
-                    out["rows"][f"profile|{prof}|{mode}|{mt}"] = dict(summary=s, trials=rows)
-                    print(f"[{prof}] {mode} match {mt:.2f}: {s['held']}/{s['n']} held within limits ({100 * s['rate']:.0f} %; "
-                          f"{s['held_ignoring_limits']} ignoring limits), matched {s['match_used_mean']:.2f} on average, "
-                          f"{s['outcomes']}", flush=True)
-            for gs in c["catch_sim"]["pinch_gap_speeds_mm_s"]:
-                for mt in (0.0, 0.5, 1.0):
-                    rows = batch("fast_idealized", dict(mode=mode, cone_deg=cone, match=mt), ths, gap_speed=gs / 1000)
-                    s = summarize(rows)
-                    out["rows"][f"speed|{gs}|{mode}|{mt}"] = dict(summary=s, trials=rows, actuator="fast_idealized")
-                    print(f"[sweep] {mode} gap speed {gs:5d} mm/s match {mt:.2f}: {s['held']}/{s['n']} held within limits "
-                          f"({100 * s['rate']:.0f} %; {s['held_ignoring_limits']} ignoring limits) {s['outcomes']}", flush=True)
-        V.save_json("catch_pinch.json", out)
+        cone = cs["pinch_cone_deg"]
+        specs = []
+        for prof in ("realistic", "fast_idealized"):
+            for mt in cs["pinch_match"]:
+                specs.append((f"profile|{prof}|pinch|{mt}", prof, dict(mode="pinch", cone_deg=cone, match=mt), None))
+        for gs in cs["pinch_gap_speeds_mm_s"]:
+            for mt in (0.0, 1.0):
+                specs.append((f"speed|{gs}|pinch|{mt}", "fast_idealized", dict(mode="pinch", cone_deg=cone, match=mt), gs / 1000))
+        # side chopsticks: over the arm limits in every trial of the first run (all matches, all closing speeds);
+        # kept at two points per profile
+        for prof in ("realistic", "fast_idealized"):
+            for mt in (0.0, 1.0):
+                specs.append((f"profile|{prof}|pinch_side|{mt}", prof, dict(mode="pinch_side", cone_deg=cone, match=mt), None))
+        run_rows(f"catch_pinch{sfx}.json", specs, ths, c, prof_name, a.throws,
+                 note="keys profile|<gripper_profile>|<mode>|<match commanded>, speed|<gap mm/s>|<mode>|<match> "
+                      "(speed sweep: fast_idealized actuator, the ramp speed is the variable)")
 
+
+def run_rows(name, specs, ths, c, prof_name, kind, note=""):
+    """Run (key, gripper_profile, run kwargs, gap_speed) rows; the json is saved after every row and rows already
+    in it are skipped (resumable)."""
+    path = os.path.join(V.OUT, name)
+    out = json.load(open(path)) if os.path.exists(path) else dict(V.flags(c, prof_name), perception=c["catch_sim"], rows={})
+    out.update(throws=kind, n_throws=len(ths))
+    if note:
+        out["note"] = note
+    for key, prof, kw, gs in specs:
+        if key in out["rows"]:
+            continue
+        rows = batch(prof, kw, ths, gap_speed=gs)
+        s = summarize(rows)
+        out["rows"][key] = dict(summary=s, trials=rows, gripper_profile=prof, gap_speed=gs)
+        V.save_json(name, out)
+        print(f"[{kind}] {key}: {s['held']}/{s['n']} held within limits ({100 * s['rate']:.0f} %, CI "
+              f"{100 * s['ci95'][0]:.0f}-{100 * s['ci95'][1]:.0f}; {s['held_ignoring_limits']} ignoring limits), "
+              f"matched {s['match_used_mean']:.2f}, {s['outcomes']}", flush=True)
 
 if __name__ == "__main__":
     main()

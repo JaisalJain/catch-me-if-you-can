@@ -2,6 +2,7 @@
 """v2 Phase 1, item 4: A's random throws (offline, venv). Needs docs/v2/ready_envelope.json (B's ready pose).
 
     env -u PYTHONPATH .venv/bin/python tools/v2_throws.py            # targets x angles: A feasible, B catchable
+    env -u PYTHONPATH .venv/bin/python tools/v2_throws.py --square   # same, palm pitch chosen for a square arrival
     env -u PYTHONPATH .venv/bin/python tools/v2_throws.py --id       # online inverse dynamics vs library, pinocchio
     (pinocchio --id needs the ROS environment for xacro: source /opt/ros/jazzy/setup.bash && source install/setup.bash)
 
@@ -44,6 +45,7 @@ def _init_a():
     from catch_throw.profile import ProfileParams
     A["profiles"] = [ProfileParams(**tc["profile"]), ProfileParams(accel=10, decel=16, tau3=0.03)]
     A["q_ready"] = np.array(copy.deepcopy(_ready()["q"]))
+    A["z_ready"] = V.ready_rotation(_ready()["elev"])[:, 2]
 
 
 def _ready():
@@ -51,11 +53,67 @@ def _ready():
     return json.load(open(os.path.join(V.OUT, "ready_envelope.json")))["chosen"]
 
 
+def arrival_tilt(p, v0, spin, T, z_ready):
+    """Rotation [deg] about B's closing axis between the cube (A's toss orientation, spun for T) and B's cup palm
+    (cup, 30 deg cone) at the arrival, folded to +-45 deg (cube symmetry)."""
+    from catch_kinematics.transforms import axis_angle
+    from catch_throw.generator import pitch_axis, toss_orientation
+    n = v0 / np.linalg.norm(v0)
+    Rc = axis_angle(pitch_axis(n), spin * T) @ toss_orientation(n, [0, 1.0, 0])
+    Rp, _ = V.catch_rotation(z_ready, v0 + V.GVEC * T, np.radians(30), "cup")
+    Rr = Rp.T @ Rc
+    k = int(np.argmax(np.abs(Rr[1])))
+    a = np.degrees(np.arctan2(Rr[2, k], Rr[1, k]))
+    return (a + 45) % 90 - 45
+
+
+def square_kappas(p, v, T, z_ready):
+    """Palm pitch rates kappa [rad/m] for which the cube arrives square to B's palm: tilt within
+    +-throws.square_tol_deg of 0 (mod 90 deg)."""
+    V_ = np.linalg.norm(v)
+    t0 = arrival_tilt(p, v, 0.0, T, z_ready)
+    eps = 1e-3
+    sgn = np.sign(arrival_tilt(p, v, eps / T, T, z_ready) - t0) or 1.0
+    tol = V.cfg()["throws"]["square_tol_deg"]
+    out = []
+    for k in range(-3, 4):
+        for dt in np.linspace(-tol, tol, 11):
+            spin = np.radians(-t0 + 90 * k + dt) * sgn / T
+            kap = spin / V_
+            if abs(kap) <= 6.0:
+                out.append(kap)
+    return out
+
+
+def branch_for_kappas(robot, p, v, kappas):
+    """Like feasibility.best_branch_and_kappa, restricted to the given pitch rates."""
+    from catch_kinematics.transforms import make_tf
+    from catch_throw.generator import pitch_axis, toss_orientation
+    Vn = np.linalg.norm(v)
+    n = v / Vn
+    best = (np.inf, None, None)
+    for q in robot.ik_all(make_tf(toss_orientation(n), p)):
+        if np.any(np.abs(q) > V.POS_LIMIT - 0.15):
+            continue
+        J = robot.jacobian(q)
+        if abs(np.linalg.det(J)) < 1e-4:
+            continue
+        Ji = np.linalg.inv(J)
+        a0 = Ji @ np.r_[Vn * n, 0, 0, 0]
+        a1 = Ji @ np.r_[0, 0, 0, Vn * pitch_axis(n)]
+        for kap in kappas:
+            r = float(np.max(np.abs(a0 + kap * a1) / V.VEL_LIMIT))
+            if r < best[0]:
+                best = (r, float(kap), q)
+    return best
+
+
 def eval_throw(args):
-    """A side of one (target, angle)."""
+    """A side of one (target, angle[, square])."""
     from catch_ballistics import velocity_for_launch_angle
     from catch_throw.generator import InfeasibleThrow, generate_throw
-    tgt, deg = args
+    tgt, deg = args[:2]
+    square = len(args) > 2 and args[2]
     c, lim = A["c"], A["c"]["limits"]
     tgt = np.asarray(tgt, float)
     p = np.array([c["throws"]["release_point"][0], tgt[1], c["throws"]["release_point"][2]])
@@ -69,7 +127,10 @@ def eval_throw(args):
         r["why"] = "target on the rising branch"
         return r
     r.update(v_release=v.tolist(), speed=float(np.linalg.norm(v)), t_target=float(T))
-    r0, kappa, q_r = V.F.best_branch_and_kappa(A["robots"]["a"], p, v)
+    if square:
+        r0, kappa, q_r = branch_for_kappas(A["robots"]["a"], p, v, square_kappas(p, v, T, A["z_ready"]))
+    else:
+        r0, kappa, q_r = V.F.best_branch_and_kappa(A["robots"]["a"], p, v)
     if q_r is None or r0 > lim["vel_ratio"]:
         r["why"] = "release joint speed" if q_r is not None else "no IK at release"
         return r
@@ -99,7 +160,8 @@ def eval_throw(args):
         if dmin < 0.02:
             last = "arm clearance"
             continue
-        r.update(ok=True, why="", kappa=kappa, spin=float(kappa * np.linalg.norm(v)), vel_ratio=m["vel_ratio_max"],
+        r.update(ok=True, why="", square=bool(square), arrival_tilt_deg=float(arrival_tilt(p, v, kappa * np.linalg.norm(v), T, A["z_ready"])),
+                 kappa=kappa, spin=float(kappa * np.linalg.norm(v)), vel_ratio=m["vel_ratio_max"],
                  torque_ratio=tr, pos_margin=m["pos_margin_min"], clearance=float(dmin), accel=prof.accel,
                  decel=prof.decel, q_release_seed=q_r.tolist(), stroke=m["stroke_length"], t_sep=float(plan.t_release),
                  apex_z=float(p[2] + max(v[2], 0) ** 2 / (2 * V.G)))
@@ -108,10 +170,10 @@ def eval_throw(args):
     return r
 
 
-def run_targets(c, quick=False):
+def run_targets(c, quick=False, square=False):
     tc = c["throws"]
     targets = [(x, y, z) for x in tc["target_x"] for y in tc["target_y"] for z in tc["target_z"]]
-    jobs = [(t, d) for t in targets for d in tc["launch_angle_deg"]]
+    jobs = [(t, d, square) for t in targets for d in tc["launch_angle_deg"]]
     if quick:
         jobs = jobs[::17]
     with mp.Pool(min(22, os.cpu_count()), initializer=_init_a) as pool:
@@ -147,11 +209,16 @@ def run_targets(c, quick=False):
                rejections=Counter(r["why"].split(":")[0] for r in res if not r["ok"]), a_feasible=ok,
                distribution=both, note="distribution = A feasible AND B catchable (ready orientation and cup-30) at "
                "t_decision; release (-0.05, y_target, 1.25)")
-    V.save_json("throw_distribution.json", out)
-    plot_targets(out, res)
+    out["square"] = square
+    tilt = np.array([abs(r["arrival_tilt_deg"]) for r in both])
+    print(f"cube arrival tilt vs B's cup palm over the distribution: median {np.median(tilt):.1f} deg, "
+          f"<= 5 deg for {np.mean(tilt <= 5):.2f}")
+    sfx = "_square" if square else ""
+    V.save_json(f"throw_distribution{sfx}.json", out)
+    plot_targets(out, res, sfx)
 
 
-def plot_targets(out, res):
+def plot_targets(out, res, sfx=""):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -184,10 +251,10 @@ def plot_targets(out, res):
     axs[2].set_xticks(x, [f"{d} deg" for d in degs])
     axs[2].legend()
     axs[2].set_title("by launch angle")
-    fig.suptitle(f"Random throws: A feasible ({out['n_a_feasible']} of {out['n_pairs']}) and B catchable from the ready pose "
+    fig.suptitle(("Square-arrival throws (palm pitch chosen so the cube lands square on B's palm): " if out.get("square") else "Random throws: ") + f"A feasible ({out['n_a_feasible']} of {out['n_pairs']}) and B catchable from the ready pose "
                  f"({out['n_distribution']}); kinematics/dynamics only, gripper_profile n/a")
     fig.tight_layout()
-    fig.savefig(os.path.join(V.OUT, "throw_distribution.png"), dpi=105)
+    fig.savefig(os.path.join(V.OUT, f"throw_distribution{sfx}.png"), dpi=105)
 
 
 # ------------------------------------------------------------------- inverse dynamics: online vs library ------
@@ -269,7 +336,8 @@ def run_id(c):
     import json
     scene, phys = V.build_mjcf.load_cfg()
     _init_a()
-    dist = json.load(open(os.path.join(V.OUT, "throw_distribution.json")))["distribution"]
+    dist = json.load(open(os.path.join(V.OUT, "throw_distribution_square.json" if os.path.exists(
+        os.path.join(V.OUT, "throw_distribution_square.json")) else "throw_distribution.json")))["distribution"]
     rng = np.random.default_rng(0)
     sample = [dist[i] for i in rng.choice(len(dist), size=min(20, len(dist)), replace=False)]
     from catch_throw.generator import generate_throw
@@ -279,7 +347,7 @@ def run_id(c):
     for r in sample:
         p, v = np.array(r["p_release"]), np.array(r["v_release"])
         a = time.perf_counter()
-        r0, kappa, q_r = V.F.best_branch_and_kappa(A["robots"]["a"], p, v)
+        r0, kappa, q_r = branch_for_kappas(A["robots"]["a"], p, v, [r["kappa"]])
         b = time.perf_counter()
         plan = generate_throw(A["robots"]["a"], p, v, q_r, ProfileParams(accel=r["accel"], decel=r["decel"]) if r["accel"] != 12.0
                               else A["profiles"][0], pitch_rate=kappa, dt=0.004)
@@ -364,12 +432,13 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--quick", action="store_true")
     ap.add_argument("--id", action="store_true")
+    ap.add_argument("--square", action="store_true", help="palm pitch chosen so the cube arrives square to B's palm")
     a = ap.parse_args()
     c = V.cfg()
     if a.id:
         run_id(c)
     else:
-        run_targets(c, a.quick)
+        run_targets(c, a.quick, a.square)
 
 
 if __name__ == "__main__":
