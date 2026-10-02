@@ -8,7 +8,7 @@ cube_tracker:
     max_ray_gap: 0.010            # m: the two cameras' rays must meet within this (else a mis-association)
     # constant 3D offset of the silhouette-centroid triangulation vs the cube centre (shading of the faces);
     # calibrated against ground truth: ros2 run catch_tasks tracker_eval --calibrate (docs/v2/phase2)
-    bias: [0.0, 0.0, 0.0]
+    bias: [0.00092, 0.00043, -0.00043]   # calibrated 2026-10-02, 20 throws (docs/v2/phase2/tracker_calibration_20.json)
     sigma: [0.0015, 0.0015, 0.0025]   # per-axis measurement noise for the reported covariance [m]
     acquire_frames: 5
     acquire_rms: 0.003

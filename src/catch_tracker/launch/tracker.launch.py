@@ -26,7 +26,8 @@ def camera_params(scene):
         R = np.column_stack([x, -y_up, fwd])            # world <- optical
         W, H = c["resolution"]
         f = (H / 2) / np.tan(np.radians(c["fovy"]) / 2)
-        out[name] = {"width": W, "height": H, "fx": f, "fy": f, "cx": W / 2, "cy": H / 2,
+        f = float(f)
+        out[name] = {"width": int(W), "height": int(H), "fx": f, "fy": f, "cx": W / 2.0, "cy": H / 2.0,
                      "R": [float(v) for v in R.flatten()], "t": [float(v) for v in pos],
                      "topic": f"/cameras/{name}/image_raw"}
     return out

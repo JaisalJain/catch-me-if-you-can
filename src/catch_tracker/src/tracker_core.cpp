@@ -5,6 +5,7 @@
 
 namespace catch_tracker
 {
+using blob_label_t = int;
 
 bool Camera::project(const Vec3 & p, double & u, double & v, double & depth) const
 {
@@ -84,6 +85,60 @@ std::optional<Blob> detect(const uint8_t * rgb, int /*width*/, int /*height*/, i
   if (n < min_px) return std::nullopt;
   // pixel centres: +0.5 (pixel u covers [u, u+1))
   return Blob{su / n + 0.5, sv / n + 0.5, n};
+}
+
+std::vector<Blob> components(const uint8_t * rgb, int /*width*/, int /*height*/, int step, const ColorSpec & spec,
+                             const std::array<int, 4> & rect, int min_px)
+{
+  const int w = rect[2] - rect[0], h = rect[3] - rect[1];
+  std::vector<blob_label_t> lab(static_cast<size_t>(std::max(w, 0)) * std::max(h, 0), 0);
+  for (int v = 0; v < h; ++v) {
+    const uint8_t * row = rgb + static_cast<size_t>(v + rect[1]) * step;
+    for (int u = 0; u < w; ++u) {
+      const uint8_t * px = row + 3 * (u + rect[0]);
+      lab[v * w + u] = spec.match(px[0], px[1], px[2]) ? -1 : 0;
+    }
+  }
+  std::vector<Blob> out;
+  std::vector<int> stack;
+  int next = 1;
+  for (int i = 0; i < w * h; ++i) {
+    if (lab[i] != -1) continue;
+    Blob b;
+    double su = 0, sv = 0;
+    stack.assign(1, i);
+    lab[i] = next;
+    while (!stack.empty()) {
+      const int k = stack.back();
+      stack.pop_back();
+      const int u = k % w, v = k / w;
+      su += u; sv += v; ++b.count;
+      for (int dv = -1; dv <= 1; ++dv) {
+        for (int du = -1; du <= 1; ++du) {
+          const int uu = u + du, vv = v + dv;
+          if (uu < 0 || vv < 0 || uu >= w || vv >= h) continue;
+          const int kk = vv * w + uu;
+          if (lab[kk] == -1) { lab[kk] = next; stack.push_back(kk); }
+        }
+      }
+    }
+    ++next;
+    if (b.count >= min_px) {
+      b.u = su / b.count + rect[0] + 0.5;
+      b.v = sv / b.count + rect[1] + 0.5;
+      out.push_back(b);
+    }
+  }
+  std::sort(out.begin(), out.end(), [](const Blob & a, const Blob & b) { return a.count > b.count; });
+  return out;
+}
+
+bool inside(const Box & b, const Vec3 & p)
+{
+  for (int k = 0; k < 3; ++k) {
+    if (p[k] < b.lo[k] || p[k] > b.hi[k]) return false;
+  }
+  return true;
 }
 
 Vec3 triangulate(const Vec3 & o1, const Vec3 & d1, const Vec3 & o2, const Vec3 & d2, double & gap)

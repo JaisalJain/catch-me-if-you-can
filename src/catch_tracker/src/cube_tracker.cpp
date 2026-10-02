@@ -115,20 +115,40 @@ private:
     const auto t_recv = now();
     const double t = stamp_ns * 1e-9;
     for (const auto & spec : specs_) {
-      std::vector<std::pair<Vec3, Vec3>> rays;
+      // components in each view; every cross-view pair whose rays meet (gap) inside the flight box is a candidate
+      std::vector<std::vector<Blob>> blobs;
       for (const auto & c : cams_) {
         const auto & im = *c.last;
-        if (im.encoding != "rgb8") continue;
-        auto b = detect(im.data.data(), im.width, im.height, im.step, spec, c.rect, min_px_);
-        if (!b) break;
-        rays.emplace_back(c.cam.t, c.cam.ray(b->u, b->v));
+        if (im.encoding != "rgb8") break;
+        blobs.push_back(components(im.data.data(), im.width, im.height, im.step, spec, c.rect, min_px_));
       }
       auto & tr = tracks_.at(spec.name);
-      if (rays.size() != cams_.size()) continue;
-      double gap;
-      Vec3 x = triangulate(rays[0].first, rays[0].second, rays[1].first, rays[1].second, gap);
-      if (gap > max_gap_) continue;
+      if (blobs.size() != 2 || blobs[0].empty() || blobs[1].empty()) continue;
+      bool found = false;
+      Vec3 x{};
+      double best = 1e9;
+      Vec3 pred{};
+      const bool have_pred = tr.in_flight();
+      if (have_pred) {
+        const auto & f = tr.fit();
+        const double tau = t - last_t_.at(spec.name);
+        for (int k = 0; k < 3; ++k) pred[k] = f.p[k] + f.v[k] * tau - (k == 2 ? 0.5 * gravity_ * tau * tau : 0.0);
+      }
+      for (const auto & b0 : blobs[0]) {
+        for (const auto & b1 : blobs[1]) {
+          double gap;
+          Vec3 p = triangulate(cams_[0].cam.t, cams_[0].cam.ray(b0.u, b0.v), cams_[1].cam.t, cams_[1].cam.ray(b1.u, b1.v), gap);
+          if (gap > max_gap_ || !inside(roi_, p)) continue;
+          double score = gap;
+          if (have_pred) {
+            score = std::sqrt((p[0] - pred[0]) * (p[0] - pred[0]) + (p[1] - pred[1]) * (p[1] - pred[1]) + (p[2] - pred[2]) * (p[2] - pred[2]));
+          }
+          if (score < best) { best = score; x = p; found = true; }
+        }
+      }
+      if (!found) continue;
       for (int k = 0; k < 3; ++k) x[k] -= bias_[k];
+      last_t_[spec.name] = t;
       const bool fly = tr.add(t, x);
       if (!fly && !tr.ended()) continue;
       catch_interfaces::msg::CubeTrack msg;
@@ -163,6 +183,7 @@ private:
   std::vector<Cam> cams_;
   std::vector<ColorSpec> specs_;
   std::map<std::string, Track> tracks_;
+  std::map<std::string, double> last_t_;
   Box roi_;
   int min_px_ = 8;
   double max_gap_ = 0.01, gravity_ = 9.81, z_min_ = 0.95;

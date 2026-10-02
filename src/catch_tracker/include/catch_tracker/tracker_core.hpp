@@ -51,6 +51,10 @@ std::array<int, 4> roi_rect(const Camera & cam, const Box & box);
 // Centroid of the pixels of one color inside rect (RGB8, row stride `step` bytes). nullopt if < min_px.
 std::optional<Blob> detect(const uint8_t * rgb, int width, int height, int step, const ColorSpec & spec,
                            const std::array<int, 4> & rect, int min_px);
+// Connected components (8-neighbour) of one color inside rect, each with >= min_px pixels, largest first.
+std::vector<Blob> components(const uint8_t * rgb, int width, int height, int step, const ColorSpec & spec,
+                             const std::array<int, 4> & rect, int min_px);
+bool inside(const Box & b, const Vec3 & p);
 // Midpoint of the shortest segment between two rays; gap = its length.
 Vec3 triangulate(const Vec3 & o1, const Vec3 & d1, const Vec3 & o2, const Vec3 & d2, double & gap);
 

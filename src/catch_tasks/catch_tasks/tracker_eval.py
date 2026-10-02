@@ -44,6 +44,9 @@ class TrackerEval(Eval):
         self.preview = n.create_client(GetThrowPlan, "/throw/preview")
         self.trk, self.gt, self.rec = [], [], False
         self.lk = threading.Lock()
+        from catch_throw.library import Library
+        self.n_entries = len(Library(args.library))
+        self.entry_rng = np.random.default_rng(args.seed)       # entries chosen here (reproducible eval sets)
         n.create_subscription(CubeTrack, "/tracker/cube", self.on_track, 200)
         n.create_subscription(FreeJointStateArray, "/free_joint_state_publisher/free_joint_states", self.on_gt, 200)
 
@@ -81,7 +84,8 @@ class TrackerEval(Eval):
         color = COLORS[i % 3]
         self.color = color
         _wait(self.reset.call_async(ResetScene.Request()), 10)
-        pv = _wait(self.preview.call_async(GetThrowPlan.Request(library=a.library, entry=-1)), 10)
+        entry = int(self.entry_rng.integers(self.n_entries))
+        pv = _wait(self.preview.call_async(GetThrowPlan.Request(library=a.library, entry=entry)), 10)
         if pv is None or not pv.success:
             return dict(i=i, ok=False, why="preview failed")
         ok, msg = self.load_library(color, pv)
@@ -177,6 +181,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--throws", type=int, default=50)
     ap.add_argument("--library", default="pinch")
+    ap.add_argument("--seed", type=int, default=1, help="entry choice (calibration and evaluation use different seeds)")
     ap.add_argument("--calibrate", action="store_true")
     ap.add_argument("--out", default="")
     ap.add_argument("--from-pallet", action="store_true")

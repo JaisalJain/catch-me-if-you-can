@@ -28,7 +28,7 @@ def generate_launch_description():
         DeclareLaunchArgument("headless", default_value="false"),
         DeclareLaunchArgument("rviz", default_value="true"),
         DeclareLaunchArgument("mujoco_model", default_value=""),
-        DeclareLaunchArgument("camera_rate", default_value="125.0"),
+        DeclareLaunchArgument("camera_rate", default_value="150.0"),   # measured 128.8 Hz (the plugin restarts its timer at each check; 130-140 gave 116 Hz)
         DeclareLaunchArgument("tracker", default_value="true"),
         SetEnvironmentVariable("__NV_PRIME_RENDER_OFFLOAD", "1"),
         SetEnvironmentVariable("__GLX_VENDOR_LIBRARY_NAME", "nvidia"),

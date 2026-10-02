@@ -8,7 +8,7 @@
         type: "mujoco_ros2_control_plugins/CameraPlugin"
         # one publish rate for all STREAMING cameras in 0.1.1 (launch arg camera_rate overrides). The plugin checks
         # it every 2 ms control cycle and restarts its timer at "now", so 120 Hz would give 100 Hz: use 125 / 62.5.
-        camera_publish_rate: 125.0
+        camera_publish_rate: 150.0      # measured: 128.8 Hz (125 -> 115 Hz, 130-140 -> 116 Hz: the plugin restarts its timer)
         # v2 flight tracking (catch_tracker): streaming, colour used (depth is rendered too but nobody subscribes)
         track_side: {frame_name: track_side_optical, info_topic: /cameras/track_side/camera_info, image_topic: /cameras/track_side/image_raw, depth_topic: /cameras/track_side/depth}
         track_top: {frame_name: track_top_optical, info_topic: /cameras/track_top/camera_info, image_topic: /cameras/track_top/image_raw, depth_topic: /cameras/track_top/depth}

@@ -58,6 +58,6 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument("headless", default_value="false"),
         DeclareLaunchArgument("mujoco_model", default_value=""),
-        DeclareLaunchArgument("camera_rate", default_value="125.0"),
+        DeclareLaunchArgument("camera_rate", default_value="150.0"),   # measured 128.8 Hz (the plugin restarts its timer at each check; 130-140 gave 116 Hz)
         OpaqueFunction(function=setup),
     ])

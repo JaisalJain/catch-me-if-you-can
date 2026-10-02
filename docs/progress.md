@@ -210,3 +210,31 @@
   robot_state_publisher; it no longer publishes (`mujoco_model:=` variants now load). Short gripper ramps stamped
   "now" could arrive after their end (rejected): immediate commands use a zero stamp.
 
+## v2 Phase 2 — step 2: random throws (2026-10-02)
+- Throw library (tools/build_throw_library.py -> catch_throw/config/library_{pinch,cup}.json): pinch = every
+  A-feasible throw B can catch with the natural pinch (241), cup = square-arrival throws (121); each entry stores its
+  generation parameters, its own MuJoCo feed-forward table and a hash of everything it depends on (throw_node refuses
+  a stale entry). A selects an entry at random (seeded) via /throw/preview; ThrowPlan carries library, entry and the
+  stroke-start joints.
+- Release noise (catch_throw/config/v2.yaml), Gaussian on speed, direction and release time, applied to the executed
+  throw while the published plan stays nominal: low = M4 scatter (0.12 %, 0.03°, 1 ms), medium = half the
+  plan-informed tolerance (0.6 %, 0.36°, 5 ms), high = the tolerance (1.2 %, 0.72°, 10 ms).
+- Vision-only enforcement: catch_catcher reactive node with source=vision has no /throw_plan subscription and no
+  /throw/preview client on any of its nodes (test_reactive_source.py); the plan-informed baseline is a separate node
+  (source=plan, /reactive_catch_plan).
+
+## v2 Phase 2 — step 3: live vision tracking (2026-10-02)
+- Cameras: track_side + track_top (320x240, colour) streaming; overheads, side and wrist cameras polled (on-demand;
+  pallet_detector triggers at 4 Hz, color_check per request). The plugin's single rate is checked on its own ticks:
+  a 150 Hz setting gives 128.7 Hz measured (125 -> 115 Hz, 130-140 -> 116 Hz).
+- catch_tracker (C++ composable node): HSV components per view, every cross-view pair triangulated and accepted only
+  if the rays meet within 10 mm inside the 3D flight box (a 2D region of interest let pallet slot borders below the
+  flight volume into the top view: -75 mm errors, found and fixed), bias-calibrated (20 throws: 0.9, 0.4, -0.4 mm),
+  ballistic LSQ with covariance, predicted intercept (closest point to B's ready TCP) with covariance.
+- 50 throws vs ground truth (docs/v2/phase2/tracker_eval_50.json, tracker_live_vs_offline.png): **latency render
+  stamp -> estimate published 5 ms median, 6 ms p95, 10 ms max** (5 ms render + transport, 1 ms processing; images
+  cross from the MuJoCo process by DDS, so intra-process transport is not possible); 128.7 Hz; per-fix error after
+  calibration (0.0, -0.4, 0.0) +- (1.0, 1.0, 2.0) mm; first fix 47 ms after release; **95 % intercept error 47 / 19 /
+  9.7 / 6.3 / 4.8 mm at 0.10 / 0.15 / 0.20 / 0.25 / 0.30 s** — on the Phase 1 white-noise model (2 mm, 120 Hz, 25 ms),
+  better than the Phase 1 rendered-detection estimate (18 mm at 0.20 s; it assumed a cube tumbling on all axes).
+

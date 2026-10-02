@@ -55,6 +55,9 @@ class ReactiveEval(TrackerEval):
         self.catch = ActionClient(n, ReactiveCatch, name)
         self.rb = self.sk._robot_model("b")
         self.caps = CapsuleModel()
+        from catch_throw.library import Library
+        self.lib_n = {k: len(Library(k)) for k in ("pinch", "cup")}
+        self.lib_rng = {k: np.random.default_rng(args.seed) for k in ("pinch", "cup")}   # same throws in every cell
         self.phase = None
 
     def tcp_b(self):
@@ -68,7 +71,8 @@ class ReactiveEval(TrackerEval):
         sk = self.sk
         _wait(self.reset.call_async(ResetScene.Request()), 10)
         lib = "cup" if a.mode == "cup" else "pinch"
-        pv = _wait(self.preview.call_async(GetThrowPlan.Request(library=lib, entry=-1)), 10)
+        entry = int(self.lib_rng[lib].integers(self.lib_n[lib]))
+        pv = _wait(self.preview.call_async(GetThrowPlan.Request(library=lib, entry=entry)), 10)
         if pv is None or not pv.success:
             row.update(ok=False, held=False, stage="setup", why="preview failed")
             return row
