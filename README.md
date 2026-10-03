@@ -222,6 +222,12 @@ Camera-only barely notices the release noise (it re-estimates the flight; the no
 15 cm), plan-informed collapses. With three sims in parallel (v2.0) the camera-only cells lost up to 24 points to the
 slower re-planning (`docs/v2_phase2.md`, "Under load").
 
+**v2.2: B measures its own gripper's delay.** Before its first catch, B moves its fingers a little and times the
+response from `/joint_states` (command latency + actuator lag). With that, a 2F-85 that reacts 10 / 20 ms later than
+assumed no longer costs anything: 59/59 = 100 % at 0 / 10 / 20 / 30 ms true latency (v2.1, assuming 10 ms: 97 / 100 /
+71 / 64 %); `docs/v2_phase2.md` "v2.2". Also fixed: 3–4 % of B's trajectory updates were rejected by the controller
+(duplicate point times), and 13 + 9 library throws whose stroke start MoveIt cannot reach are skipped.
+
 ![v2 benchmark](docs/v2/phase2/bench.png)
 
 **Full loop, 3 seeds, medium noise:** 9/9 throws caught on the first try, 9/9 placed (≤ 1.1 mm, ground truth), VERIFY

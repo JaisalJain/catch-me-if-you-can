@@ -31,7 +31,10 @@ def live_throws(n, seed=1, noise=None, library="pinch"):
         from catch_throw.library import sample_noise
         lv = yaml.safe_load(open(os.path.join(REPO, "src/catch_throw/config/v2.yaml")))["noise"][noise]
     for i in range(n):
-        e = lib[int(rng.integers(len(lib)))]
+        while True:                                   # catch_throw.library.Library.draw: skip MoveIt-invalid starts
+            e = lib[int(rng.integers(len(lib)))]
+            if e.get("moveit_start_valid", True):
+                break
         v = e["params"]["v_release"]
         if noise:
             v = sample_noise(lv, v, np.random.default_rng(seed * 1000 + i))[0].tolist()

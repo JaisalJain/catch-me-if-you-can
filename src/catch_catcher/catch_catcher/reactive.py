@@ -213,3 +213,10 @@ def ballistic(p0, v0, t0):
         tau = t - t0
         return p0 + v0 * tau + 0.5 * G * tau * tau, v0 + G * tau
     return pred
+
+
+def sample_times(T, dt, min_gap=1e-3):
+    """Trajectory point times 0, dt, 2 dt, ... and T, strictly increasing: a sample within min_gap of T is dropped
+    (np.arange(0, T, dt) can end at ~T when T is a multiple of dt; the JTC rejects a trajectory with two points at the
+    same time - v2.1 logs: 3-4 % of B's plans were rejected that way and B kept flying its previous plan)."""
+    return [float(t) for t in np.arange(0.0, T, dt) if t < T - min_gap] + [float(T)]

@@ -57,7 +57,7 @@ class ReactiveEval(TrackerEval):
         self.rb = self.sk._robot_model("b")
         self.caps = CapsuleModel()
         from catch_throw.library import Library
-        self.lib_n = {k: len(Library(k)) for k in ("pinch", "cup")}
+        self.libs = {k: Library(k) for k in ("pinch", "cup")}
         self.lib_rng = {k: np.random.default_rng(args.seed) for k in ("pinch", "cup")}   # same throws in every cell
         self.phase = None
         # real-time factor: /sim/rtf (rtf_monitor, 2 s windows) samples + per trial sim/wall over the whole trial
@@ -89,7 +89,7 @@ class ReactiveEval(TrackerEval):
         sk = self.sk
         _wait(self.reset.call_async(ResetScene.Request()), 10)
         lib = "cup" if a.mode == "cup" else "pinch"
-        entry = int(self.lib_rng[lib].integers(self.lib_n[lib]))
+        entry = self.libs[lib].draw(self.lib_rng[lib])
         pv = _wait(self.preview.call_async(GetThrowPlan.Request(library=lib, entry=entry)), 10)
         if pv is None or not pv.success:
             row.update(ok=False, held=False, stage="setup", why="preview failed")

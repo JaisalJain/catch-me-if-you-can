@@ -21,7 +21,13 @@ freeze_before: 0.04             # no replan in the last 40 ms before the interce
 send_lead: 0.010                # replans: trajectory start stamp this far ahead of now (~4 ms compute + transport)
 commit_lead: 0.030              # first plan: start this far ahead of the commit (search ~20 ms + transport)
 traj_dt: 0.01                   # s between JointTrajectory points (quintic samples with effort feed-forward)
-pinch: {cone_deg: 30, close_offset: 0.010}   # close so the gap reaches 40 mm on predicted arrival + 10 ms (Phase 1)
+pinch: {cone_deg: 30, close_offset: 0.010,   # without a delay estimate: reference ramp at 40 mm on arrival + 10 ms (Phase 1)
+        gap40_after_arrival: 0.020}            # with a delay estimate: the FINGERS at 40 mm on arrival + 20 ms (= the
+                                               # default above: 10 ms + the actuator's ~10 ms lag, close_timing.py)
+# gripper delay probe (v2.2): before the first catch B moves its fingers dk in and back n times and measures, from
+# /joint_states only, command -> finger at the move's midpoint minus the ramp's own travel time = command latency +
+# actuator lag (+ transport); the timed pinch close is scheduled with it instead of the assumed 10 ms latency
+delay_probe: {enabled: true, dk: 0.04, n: 3, timeout: 0.5, settle: 0.15}
 cup: {cone_deg: 10, arrive_early: 0.030, fallback_after: 0.030}   # timed fallback close 30 ms after predicted arrival
 contact_threshold_n: 3.0        # palm force above the pre-throw baseline -> close (both modes)
 settle: 0.8

@@ -315,3 +315,16 @@
   speed (~700 mm/s, force-limited), intercept time, noise, spin and release orientation ruled out; failures are
   decided by the cube's misalignment in the hand at the arrival in both (r = 0.92 per throw); the residual comes
   from the live cube arriving ~3 deg squarer and the fingers ~1.6 ms earlier.
+
+## v2.2 — gripper delay probe, trajectory sample-time fix, MoveIt-checked library (2026-10-03) ✅
+- **Gripper delay probe** (reactive_node.probe_delay, reactive.yaml delay_probe): before its first catch B nudges its
+  fingers and measures command -> finger motion from /joint_states (latency + actuator lag + transport: 11.3 / 21.1 /
+  31.1 / 41.3 ms at 0 / 10 / 20 / 30 ms true latency); the pinch close puts the fingers at 40 mm 20 ms after the
+  predicted arrival (= v2.1's default). **59/59 at every latency** (v2.1: 97 / 100 / 71 / 64 %); measured alone,
+  without the two fixes below (docs/v2/phase2/bench_v2.2_delayprobe/).
+- **Trajectory sample times:** arm_b_controller rejected 3-4 % of B's plans (duplicate point time when T was a hair
+  above a multiple of 10 ms; B kept its previous plan) -> reactive.sample_times (unit test). 0 rejections after.
+- **MoveIt-invalid library entries:** tools/v2_live/check_library_moveit.py flags stroke starts MoveIt's URDF meshes
+  put in collision (13 / 241 pinch, 9 / 121 cup; all a_upper_arm_link vs a_pedestal; exactly the benchmark's "setup"
+  exclusions); Library.draw skips them (unit tests).
+- Verification, all three, default configuration: **59/60 = 98 % [91-100], 60/60 valid, 0 rejected trajectories**.

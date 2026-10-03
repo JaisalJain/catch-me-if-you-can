@@ -180,7 +180,7 @@ class ThrowNode(Node):
             res.plan = plan_msg(self.plan, self.flight_time, self.catch_point, now=self.now())
             return res
         lib = self.library(req.library)
-        idx = int(req.entry) if req.entry >= 0 else int(self.rng.integers(len(lib)))
+        idx = int(req.entry) if req.entry >= 0 else lib.draw(self.rng)
         plan, e, why = self.library_plan(req.library, idx)
         if plan is None:
             self.get_logger().error(why)

@@ -31,3 +31,12 @@ def test_search_mode_descending_and_in_window():
 
 def test_unreachable_returns_none():
     assert choose_intercept(B, [-0.6, 0.25, 1.2], [0.1, 0, 0.5], HOME, mode="search", z_window=(1.0, 1.35)) is None
+
+
+def test_sample_times_strictly_increasing():
+    # T a multiple of dt (float arange ends at ~T): the JTC rejected such trajectories (duplicate point times)
+    from catch_catcher.reactive import sample_times
+    for T in (0.29, 0.11, 0.05, 0.3, 0.123, 0.2900000001, 0.2899999):
+        ts = sample_times(T, 0.01)
+        assert ts[0] == 0.0 and ts[-1] == T
+        assert all(b - a >= 1e-3 - 1e-12 for a, b in zip(ts, ts[1:])), (T, ts[-3:])

@@ -15,7 +15,8 @@ and `fast_idealized` (NOT a real 2F-85) appear only in the benchmark and are lab
   the noise moves the arrival by up to 15 cm); plan-informed B (A's published plan) collapses: 100 → 100 → 39 → 22 %.
 * Perception: **5 ms** render → estimate (median), 128.7 Hz, first estimate 47 ms after release, 9.7 mm (95 %)
   intercept error 0.20 s ahead. B commits ~75 ms after the first estimate and re-plans at 39 Hz (4 ms per plan).
-* The gripper is the limit: a 2F-85 that reacts 10 / 20 ms later than B assumes costs ~30 / ~35 points (71 / 64 %).
+* The gripper was the limit: a 2F-85 that reacts 10 / 20 ms later than B assumes cost ~30 / ~35 points (71 / 64 %) in
+  v2.1; **v2.2 measures the delay itself and catches 59/59 at 0 / 10 / 20 / 30 ms true latency**.
 * Full loop, 3 seeds, medium noise: **9/9 caught first time, 9/9 placed (≤ 1.1 mm), VERIFY = ground truth 9/9**.
 * v2.0's parallel benchmark (three sims at once) lost up to 24 points to CPU load: "Under load" in step 6.
 
@@ -350,6 +351,48 @@ where the cube is not cupped. Corrected in `docs/v2_phase1_feasibility.md`, the 
    (e.g. #15 6° vs 15°) and all 6 close 1.5–3 ms earlier. Not a model bug; the offline model would need A's
    measured release orientation to close it.
 
+## v2.2 — improvements after the clean benchmark (experiment)
+The v2.1 benchmark shows the gripper timing as the largest remaining loss: a 2F-85 that reacts 10 / 20 ms later
+than B assumes costs ~30 / ~35 points. Three changes, measured separately from the v2.1 table
+(`docs/v2/phase2/bench_v2.2_delayprobe/`, `tools/v2_live/bench_delayprobe.sh`, every cell alone):
+
+1. **Gripper delay probe** (`reactive_node.probe_delay`, `reactive.yaml: delay_probe`). Before its first catch B moves
+   its fingers 0.04 rad in and back three times and measures, from `/joint_states` only, the time from the command to
+   the finger crossing the move's midpoint, minus the 2F-85 ramp's own travel time at its specified speed — i.e. the
+   command latency + the actuator's lag + transport. The timed pinch close is then scheduled so the *fingers* (not
+   the reference) reach 40 mm 20 ms after the predicted arrival (= where v2.1's default lands: 10 ms close offset +
+   ~10 ms actuator lag), instead of assuming a 10 ms latency. In the sim the true latency is emulated in B's own
+   command path (catch_sim/gripper_model.py, CATCH_GRIPPER_LATENCY); the probe does not read it, it observes the
+   finger motion like it would on hardware (a real 2F-85 reports its finger position at up to 200 Hz).
+
+| true gripper latency (B assumed 10 ms) | probe measured (latency + lag + transport) | v2.1, assumed 10 ms | v2.2, probed delay |
+|---|---|---|---|
+| 0 ms | 11.3 ms | 57/59 = 97 % [88–99] | **59/59 = 100 % [94–100]** |
+| 10 ms | 21.1 ms | 59/59 = 100 % [94–100] | **59/59 = 100 % [94–100]** |
+| 20 ms | 31.1 ms | 42/59 = 71 % [59–81] | **59/59 = 100 % [94–100]** |
+| 30 ms | 41.3 ms | 38/59 = 64 % [52–75] | **59/59 = 100 % [94–100]** |
+
+The probe reads the latency to ±2 ms (six samples, e.g. 39.6–43.1 ms at 30 ms) and the catch rate no longer depends on it; the default is unchanged (59/59). RTF ≥ 0.999 in all four cells. These cells ran without changes 2
+and 3 (their logs still show 17–27 rejected trajectories each), so they measure the probe alone.
+2. **Rejected arm trajectories.** `arm_b_controller` rejected 3–4 % of B's (re)plans in every v2.0/v2.1 cell
+   ("Time between points 29 and 30 is not strictly increasing, it is 0.29 and 0.29"): the plan was sampled as
+   `arange(0, T, 10 ms) + [T]`, and when T lies a hair above a multiple of 10 ms the last sample equals T. B then
+   kept flying its previous plan. `reactive.sample_times` drops a sample within 1 ms of T (unit test).
+3. **Library entries MoveIt cannot reach.** Every cell excluded one throw as "setup": library entry 79's stroke start
+   is collision-free in MuJoCo (and in the capsule model, ≥ 18 mm) but not with MoveIt's URDF collision meshes
+   (`a_upper_arm_link` vs `a_pedestal`), so OMPL cannot plan A there. `tools/v2_live/check_library_moveit.py` checks
+   every entry's stroke start with `/check_state_validity` and flags it in the library json
+   (`moveit_start_valid`); `Library.draw` skips flagged entries (unit-tested; a seeded sequence only changes where it
+   would have hit one). Result: 13 of 241 pinch and 9 of 121 cup entries are MoveIt-invalid,
+   all `a_upper_arm_link` vs `a_pedestal`; in the v2.1 benchmark every drawn flagged entry failed setup (pinch 79,
+   cup 37 and 66) and every setup failure was a flagged entry.
+
+**Verification, all three changes** (default configuration, 60 throws, alone; `vision_medium_v22`): **59/60 = 98 %
+[91–100]**, all 60 throws valid (no setup exclusion: trial 25 now draws entry 109 instead of the unreachable 79, every
+other draw is unchanged), **0 rejected trajectories** (v2.1: 17–27 per cell), probe 21.3 ms, 39.3 Hz re-planning,
+RTF ≥ 0.9995. The one miss is a fingertip grasp.
+
+
 ## What is still idealized
 * **Cameras**: noise-free renders, fixed lighting, ideal calibration (the tracker's 1–2 mm per-fix error is pixel
   quantisation and colour segmentation only); 128.7 Hz with a 5 ms render-to-estimate latency — a real global-shutter
@@ -369,8 +412,8 @@ where the cube is not cupped. Corrected in `docs/v2_phase1_feasibility.md`, the 
 ## Next steps
 1. Camera realism: exposure blur, latency and jitter injected into the tracker input (the offline study's 25 ms
    assumption costs ~10 points); then a real stereo pair.
-2. Make the close robust to latency error: measure the gripper's latency online (command → finger motion) and
-   adapt the schedule; the benchmark shows a 10 ms error in either direction costs 20–40 points under load.
+2. ~~Make the close robust to latency error~~ — done in v2.2 (gripper delay probe). Next: re-probe periodically
+   (latency drift, temperature) and use the gripper's own position reports on hardware.
 3. Run B's planner and the tracker on a real-time budget (separate cores / C++ planner) so the parallel-load
    degradation disappears.
 4. Cup on random throws (today: square-arrival library only) and a learned or tuned contact trigger.

@@ -57,6 +57,19 @@ class Library:
     def __len__(self):
         return len(self.entries)
 
+    def usable(self, i):
+        """False for entries flagged by tools/v2_live/check_library_moveit.py: MoveIt (URDF collision meshes, more
+        conservative than MuJoCo's geoms) finds A's stroke start in collision and cannot plan A there."""
+        return bool(self.entries[i].get("moveit_start_valid", True))
+
+    def draw(self, rng):
+        """Random usable entry index (uniform over the usable entries; a draw that hits a flagged entry is
+        redrawn, so seeded sequences only change where they would have hit one)."""
+        while True:
+            i = int(rng.integers(len(self.entries)))
+            if self.usable(i):
+                return i
+
     def check(self, e):
         h = entry_hash(e["params"], *self.paths)
         return h == e["hash"], h

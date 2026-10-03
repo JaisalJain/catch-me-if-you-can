@@ -204,8 +204,7 @@ class Demo:
         q_start = self.plan.q_start
         if not self.v1:
             from catch_throw.library import Library
-            n = len(Library(self.library))
-            entry = int(self.entry_rng.integers(n))
+            entry = Library(self.library).draw(self.entry_rng)
             self.pv = _wait(self.preview.call_async(GetThrowPlan.Request(library=self.library, entry=entry)), 10)
             if self.pv is None or not self.pv.success:
                 self.log(S.LOAD, f"throw library entry {entry} not available")

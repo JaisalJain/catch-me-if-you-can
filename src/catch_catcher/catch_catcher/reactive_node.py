@@ -49,7 +49,7 @@ from catch_sim.joint_state_cache import JointStateCache
 from catch_sim.sim_clock import offload_sim_clock
 from catch_tasks.moveit_client import MoveItClient
 
-from .reactive import ReactivePlanner, ballistic
+from .reactive import ReactivePlanner, ballistic, sample_times
 
 JN = ["shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint", "wrist_1_joint", "wrist_2_joint", "wrist_3_joint"]
 CHI3_95 = 2.7955
@@ -158,6 +158,7 @@ class ReactiveCatcher(Node):
                                        self.cfg["ready"]["elev_deg"], self.robot_a)
         self.k_pre = gripper_model.knuckle_for_gap(self.cfg["pre_gap_mm"])
         self.grip_model = gripper_model.load_profile(robot="b")
+        self.delay_est = None           # measured gripper delay (latency + actuator lag), delay_probe
         cb = ReentrantCallbackGroup()
         self._joint_state_cache = JointStateCache(self)
         self.js = self._joint_state_cache
@@ -186,7 +187,7 @@ class ReactiveCatcher(Node):
         jt.joint_names = [f"b_{j}" for j in JN]
         T = plan.seg.T
         dt = self.cfg["traj_dt"]
-        ts = list(np.arange(0.0, T, dt)) + [T]
+        ts = sample_times(T, dt)
         S = [plan.seg(t) for t in ts]
         Q = np.array([x[0] for x in S] + [plan.q_goal])
         QD = np.array([x[1] for x in S] + [np.zeros(6)])
@@ -207,6 +208,42 @@ class ReactiveCatcher(Node):
 
     def cfg_close(self):
         return 0.70
+
+    def probe_delay(self):
+        """Gripper delay from the fingers' observed motion (/joint_states only): for moves k_pre -> k_pre+dk -> k_pre,
+        (time the knuckle crosses the move's midpoint) - (command sent) - (the 2F-85 ramp's own travel time to the
+        midpoint at the specified gap speed). = command latency + actuator lag + transport. Median of 2n moves."""
+        pc = self.cfg["delay_probe"]
+        kn = "b_robotiq_85_left_knuckle_joint"
+        gs = self.grip_model["gap_speed"]
+        samples = []
+        for _ in range(pc["n"]):
+            for target in (self.k_pre + pc["dk"], self.k_pre):
+                k0 = self.js.position(kn)
+                mid = 0.5 * (k0 + target)
+                t_send = self.now()
+                self.mi.gripper_async("b", target)
+                t_mid = None
+                while self.now() < t_send + pc["timeout"]:
+                    st, js = self.js.snapshot()          # position and its stamp from the same message
+                    k = js.get(kn, (float("nan"), 0.0))[0]
+                    if st is not None and (k - mid) * (target - k0) >= 0.0:
+                        t_mid = st
+                        break
+                    time.sleep(0.0005)
+                if t_mid is not None:
+                    travel = 0.002 + abs(gripper_model.gap_for_knuckle(k0) - gripper_model.gap_for_knuckle(mid)) / 1000.0 / gs
+                    samples.append(t_mid - t_send - travel)
+                t_s = self.now()
+                while self.now() < t_s + pc["settle"]:
+                    time.sleep(0.005)
+        if len(samples) < pc["n"]:
+            self.get_logger().warn(f"gripper delay probe: only {len(samples)} samples; keeping the assumed latency")
+            return None
+        d = float(np.median(samples))
+        self.get_logger().info(f"gripper delay probe: {1000 * d:.1f} ms (latency + actuator lag; samples "
+                               f"{', '.join(f'{1000 * x:.1f}' for x in samples)} ms)")
+        return d
 
     # ------------------------------------------------------------------ estimates
     def estimate(self, t_after):
@@ -245,6 +282,8 @@ class ReactiveCatcher(Node):
                     res.message = f"could not reach the ready pose: {msg}"
                     return res
             self.mi.gripper("b", self.k_pre, timeout=5.0)
+            if self.delay_est is None and cfg.get("delay_probe", {}).get("enabled"):
+                self.delay_est = self.probe_delay() or 0.0
         # contact watch (baseline from now until the commit)
         t_ready = self.now()
         self.inputs.armed = dict(base=[], f0=None, t_arm=t_ready + 0.1, thr=cfg["contact_threshold_n"], peak=0.0,
@@ -298,6 +337,8 @@ class ReactiveCatcher(Node):
         def t_close_for(p):
             if mode == "pinch":
                 d_gap = (self.cfg["pre_gap_mm"] - 40.0) / 1000.0
+                if self.delay_est:          # measured delay: the fingers (not the reference) at 40 mm on time
+                    return p.t_intercept + cfg["pinch"]["gap40_after_arrival"] - (self.delay_est + 0.002 + d_gap / gm["gap_speed"])
                 return p.t_intercept + close_offset - (latency_assumed + 0.002 + d_gap / gm["gap_speed"])
             return p.t_intercept + cfg["cup"]["fallback_after"]
 
@@ -390,7 +431,8 @@ class ReactiveCatcher(Node):
         res.min_clearance = float(min(clrs))
         res.plan_ms_median = float(np.median(plan_ms))
         res.message = (f"{'held' if res.success else 'not held'} ({mode}, {self.source}): trigger {res.trigger}, "
-                       f"commit {1000 * res.t_commit:.0f} ms after first fix, {res.n_replans} replans ({n_kept} kept) "
+                       + (f"gripper delay {1000 * self.delay_est:.1f} ms (probed), " if self.delay_est else "")
+                       + f"commit {1000 * res.t_commit:.0f} ms after first fix, {res.n_replans} replans ({n_kept} kept) "
                        f"({res.replan_rate_hz:.0f} Hz, {res.plan_ms_median:.1f} ms each), limit ratio <= "
                        f"{res.max_limit_ratio:.2f}, clearance >= {1000 * res.min_clearance:.0f} mm, knuckle {k:.3f}")
         self.get_logger().info(res.message)

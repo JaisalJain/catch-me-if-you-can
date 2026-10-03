@@ -13,6 +13,7 @@
 - v2 Phase 1 ✅ offline feasibility (docs/v2_phase1_feasibility.md, tools/v2_*.py, docs/v2/)
 - v2 Phase 2 ✅ random throws, vision-only reactive pinch, live benchmark, demo (docs/v2_phase2.md, docs/v2/phase2/; tag v2.0)
 - v2.1 ✅ review fixes: benchmark re-run with every cell alone, v1 30/30 contradiction resolved, fast_close vs offline bounded
+- v2.2 ✅ gripper delay probe (100 % at 0-30 ms true latency), trajectory sample-time fix, MoveIt-invalid library entries skipped
 
 - Progress log: `docs/progress.md`
 
@@ -115,6 +116,13 @@
 - catch_tracker: gate stereo pairs in 3D (rays meet within 10 mm inside the flight box); a 2D region of interest lets
   objects far below the flight volume (pallet slot borders) into the top view. Bias calibrated with tracker_eval.
 - Reactive catcher in vision mode must never subscribe /throw_plan or call /throw/preview (test_reactive_source.py).
+- JointTrajectory points must be strictly increasing in time: sample plans with catch_catcher.reactive.sample_times
+  (np.arange(0, T, dt) + [T] duplicated T when T was a hair above a multiple of dt; the JTC rejected 3-4 % of B's plans).
+- Throw library: after changing scene/URDF/SRDF geometry or rebuilding the library, re-run
+  `python3 tools/v2_live/check_library_moveit.py` (bringup running) — MoveIt's URDF meshes reject some stroke starts that
+  MuJoCo accepts; Library.draw skips entries flagged moveit_start_valid=false.
+- The reactive catcher probes its gripper delay (reactive.yaml delay_probe) before its first catch; benchmark cells
+  that vary the gripper latency rely on it.
 - Parallel sims: one ROS_DOMAIN_ID each, stop them by process group (tools/sim_ctl.sh stop kills ALL sims).
 - New subscriptions need DDS discovery time: subscribe before you need the data (catcher: at goal start).
 - Don't `pkill -f`/`pgrep -f` with a pattern that also appears in your own command line (kills your shell);
