@@ -18,6 +18,8 @@ def main():
         d = json.load(open(f))
         before = Counter(r.get("outcome") for r in d["trials"])
         for r in d["trials"]:
+            if r.get("throw_ok") is False and r.get("stage") is None:   # cells recorded before "throw failed" existed
+                r.update(stage="throw", why=r.get("throw_msg") or "A did not throw")
             if "held" in r:
                 r["outcome"] = classify(r)
         cell = d["summary"]["cell"]

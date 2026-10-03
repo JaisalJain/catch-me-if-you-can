@@ -269,7 +269,7 @@
   --live-match`). Table/plots: docs/v2/phase2/bench_table.md, bench.png; analysis in docs/v2_phase2.md.
 - **Default (vision-only pinch, medium noise, realistic 2F-85): 59/59 = 100 % [94-100] alone, 56/59 = 95 % [86-98]
   in parallel, offline 98 %.** Vision-only 93/86/95/90 % for none/low/medium/high noise; plan-informed 98/98/39/27 %.
-  Cup 84 % alone (79 % parallel, offline 92 %); 64 Hz cameras 95 %; gripper latency 0/10/20/30 ms: 75 (100 alone) / 95 /
+  Cup 84 % alone (79 % parallel, offline 92 %); 64 Hz cameras 95 %; gripper latency 0/10/20/30 ms: 76 (100 alone) / 95 /
   79 / 58 % (offline 100/98/61/52); B's gripper fast_close 90 %, fast_idealized 97 % (NOT a 2F-85).
 - Stop-rule check: latency 0 ms was 25 points below offline in parallel; alone it is 59/59 (parallel load slows the
   planner 4 -> 12 ms, 39 -> 29 Hz; with an early close a few mm of aim error is caught by the fingertips).
@@ -281,3 +281,14 @@
   polled wrist frame is stamped a few ms before color_check's request time (freshness now by arrival).
 - Timing check (tools/v2_live/close_timing.py): the gap reaches 40 mm ~10 ms after B's schedule — the MuJoCo finger
   actuator's ramp lag kv/kp, the same offline.
+
+## v2 Phase 2 — step 7: full loop with random throws, vision-only pinch (2026-10-03) ✅
+- `run_demo` is v2 by default (random library entry per throw, medium release noise, B from the ready pose,
+  vision-only reactive pinch; `--v1` = v1 loop). Recorded batch `tools/v2_live/run_demo_v2.sh 1 2 3` (rosbag2).
+- **Seeds 1-3: complete, 3 throws each, 9/9 caught first time, 0 recoveries, 86-92 s; VERIFY = ground truth 9/9,
+  final ground-truth offsets <= 1.1 mm**; commit 64-78 ms after the first estimate, 39 Hz re-plans of ~4 ms; RTF 1.000.
+- Found here: camera plugin 0.1.1 aborts the sim on a wrist-camera trigger (polled camera after a `disabled` one; the
+  demo camera is now polled); color_check's freshness test rejected the triggered frame (stamped with the rendered
+  physics time) -> arrival-based.
+- Video docs/media/demo_v2_seed1.mp4; failure clips docs/media/v2_fail_*.mp4; README updated (v2 section, benchmark,
+  both v1 numbers, closing speed in "what is idealized"); tag v2.0.

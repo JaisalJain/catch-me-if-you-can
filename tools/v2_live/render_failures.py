@@ -20,7 +20,7 @@ import numpy as np  # noqa: E402
 import render_replay as RR  # noqa: E402
 
 CLASSES = ["missed intercept", "late close", "slide-off", "fingertip", "abort", "collision"]
-CELL_ORDER = ["vision_medium", "vision_high", "vision_low", "vision_none", "cup_medium", "cam60_medium", "latency0_medium",
+CELL_ORDER = ["vision_medium", "latency0_medium", "latency30_medium", "cup_medium_solo", "vision_high", "vision_low", "vision_none", "cup_medium", "cam60_medium", "latency0_medium",
               "latency20_medium", "latency30_medium", "plan_medium", "plan_high", "plan_low", "plan_none",
               "fastclose_medium", "fastidealized_medium"]
 
@@ -30,10 +30,15 @@ def main():
     ap.add_argument("--per-class", type=int, default=1)
     a = ap.parse_args()
     found = {c: [] for c in CLASSES}
-    for cell in CELL_ORDER + sorted(set(os.listdir(os.path.join(REPO, "log/p2/bench"))) - set(CELL_ORDER)):
+    cells = [c for c in CELL_ORDER + sorted(set(os.listdir(os.path.join(REPO, "log/p2/bench"))) - set(CELL_ORDER))
+             if os.path.isdir(os.path.join(REPO, "log/p2/bench", c))]
+    for cell in cells:
+        # outcome from the cell json (re-classified by tools/v2_live/reclassify.py), not the recording's meta
+        cj = os.path.join(REPO, "docs/v2/phase2/bench", f"{cell}.json")
+        outcome = {r["i"]: r.get("outcome") for r in json.load(open(cj))["trials"]} if os.path.exists(cj) else {}
         for f in sorted(glob.glob(os.path.join(REPO, "log/p2/bench", cell, "trial_*.npz"))):
             meta = json.loads(str(np.load(f, allow_pickle=True)["meta"]))
-            o = meta.get("outcome")
+            meta["outcome"] = o = outcome.get(meta["i"], meta.get("outcome"))
             if o in found and len(found[o]) < a.per_class:
                 found[o].append((cell, f, meta))
     out_dir = os.path.join(REPO, "docs", "media")

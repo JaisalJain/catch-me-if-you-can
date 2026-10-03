@@ -11,7 +11,7 @@
 - M6 full loop + demo ✅ (docs/m6_full_loop.md, README.md)
 - v1.0.1 ✅ robot descriptions pinned in src/external (submodules), m5 clips with the bracket
 - v2 Phase 1 ✅ offline feasibility (docs/v2_phase1_feasibility.md, tools/v2_*.py, docs/v2/)
-- v2 Phase 2 (random throws, vision-only reactive catch): docs/v2_phase2.md, docs/v2/phase2/
+- v2 Phase 2 ✅ random throws, vision-only reactive pinch, live benchmark, demo (docs/v2_phase2.md, docs/v2/phase2/; tag v2.0)
 
 - Progress log: `docs/progress.md`
 
@@ -73,7 +73,10 @@
 
 - v2 live: `ros2 run catch_tasks tracker_eval --throws 50 --seed 1 [--calibrate]` (tracker vs ground truth),
   `ros2 run catch_tasks reactive_eval --mode pinch|cup --source vision|plan --noise none|low|medium|high --throws 60`,
-  benchmark `tools/v2_live/bench.sh` (3 ROS domains in parallel, resumable; one cell: `tools/v2_live/bench_cell.sh`),
+  benchmark `tools/v2_live/bench.sh` (3 ROS domains in parallel, resumable; one cell: `tools/v2_live/bench_cell.sh`;
+  headline cells must run ALONE — parallel load costs ~5-25 points), table/plots `tools/v2_live/plot_bench.py` (venv),
+  re-label stored cells `tools/v2_live/reclassify.py`, close timing `tools/v2_live/close_timing.py`, clips
+  `tools/v2_live/render_failures.py` (venv), demo GT check `tools/analyze_runs.py run.json:rec.npz`,
   `ros2 run catch_tasks run_demo --seed 1` (v2: random throws, vision-only pinch; `--v1` for the v1 loop).
 - v2 offline (venv): `tools/v2_perception.py`, `tools/v2_ready_envelope.py`, `tools/v2_throws.py [--square|--id]`,
   `tools/v2_catch_sim.py --cup|--pinch|--corrections|--live-match [--throws square]` (resumable), `tools/v2_plots.py`.

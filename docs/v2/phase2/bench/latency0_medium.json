@@ -518,8 +518,10 @@
    ],
    "min_cube_tcp_mm": 385.4,
    "min_clearance_mm": 33.8,
-   "outcome": "abort",
-   "ok": false
+   "outcome": "throw failed",
+   "ok": false,
+   "stage": "throw",
+   "why": "A did not throw"
   },
   {
    "i": 10,
@@ -3085,23 +3087,24 @@
  ],
  "summary": {
   "n": 60,
-  "n_valid": 59,
+  "n_valid": 58,
   "held": 44,
-  "rate": 0.7458,
+  "rate": 0.7586,
   "ci95": [
-   0.622,
-   0.8394
+   0.6347,
+   0.8504
   ],
   "outcomes": {
    "held": 44,
    "fingertip": 11,
    "missed intercept": 2,
-   "abort": 2,
-   "setup": 1
+   "throw failed": 1,
+   "setup": 1,
+   "abort": 1
   },
   "triggers": {
    "timed": 57,
-   "none": 2
+   "none": 1
   },
   "t_commit_ms": 103.0,
   "replan_rate_hz": 28.6,

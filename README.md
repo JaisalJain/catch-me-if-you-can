@@ -3,9 +3,14 @@
 ROS 2 Jazzy + MoveIt 2 + ros2_control on MuJoCo 3.12 (`mujoco_ros2_control` 0.1.1).
 
 Robot **A** picks a random cube (red, green or blue) from its pallet, tosses it underhand across the table,
-robot **B** catches it in the air with an open Robotiq 2F-85 ("cup" catch: palm against the incoming velocity,
-fingers close when the cube hits the palm), checks its color with a wrist camera, estimates how the cube sits
-in its hand and puts it square into the slot of that color on its own pallet — until all three are sorted.
+robot **B** catches it in the air with a Robotiq 2F-85, checks its color with a wrist camera, estimates how the cube
+sits in its hand and puts it square into the slot of that color on its own pallet — until all three are sorted.
+
+**v2 (default):** A throws a *random* throw with release noise; B starts from a fixed ready pose, sees the cube
+only through two cameras, moves to intercept it while re-planning at ~39 Hz and closes its pre-opened fingers on
+it ("pinch"), with the real 2F-85's closing speed modelled — see [v2](#v2-random-throws-vision-only-catch-from-a-ready-pose).
+**v1** (`run_demo --v1`): one configured throw, B pre-positions from A's published plan ("cup" catch, fingers close
+when the cube hits the palm).
 
 ![demo](docs/media/demo_poster.png)
 
@@ -41,7 +46,7 @@ git submodule update --init            # pinned MuJoCo Menagerie + robot descrip
 source /opt/ros/jazzy/setup.bash
 colcon build --allow-overriding robotiq_description ur_description && source install/setup.bash
 ros2 launch catch_bringup bringup.launch.py              # sim window + controllers + MoveIt + RViz
-ros2 run catch_tasks run_demo --seed 1                   # in a second terminal: the full loop
+ros2 run catch_tasks run_demo --seed 1                   # in a second terminal: the full loop (v2; --v1 for v1)
 ```
 Headless: `ros2 launch catch_bringup bringup.launch.py headless:=true rviz:=false`.
 
@@ -53,7 +58,10 @@ Evaluations (each needs the bringup running):
 | unit tests (system python) | see `CLAUDE.md` |
 | throw, 20 throws | `ros2 run catch_tasks throw_eval --throws 20` |
 | catch + place, 30 throws | `ros2 run catch_tasks catch_eval --throws 30 [--trigger time] [--no-correction]` |
-| full loop, recorded | `log/run_m6.sh 1 2 3` (sim, recorder, `run_demo` per seed) |
+| full loop, recorded | v2: `tools/v2_live/run_demo_v2.sh 1 2 3`, v1: `tools/run_m6.sh 1 2 3` (sim, rosbag, `run_demo` per seed) |
+| v2 tracker vs ground truth, 50 throws | `ros2 run catch_tasks tracker_eval --throws 50` |
+| v2 reactive catch, 60 throws | `ros2 run catch_tasks reactive_eval --mode pinch --source vision --noise medium --throws 60` |
+| v2 benchmark (15 cells) | `tools/v2_live/bench.sh` → `tools/v2_live/plot_bench.py` (venv) |
 | demo video | `env -u PYTHONPATH .venv/bin/python tools/render_demo.py log/m6/run_seed1.npz docs/m6/run_seed1.json --out docs/media/demo_seed1.mp4` |
 | architecture diagram | `tools/export_architecture.sh` (README Mermaid block → `docs/media/architecture.svg`) |
 | CPU per node | `python3 tools/node_cpu.py --seconds 30` (sim running) |
@@ -133,6 +141,7 @@ forward table, catch study, replay rendering) live in `tools/` and run in the is
 
 ## Measured numbers
 All in simulation; ground truth (MuJoCo free-joint state) is used only to *evaluate*. Details per milestone in `docs/`.
+This table is v1 (M1–M6); the v2 benchmark is in the [v2 section](#v2-random-throws-vision-only-catch-from-a-ready-pose).
 
 | What | Result |
 |---|---|
@@ -141,7 +150,7 @@ All in simulation; ground truth (MuJoCo free-joint state) is used only to *evalu
 | Static grasp slip, 10 s at up to 2.1 rad/s (M2, re-run after M5) | A 1.44–1.63 mm in 7 of 8 runs, one 2.35 mm outlier; B 1.43–1.60 mm in 6 runs (limit 2 mm) |
 | Cube detection, overhead camera (M3) | 1.7 mm mean / 4.7 mm max position, 0.4° yaw |
 | Release velocity, 20 throws (M4 / after M5) | speed error +8.2 ± 1.8 mm/s, direction 0.26°, spin −1.89 rad/s; catch-height crossing (4.2, 1.6) mm off the plan |
-| **Catch, 30 throws (10 per color, M5)** | **30 / 30**, contact trigger −2.7 ± 0.7 ms vs predicted arrival |
+| **Catch, 30 throws (10 per color, M5, v1)** | **30 / 30** with the v1 sim gripper (closes 3–5× faster than a 2F-85), contact trigger −2.7 ± 0.7 ms vs predicted arrival; **30 / 30 (placed 30 / 30) again with the realistic 2F-85 model** (v2 step 0) |
 | Color check from B's wrist camera | 30 / 30 |
 | In-hand pose (wrist camera) vs ground truth | angle error −0.14 ± 0.22° (max 0.75°), offset error ≤ 0.3 mm; off-centre catches (up to 18° in the hand): ≤ 0.7° / 0.7 mm |
 | **Place error**, 30 catches | **30 / 30 in slot**, x −0.70 ± 0.07 mm, **yaw 0.00°** (without in-hand correction: +1.67 ± 1.19 mm; off-centre catches uncorrected: 0 / 9 in slot) |
@@ -159,29 +168,62 @@ All in simulation; ground truth (MuJoCo free-joint state) is used only to *evalu
 * **Ideal sensing.** Cameras are noise-free renders with fixed lighting; the palm force sensor is a perfect MuJoCo
   force sensor on a welded palm-insert body (a real palm would need a load cell or the gripper's current); joint
   states are exact. Detection, color and in-hand pose errors here are lower bounds.
-* **Known release state.** B pre-positions from A's published *plan* (release position/velocity/time), not from
-  observing the flight. Release scatter in this sim is ~7 mm/s; the catch tolerates roughly ±30 mm/s across the
-  flight path (offline envelope, `docs/m5_catch.md`). With realistic throw noise B would have to track the cube
-  (side camera, ballistic fit) and re-plan — the interfaces allow it but it is not built.
+* **Known release state (v1 only).** v1's B pre-positions from A's published *plan*; that is why v1 needs no
+  vision (release scatter ~7 mm/s). v2's B tracks the cube with two cameras — but the cameras are still ideal
+  renders (see above), at a rate (128.7 Hz) and latency (5 ms) a real system would have to earn.
+* **Gripper closing speed.** v1's sim gripper closed 3–5× faster than a real 2F-85 (150 mm/s). v2 commands both
+  grippers through a 2F-85 model (150 mm/s ramp, 10 ms command latency from the Robotiq manual — an estimate, not a
+  measurement); `fast_close` / `fast_idealized` exist only as labelled benchmark cells. The MuJoCo finger actuator
+  additionally lags its reference ramp by ~10 ms.
+* **Sim timing.** Catch rates drop under CPU load (three sims in parallel: 95 % instead of 100 %): the planner, the
+  tracker and the controllers share the machine with the physics; a real robot would need the same headroom.
 * **Sim contacts.** Soft MuJoCo contacts (tuned solref/solimp, 1 ms step, elliptic cones) decide whether the cube
   bounces off the palm; real impacts (rubber pads, compliance, cube material) differ.
 * **Pedestals.** Both arms stand on 0.35 m pedestals: the original geometry (arms on the table, 0.7 m flight)
   needs up to 2.7x the UR5e joint-speed limit (M1).
-* **Deterministic demo.** No injected noise; the seeded randomness is only the cube order. Drops are rare, so the
+* **Demo noise.** v1: no injected noise (the seeded randomness is only the cube order). v2: random library throws with
+  the medium release noise level (seeded). Drops are rare, so the
   recovery path is exercised with an opt-in, logged fault injection (late grip loosen).
 * **Scene reset.** Recovering from a drop teleports the cube back to A's pallet (sim service), it is not picked
   up from the floor.
 
-## v2 (in progress): random throws, vision-only catch
-Phase 1 is an offline feasibility study (`docs/v2_phase1_feasibility.md`, tools `tools/v2_*.py`, config
-`tools/v2_study.yaml`); the ROS pipeline above is unchanged. Headline numbers (offline MuJoCo, vision-only B, 120
-throws each; **gripper_profile** in brackets — `fast_idealized` is not a real 2F-85):
-* pinch from a natural raised pose, timed close: 86–87 % **[realistic]**, 100 % **[fast_idealized]**;
-* cup with fingers pre-closed to 56 mm, square-arrival throws: 90 % **[realistic]**, 98 % **[fast_idealized]**;
-* side "chopsticks" and velocity matching: not feasible within the UR5e limits (any profile).
-The M5 cup's 30/30 used the v1 sim gripper, which closes 3–5× faster than the real 2F-85 (150 mm/s).
+## v2: random throws, vision-only catch from a ready pose
+What changed (`docs/v2_phase2.md`; offline feasibility study first: `docs/v2_phase1_feasibility.md`):
+* **Random throws.** A throws a random entry (seeded) of a precomputed library (`catch_throw/config/library_*.json`:
+  241 pinch / 121 square-arrival throws, each with its own MuJoCo feed-forward and a hash of its inputs) with
+  Gaussian release noise (none / low / medium / high: up to 1.2 % speed, 0.72° direction, 10 ms timing).
+* **B sees only the cameras.** Two fixed 320×240 cameras at 128.7 Hz; a C++ tracker (`catch_tracker`: HSV components,
+  3D-gated stereo pairs, ballistic least squares with covariance) publishes the predicted intercept **5 ms** after
+  the render (median); B's vision node has no access to A's plan (enforced by a test).
+* **Reactive intercept** (`catch_catcher/reactive_node.py`): B waits at a ready pose with the fingers pre-opened to
+  56 mm, commits ~75 ms after the first estimate, then replaces its arm trajectory at ~39 Hz (4 ms per re-plan,
+  joint speed ≤ 85 %, torque ≤ 80 % by inverse dynamics, capsule collision check of every plan) and closes the
+  fingers on a schedule that accounts for the 2F-85's 150 mm/s and 10 ms command latency ("pinch").
+* **The real 2F-85 speed everywhere.** Both grippers are commanded through a 2F-85 model (`catch_sim/gripper_model.py`);
+  the v1 sim gripper closed 3–5× faster.
+
+**Live benchmark** (60 throws per cell, ground truth; `docs/v2/phase2/bench_table.md`; realistic 2F-85 unless marked):
+
+| | live | offline, same config |
+|---|---|---|
+| **vision-only pinch, medium noise (default)** | **100 % [94–100]** alone, 95 % [86–98] with 3 sims in parallel | 98 % |
+| vision-only pinch, noise none / low / high | 93 / 86 / 90 % (parallel) | 98 % |
+| plan-informed (A's published plan), noise none / low / medium / high | 98 / 98 / **39 / 27 %** | — |
+| pre-closed cup (fingers at 56 mm, contact close), medium | 84 % alone, 79 % parallel | 92 % |
+| gripper latency 0 / 20 / 30 ms (B assumes 10) | 100 (alone) / 79 / 58 % | 100 / 61 / 52 % |
+| B's gripper fast_close / fast_idealized (**NOT a 2F-85**) | 90 / 97 % | 69 / 100 % |
+
+![v2 benchmark](docs/v2/phase2/bench.png)
+
+**Full loop, 3 seeds, medium noise:** 9/9 throws caught on the first try, 9/9 placed (≤ 1.1 mm, ground truth), VERIFY
+agrees with ground truth 9/9. Video: [`docs/media/demo_v2_seed1.mp4`](docs/media/demo_v2_seed1.mp4) (B starts every
+catch from its ready pose; real time around each throw, 0.25× close-ups). Failure clips from the benchmark:
+`docs/media/v2_fail_{missed_intercept,late_close,slide_off,fingertip,abort}.mp4` (no collision occurred).
+
+v1 numbers with the realistic gripper: the v1 catch evaluation (plan-informed cup, configured throw) still catches
+**30/30** (placed 30/30) and M4 throws 20/20 — the v1 headline 30/30 was measured with the faster v1 sim gripper.
 
 ## Documentation
 `docs/progress.md` (milestone log) and per milestone `docs/m0_toolchain.md`, `m1_feasibility.md`,
 `m2_scene_bringup.md`, `m3_perception_pick_place.md`, `m4_throw.md`, `m5_catch.md`, `m6_full_loop.md`;
-v2: `v2_phase1_feasibility.md`.
+v2: `v2_phase1_feasibility.md`, `v2_phase2.md`.

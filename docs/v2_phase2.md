@@ -9,6 +9,15 @@ command latency modelled. Phase 1 (offline study): `docs/v2_phase1_feasibility.m
 Defaults everywhere: `gripper_profile: realistic` (2F-85 150 mm/s gap speed, 10 ms command latency). `fast_close`
 and `fast_idealized` (NOT a real 2F-85) appear only in the benchmark and are labelled there.
 
+**Key numbers** (live ROS pipeline, 60 throws per cell, ground truth):
+* Default — vision-only pinch, medium release noise, realistic 2F-85: **59/59 = 100 % [94–100]** with the sim
+  running alone (95 % [86–98] with three sims in parallel); offline with the same measured perception 98 %.
+* Plan-informed B (A's published plan) collapses with noise: 98 → 39 → 27 % (none → medium → high); vision-only
+  stays at 86–100 %.
+* Perception: **5 ms** render → estimate (median), 128.7 Hz, first estimate 47 ms after release, 9.7 mm (95 %)
+  intercept error 0.20 s ahead. B commits ~75 ms after the first estimate and re-plans at 39 Hz (4 ms per plan).
+* Full loop, 3 seeds, medium noise: **9/9 caught first time, 9/9 placed (≤ 1.1 mm), VERIFY = ground truth 9/9**.
+
 <!-- STEPS -->
 
 ## Step 0 — corrections from the Phase 1 review
@@ -143,7 +152,7 @@ truth (held = cube at rest in the hand < 25 mm from the pad centre, as offline).
 | vision-only, pre-closed cup (square throws), medium | 57 | 45 | **79 %** [67–88] | 92 % [86–96] | held 45, late close 7, setup 3, missed intercept 2, fingertip 2, abort 1 | contact 53, timed 3, none 1 | 94 ms | 27.3 Hz | 1.20 % (mean +0.60), 0.64°, 4.8 ms; A's own error 17 mm/s |
 | ... same, sim running alone | 58 | 49 | **84 %** [73–92] | 92 % [86–96] | held 49, late close 5, setup 2, fingertip 2, missed intercept 2 | contact 56, timed 2 | 76 ms | 35.7 Hz | 1.24 % (mean +0.37), 0.66°, 4.9 ms; A's own error 14 mm/s |
 | vision-only, pinch, 64 Hz cameras, medium | 59 | 56 | **95 %** [86–98] | 98 % [94–100] | held 56, abort 2, missed intercept 1, setup 1 | timed 57, none 2 | 91 ms | 31.4 Hz | 1.11 % (mean +0.61), 0.68°, 4.9 ms; A's own error 16 mm/s |
-| vision-only, pinch, gripper latency 0 ms (B assumes 10), medium | 59 | 44 | **75 %** [62–84] | 100 % [97–100] | held 44, fingertip 11, missed intercept 2, abort 2, setup 1 | timed 57, none 2 | 103 ms | 28.6 Hz | 1.17 % (mean +0.67), 0.66°, 5.0 ms; A's own error 18 mm/s |
+| vision-only, pinch, gripper latency 0 ms (B assumes 10), medium | 58 | 44 | **76 %** [63–85] | 100 % [97–100] | held 44, fingertip 11, missed intercept 2, throw failed 1, setup 1, abort 1 | timed 57, none 1 | 103 ms | 28.6 Hz | 1.17 % (mean +0.67), 0.66°, 5.0 ms; A's own error 18 mm/s |
 | ... same, sim running alone | 59 | 59 | **100 %** [94–100] | 100 % [97–100] | held 59, setup 1 | timed 59 | 73 ms | 39.3 Hz | 1.19 % (mean +0.32), 0.69°, 4.9 ms; A's own error 14 mm/s |
 | ... latency 20 ms | 58 | 46 | **79 %** [67–88] | 61 % [52–69] | held 46, late close 6, fingertip 5, setup 2, slide-off 1 | timed 58 | 100 ms | 29.5 Hz | 1.15 % (mean +0.58), 0.67°, 4.8 ms; A's own error 16 mm/s |
 | ... latency 30 ms | 59 | 34 | **58 %** [45–69] | 52 % [44–61] | held 34, late close 12, fingertip 10, slide-off 2, abort 1, setup 1 | timed 58, none 1 | 98 ms | 29.5 Hz | 1.16 % (mean +0.61), 0.67°, 4.9 ms; A's own error 16 mm/s |
@@ -151,7 +160,8 @@ truth (held = cube at rest in the hand < 25 mm from the pad centre, as offline).
 | B's gripper fast_idealized (NOT a 2F-85; 10x speed, 5x force), medium | 59 | 57 | **97 %** [88–99] | 100 % [97–100] | held 57, setup 1, abort 1, missed intercept 1 | timed 57, none 1, contact 1 | 102 ms | 29.0 Hz | 1.12 % (mean +0.56), 0.66°, 4.9 ms; A's own error 14 mm/s |
 
 "setup" = A could not start the throw (library entry 79: MoveIt fails to reach its stroke start from the load
-pose, in every cell; excluded, not a catch attempt). Offline counterparts have no release noise; for vision-only B
+pose, in every cell; excluded, not a catch attempt); "throw failed" = A refused the throw (one, before the stroke
+blend fix; excluded). Offline counterparts have no release noise; for vision-only B
 the noise level only moves the intercept around.
 
 ### Live vs offline
@@ -162,7 +172,7 @@ the noise level only moves the intercept around.
   the realised flight (missed intercepts).
 * **Parallel load explains the shortfalls.** Three sims on 24 cores slow B's planner (replans 11–12 ms at ~29 Hz
   instead of 4 ms at 39 Hz; commit ~100 ms instead of 73 ms after the first fix). The one cell more than 15 points
-  below offline, **gripper latency 0 ms (75 % vs 100 %), catches 59/59 = 100 % run alone.** Mechanism (recorded
+  below offline, **gripper latency 0 ms (76 % vs 100 %), catches 59/59 = 100 % run alone.** Mechanism (recorded
   failures, `tools/v2_live/close_timing.py`): with the true latency 10 ms shorter than B assumes, the fingers reach 40 mm
   10 ms after the arrival instead of ~20 ms after it (see the timing check), so a cube a few millimetres off-centre is caught by the fingertips 33–44 mm
   out of the hand (fingertip) — the slower replanning under load leaves those few millimetres. The pre-closed cup:
@@ -171,7 +181,7 @@ the noise level only moves the intercept around.
 * **Timing check.** In every recorded failure the gap reaches 40 mm ~10 ms later than B schedules (latency 0 / 10 / 20
   / 30 → +10 / +19 / +30 / +39 ms after the arrival): the MuJoCo finger actuator lags its reference ramp by kv/kp =
   10 ms, offline and live alike.
-* **Gripper latency** (true latency varied, B assumes 10 ms): live 75 (100 alone) / 95 / 79 / 58 %, offline 100 / 98 /
+* **Gripper latency** (true latency varied, B assumes 10 ms): live 76 (100 alone) / 95 / 79 / 58 %, offline 100 / 98 /
   61 / 52 % for 0 / 10 / 20 / 30 ms — a late close loses the cube (late close, rebound), an early one is tolerated only
   with good aim.
 * **Closing speed is the limit, not force.** B's gripper alone made faster (NOT a real 2F-85): fast_close (10×
@@ -211,4 +221,58 @@ Clips (0.25×, catch view; `tools/v2_live/render_failures.py`): see `docs/v2/pha
 So the close is commanded ~0.30 s after release, ~180 ms after the commit — the 2F-85 closing time (~120 ms) is the
 largest single item; perception is 5 ms.
 
-<!-- DEMO -->
+## Step 7 — full loop with random throws, vision-only pinch
+`ros2 run catch_tasks run_demo --seed N` is v2 by default (`--v1` = the v1 loop): DETECT → PICK → LOAD (A picks a
+random library entry, seeded, and moves to its stroke start) → PREPOSITION (B to the ready pose, fingers at 56 mm,
+watching the cameras only) → THROW (medium release noise) + reactive pinch catch → COLOR (wrist camera) → IN_HAND →
+PLACE → VERIFY. Recorded batch: `tools/v2_live/run_demo_v2.sh 1 2 3` (fresh sim per seed, rosbag2 →
+`bag_to_npz`); ground-truth check `tools/analyze_runs.py` → `docs/v2/phase2/demo/verify_vs_ground_truth.jsonl`.
+
+| seed | order (random) | throws | caught first time | recoveries | duration (sim) | VERIFY vs ground truth | final cube offset in slot (ground truth) |
+|---|---|---|---|---|---|---|---|
+| 1 | red, green, blue | 3 | 3/3 | 0 | 86.2 s | 3/3 | ≤ 0.7 mm |
+| 2 | green, blue, red | 3 | 3/3 | 0 | 91.9 s | 3/3 | ≤ 1.1 mm |
+| 3 | blue, red, green | 3 | 3/3 | 0 | 85.8 s | 3/3 | ≤ 0.8 mm |
+
+All 9 catches: timed pinch close, commit 64–78 ms after the first estimate, 8–12 re-plans at 39 Hz of 3.6–4.6 ms;
+B's wrist camera named the right color 9/9; RTF 1.000. Cubes held up to 21° tilted in the hand were placed square
+(the in-hand correction). VERIFY's own offsets (−4.5…+1.4 mm) are overhead-detection error; the ground-truth
+placement error is ≤ 1.1 mm.
+
+Two bugs surfaced only here (the benchmark never triggers the wrist camera): mujoco_ros2_control 0.1.1 aborted the
+whole sim on the first wrist-camera trigger (a polled camera listed after a `disabled` one — the plugin's buffers
+skip disabled cameras but triggers index by MJCF order; the demo camera is now polled), and color_check rejected the
+triggered frame because the plugin stamps it with the rendered physics time, a few ms before the request (freshness
+is now "arrived after the trigger").
+
+Demo video: [`media/demo_v2_seed1.mp4`](media/demo_v2_seed1.mp4) (seed 1: B starts from the ready pose and moves to
+each cube; real time around each throw, 0.25× close-up of each catch). Failure clips from the benchmark:
+`media/v2_fail_*.mp4` (`v2/phase2/failure_clips.json`).
+
+## What is still idealized
+* **Cameras**: noise-free renders, fixed lighting, ideal calibration (the tracker's 1–2 mm per-fix error is pixel
+  quantisation and colour segmentation only); 128.7 Hz with a 5 ms render-to-estimate latency — a real global-shutter
+  pair at 120 Hz with exposure, transport and synchronisation would add tens of ms (Phase 1 assumed 25 ms and still
+  reached 87 %).
+* **Gripper**: the 2F-85 is modelled (150 mm/s, 10 ms command latency from the manual's command rate — not measured on
+  hardware); the MuJoCo position actuator adds ~10 ms of ramp lag. Contact (soft MuJoCo contacts, rigid pads) decides
+  rebounds; real pads and cube materials differ.
+* **Arms**: torque-controlled JTCs at 500 Hz with exact-model feed-forward (a real UR5e takes position/velocity
+  targets through its own controller); joint states are exact; B's plan limits (85 % speed, 80 % torque) are checked
+  against the same model that simulates it.
+* **Release noise** is Gaussian and independent per throw (speed, direction, timing), sized from M4's scatter and
+  the plan-informed tolerance — not measured on a real thrower.
+* **Compute**: one machine, sim alone for the headline; catch rates drop with load (95 % with three sims).
+* Still from v1: pedestals, scene reset after a drop (teleport), ideal palm force sensor.
+
+## Next steps
+1. Camera realism: exposure blur, latency and jitter injected into the tracker input (the offline study's 25 ms
+   assumption costs ~10 points); then a real stereo pair.
+2. Make the close robust to latency error: measure the gripper's latency online (command → finger motion) and
+   adapt the schedule; the benchmark shows a 10 ms error in either direction costs 20–40 points under load.
+3. Run B's planner and the tracker on a real-time budget (separate cores / C++ planner) so the parallel-load
+   degradation disappears.
+4. Cup on random throws (today: square-arrival library only) and a learned or tuned contact trigger.
+5. Hardware: the UR5e's position interface instead of torque control, re-identified dynamics, the real 2F-85.
+
+
