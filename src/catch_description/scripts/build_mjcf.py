@@ -144,15 +144,33 @@ def make_arm(scene, phys, with_camera=False):
         yax = np.cross(xax, fwd)
         base.add_camera(name="wrist_cam", pos=p.tolist(), quat=_axes_quat(xax, yax), fovy=cam["fovy"],
                         resolution=cam["resolution"])
-        base.add_geom(name="wrist_cam_housing", type=mujoco.mjtGeom.mjGEOM_BOX, size=[0.012, 0.015, 0.012],
-                      pos=(p - 0.014 * fwd).tolist(), contype=0, conaffinity=0, group=2,
-                      rgba=[0.1, 0.1, 0.1, 1])
-        for k, (lo, hi) in enumerate(scene["cameras"]["b_wrist_bracket"]):   # visual only, like the housing
-            lo, hi = np.array(lo, float), np.array(hi, float)
-            base.add_geom(name=f"wrist_cam_bracket_{k}", type=mujoco.mjtGeom.mjGEOM_BOX, size=((hi - lo) / 2).tolist(),
-                          pos=((hi + lo) / 2).tolist(), contype=0, conaffinity=0, group=2, rgba=[0.32, 0.33, 0.35, 1])
+        # camera hardware (visual only in the physics, like v1's housing; scene.yaml b_wrist_camera_parts)
+        R_opt = np.column_stack([xax, -yax, fwd])          # optical frame: x right, y down, z = view direction
+        for part in scene["cameras"]["b_wrist_camera_parts"]:
+            pos, R = camera_part_pose(part, p, R_opt)
+            q = np.zeros(4)
+            mujoco.mju_mat2Quat(q, R.flatten())
+            sz = part["size"]
+            if part["type"] == "box":
+                kw = dict(type=mujoco.mjtGeom.mjGEOM_BOX, size=[x / 2 for x in sz])
+            else:
+                kw = dict(type=mujoco.mjtGeom.mjGEOM_CYLINDER, size=[sz[0], sz[1] / 2, 0])
+            base.add_geom(name=f"wrist_cam_{part['name']}", pos=pos.tolist(), quat=q.tolist(), contype=0,
+                          conaffinity=0, group=2, rgba=part["rgba"], **kw)
     ur.attach(g, prefix="robotiq_", site=ur.site("attachment_site"))
     return ur
+
+
+AXIS_R = {"z": np.eye(3), "x": np.array([[0, 0, 1.0], [0, 1, 0], [-1, 0, 0]]),   # R_y(pi/2): z -> x
+          "y": np.array([[1.0, 0, 0], [0, 0, 1], [0, -1, 0]])}                    # R_x(-pi/2): z -> y
+
+
+def camera_part_pose(part, p_cam, R_opt):
+    """Position + rotation in the gripper base frame of a b_wrist_camera_parts entry (cylinder axis along `axis`)."""
+    Ra = AXIS_R[part.get("axis", "z")] if part["type"] == "cylinder" else np.eye(3)
+    if part["frame"] == "camera":
+        return p_cam + R_opt @ np.asarray(part["pos"], float), R_opt @ Ra
+    return np.asarray(part["pos"], float), Ra
 
 
 def _axes_quat(xax, yax):

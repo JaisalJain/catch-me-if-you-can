@@ -4,6 +4,8 @@ string mode               # "pinch" (default) | "cup"
 float64 timeout           # s to wait for a flight after "ready" (0 = default)
 float64 close_offset      # s added to the timed close (NaN / 0 = config default)
 bool skip_ready_move      # already at the ready pose with the pre-gap
+bool prepare_only         # only get ready (direct, capsule-checked joint move to the ready pose, pre-gap, gripper
+                          # delay probe) and succeed; no catch. The demo sends it when A starts LOAD.
 ---
 bool success              # node's own judgement: fingers closed on a cube (knuckle in range) after settling
 string message
@@ -19,6 +21,10 @@ float64 t_contact         # sim time of the first palm contact (0 = none)
 int32 n_replans
 float64 replan_rate_hz
 float64 max_limit_ratio   # max over executed plans of max(speed/0.85, torque/0.80)
+float64 max_vel_ratio     # max over executed plans of joint speed / 180 deg/s (planned quintics)
+float64 max_torque_ratio  # max over executed plans of |inverse-dynamics torque, gravity incl.| / UR5e limit
+string ready_pose         # reactive.yaml ready pose used and the IK branch mode ("phase1/free")
+float64 t_ready           # prepare_only: sim time B was at the ready pose with the pre-gap (and probed)
 float64 min_clearance     # m, capsule model, over executed plans
 float64 plan_ms_median    # planner compute time per replan
 float64 knuckle

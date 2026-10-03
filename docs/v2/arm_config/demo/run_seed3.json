@@ -1,0 +1,299 @@
+{
+ "summary": {
+  "seed": 3,
+  "version": "v2",
+  "noise": "medium",
+  "catch_mode": "pinch",
+  "duration_s": 78.4,
+  "sorted": [
+   "blue",
+   "red",
+   "green"
+  ],
+  "throws": 3,
+  "throws_per_cube": {
+   "blue": 1,
+   "red": 1,
+   "green": 1
+  },
+  "attempts": {
+   "blue": 1,
+   "red": 1,
+   "green": 1
+  },
+  "recoveries": [],
+  "complete": true
+ },
+ "events": [
+  {
+   "t": 0.0,
+   "t_sim": 16.607,
+   "state": "detect",
+   "msg": "start (seed 3)"
+  },
+  {
+   "t": 0.93,
+   "t_sim": 17.537,
+   "state": "detect",
+   "msg": "3 cube(s) on A's pallet ['blue', 'green', 'red']; random pick: blue at (-0.357, -0.280)",
+   "a_color": "blue"
+  },
+  {
+   "t": 5.97,
+   "t_sim": 22.572,
+   "state": "pick",
+   "msg": "picked (knuckle 0.450)",
+   "ok": true
+  },
+  {
+   "t": 10.75,
+   "t_sim": 27.361,
+   "state": "load",
+   "msg": "random throw: pinch library entry 74 (target (0.25, 0.30, 1.05), flight 0.457 s), release noise medium",
+   "entry": 74
+  },
+  {
+   "t": 11.86,
+   "t_sim": 28.471,
+   "state": "load",
+   "msg": "cube seated on the palm, A at the stroke start"
+  },
+  {
+   "t": 11.87,
+   "t_sim": 28.476,
+   "state": "preposition",
+   "msg": "B ready 5.30 s after LOAD started, +0.60 s before A reached the stroke start (direct move 3.64 s, clearance >= 33 mm, final error 0.0000 rad)",
+   "b_ready_after_load_s": 5.3,
+   "b_ready_slack_s": 0.599
+  },
+  {
+   "t": 12.04,
+   "t_sim": 28.642,
+   "state": "preposition",
+   "msg": "B at its ready pose (fingers at the 56 mm pre-gap), watching the cameras only"
+  },
+  {
+   "t": 14.08,
+   "t_sim": 30.683,
+   "state": "throw",
+   "msg": "throw #1 of the blue cube: stroke done (library pinch entry 74, noise medium: |v| 1.9095 vs 1.9195 m/s, start +0.6 ms; feed-forward on); loosen to 0.3 commanded at t0+0.101 s (realistic gripper model)"
+  },
+  {
+   "t": 14.08,
+   "t_sim": 30.683,
+   "state": "throw",
+   "msg": "catch: held (pinch, vision): trigger timed, gripper delay 20.8 ms (probed), commit 78 ms after first fix, 11 replans (1 kept) (39 Hz, 4.2 ms each), limit ratio <= 0.59 (speed 0.50, torque 0.33 of the limits), ready phase1/free, clearance >= 34 mm, knuckle 0.449",
+   "caught": true,
+   "trigger": "timed",
+   "aborted": false,
+   "n_replans": 11
+  },
+  {
+   "t": 17.66,
+   "t_sim": 34.265,
+   "state": "color",
+   "msg": "B sees blue (0.098); agrees with A's blue (cross-check only)",
+   "b_color": "blue"
+  },
+  {
+   "t": 17.77,
+   "t_sim": 34.377,
+   "state": "in_hand",
+   "msg": "blue: angle -0.2 deg, centre (y, z) (+2.4, +1.5) mm, rms 0.48 mm, inliers 0.55, 2621 px"
+  },
+  {
+   "t": 25.12,
+   "t_sim": 41.732,
+   "state": "place",
+   "msg": "blue slot on B's pallet: placed (tool tilt 0.2 deg, release height 19.6 mm)",
+   "ok": true
+  },
+  {
+   "t": 26.69,
+   "t_sim": 43.299,
+   "state": "verify",
+   "msg": "overhead B: blue cube in its slot (offset +1.7, +0.7 mm, confidence 1.00)",
+   "sorted": "blue"
+  },
+  {
+   "t": 26.93,
+   "t_sim": 43.54,
+   "state": "detect",
+   "msg": "2 cube(s) on A's pallet ['green', 'red']; random pick: red at (-0.542, -0.280)",
+   "a_color": "red"
+  },
+  {
+   "t": 32.47,
+   "t_sim": 49.077,
+   "state": "pick",
+   "msg": "picked (knuckle 0.450)",
+   "ok": true
+  },
+  {
+   "t": 37.25,
+   "t_sim": 53.854,
+   "state": "load",
+   "msg": "random throw: pinch library entry 99 (target (0.25, 0.35, 1.15), flight 0.434 s), release noise medium",
+   "entry": 99
+  },
+  {
+   "t": 38.34,
+   "t_sim": 54.948,
+   "state": "load",
+   "msg": "cube seated on the palm, A at the stroke start"
+  },
+  {
+   "t": 38.35,
+   "t_sim": 54.953,
+   "state": "preposition",
+   "msg": "B ready 4.16 s after LOAD started, +1.71 s before A reached the stroke start (direct move 3.64 s, clearance >= 33 mm, final error 0.0000 rad)",
+   "b_ready_after_load_s": 4.16,
+   "b_ready_slack_s": 1.711
+  },
+  {
+   "t": 38.5,
+   "t_sim": 55.11,
+   "state": "preposition",
+   "msg": "B at its ready pose (fingers at the 56 mm pre-gap), watching the cameras only"
+  },
+  {
+   "t": 40.55,
+   "t_sim": 57.161,
+   "state": "throw",
+   "msg": "throw #1 of the red cube: stroke done (library pinch entry 99, noise medium: |v| 2.0320 vs 2.0207 m/s, start -2.2 ms; feed-forward on); loosen to 0.3 commanded at t0+0.112 s (realistic gripper model)"
+  },
+  {
+   "t": 40.55,
+   "t_sim": 57.162,
+   "state": "throw",
+   "msg": "catch: held (pinch, vision): trigger timed, gripper delay 20.8 ms (probed), commit 78 ms after first fix, 12 replans (1 kept) (39 Hz, 4.4 ms each), limit ratio <= 0.70 (speed 0.60, torque 0.33 of the limits), ready phase1/free, clearance >= 34 mm, knuckle 0.449",
+   "caught": true,
+   "trigger": "timed",
+   "aborted": false,
+   "n_replans": 12
+  },
+  {
+   "t": 44.14,
+   "t_sim": 60.751,
+   "state": "color",
+   "msg": "B sees red (0.096); agrees with A's red (cross-check only)",
+   "b_color": "red"
+  },
+  {
+   "t": 44.17,
+   "t_sim": 60.777,
+   "state": "in_hand",
+   "msg": "red: angle +0.0 deg, centre (y, z) (+0.2, +0.9) mm, rms 0.37 mm, inliers 0.54, 2579 px"
+  },
+  {
+   "t": 51.13,
+   "t_sim": 67.734,
+   "state": "place",
+   "msg": "red slot on B's pallet: placed (tool tilt 0.0 deg, release height 20.1 mm)",
+   "ok": true
+  },
+  {
+   "t": 52.72,
+   "t_sim": 69.327,
+   "state": "verify",
+   "msg": "overhead B: red cube in its slot (offset -4.5, +0.4 mm, confidence 1.00)",
+   "sorted": "red"
+  },
+  {
+   "t": 52.92,
+   "t_sim": 69.529,
+   "state": "detect",
+   "msg": "1 cube(s) on A's pallet ['green']; random pick: green at (-0.450, -0.280)",
+   "a_color": "green"
+  },
+  {
+   "t": 58.1,
+   "t_sim": 74.703,
+   "state": "pick",
+   "msg": "picked (knuckle 0.450)",
+   "ok": true
+  },
+  {
+   "t": 62.88,
+   "t_sim": 79.485,
+   "state": "load",
+   "msg": "random throw: pinch library entry 16 (target (0.25, 0.15, 1.10), flight 0.402 s), release noise medium",
+   "entry": 16
+  },
+  {
+   "t": 63.87,
+   "t_sim": 80.477,
+   "state": "load",
+   "msg": "cube seated on the palm, A at the stroke start"
+  },
+  {
+   "t": 63.88,
+   "t_sim": 80.484,
+   "state": "preposition",
+   "msg": "B ready 4.16 s after LOAD started, +1.61 s before A reached the stroke start (direct move 3.64 s, clearance >= 33 mm, final error 0.0000 rad)",
+   "b_ready_after_load_s": 4.163,
+   "b_ready_slack_s": 1.612
+  },
+  {
+   "t": 64.04,
+   "t_sim": 80.65,
+   "state": "preposition",
+   "msg": "B at its ready pose (fingers at the 56 mm pre-gap), watching the cameras only"
+  },
+  {
+   "t": 66.03,
+   "t_sim": 82.641,
+   "state": "throw",
+   "msg": "throw #1 of the green cube: stroke done (library pinch entry 16, noise medium: |v| 1.7604 vs 1.7651 m/s, start -7.8 ms; feed-forward on); loosen to 0.3 commanded at t0+0.089 s (realistic gripper model)"
+  },
+  {
+   "t": 66.03,
+   "t_sim": 82.641,
+   "state": "throw",
+   "msg": "catch: held (pinch, vision): trigger timed, gripper delay 20.8 ms (probed), commit 69 ms after first fix, 11 replans (0 kept) (43 Hz, 4.4 ms each), limit ratio <= 0.99 (speed 0.72, torque 0.80 of the limits), ready phase1/free, clearance >= 33 mm, knuckle 0.449",
+   "caught": true,
+   "trigger": "timed",
+   "aborted": false,
+   "n_replans": 11
+  },
+  {
+   "t": 69.56,
+   "t_sim": 86.171,
+   "state": "color",
+   "msg": "B sees green (0.122); agrees with A's green (cross-check only)",
+   "b_color": "green"
+  },
+  {
+   "t": 69.59,
+   "t_sim": 86.196,
+   "state": "in_hand",
+   "msg": "green: angle -14.2 deg, centre (y, z) (+10.8, +4.5) mm, rms 0.27 mm, inliers 0.66, 3232 px"
+  },
+  {
+   "t": 76.7,
+   "t_sim": 93.307,
+   "state": "place",
+   "msg": "green slot on B's pallet: placed (tool tilt 14.2 deg, release height 15.7 mm)",
+   "ok": true
+  },
+  {
+   "t": 78.19,
+   "t_sim": 94.799,
+   "state": "verify",
+   "msg": "overhead B: green cube in its slot (offset -1.5, +0.4 mm, confidence 0.99)",
+   "sorted": "green"
+  },
+  {
+   "t": 78.41,
+   "t_sim": 95.019,
+   "state": "detect",
+   "msg": "A's pallet: empty -> nothing left to throw"
+  },
+  {
+   "t": 78.41,
+   "t_sim": 95.019,
+   "state": "done",
+   "msg": "{\"seed\": 3, \"version\": \"v2\", \"noise\": \"medium\", \"catch_mode\": \"pinch\", \"duration_s\": 78.4, \"sorted\": [\"blue\", \"red\", \"green\"], \"throws\": 3, \"throws_per_cube\": {\"blue\": 1, \"red\": 1, \"green\": 1}, \"attempts\": {\"blue\": 1, \"red\": 1, \"green\": 1}, \"recoveries\": [], \"complete\": true}"
+  }
+ ]
+}

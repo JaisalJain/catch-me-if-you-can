@@ -18,5 +18,6 @@ setup(
         "rtf_monitor = catch_sim.monitors:rtf_main",
         "gpu_check = catch_sim.monitors:gpu_main",
         "camera_tf = catch_sim.monitors:camera_tf_main",
+        "rviz_display = catch_sim.monitors:rviz_display_main",
     ]},
 )

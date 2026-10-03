@@ -122,33 +122,41 @@
     <parent link="b_tcp"/><child link="b_wrist_cam_optical"/>
     <origin xyz="${wc[1]} ${-wc[0]} ${wc_dz}" rpy="${atan2(-cos(wc_phi), -sin(wc_phi))} 0 ${pi / 2}"/>
   </joint>
-  <!-- camera housing (MJCF: visual only, 24 x 30 x 24 mm); collision box 1 mm larger per side for MoveIt -->
+  <!-- wrist camera hardware (scene.yaml b_wrist_camera_parts; MJCF: visual only): camera-frame parts on
+       b_wrist_cam_housing (= the optical frame), mount parts on b_wrist_cam_bracket (= the Menagerie gripper base
+       frame: the TCP frame rotated -90 deg about z and lowered to the base). Collision = each part 1 mm larger per
+       side (MoveIt). Cylinder axis x / y: rotated from z. -->
+  <xacro:macro name="cam_part_geom" params="pt grow">
+    <xacro:property name="sz" value="${pt['size']}"/>
+    <xacro:property name="ax" value="${pt.get('axis', 'z') if pt['type'] == 'cylinder' else 'z'}"/>
+    <origin xyz="${pt['pos'][0]} ${pt['pos'][1]} ${pt['pos'][2]}"
+            rpy="${'0 %r 0' % (pi / 2) if ax == 'x' else ('%r 0 0' % (-pi / 2) if ax == 'y' else '0 0 0')}"/>
+    <geometry>
+      <xacro:if value="${pt['type'] == 'box'}"><box size="${sz[0] + 2 * grow} ${sz[1] + 2 * grow} ${sz[2] + 2 * grow}"/></xacro:if>
+      <xacro:if value="${pt['type'] == 'cylinder'}"><cylinder radius="${sz[0] + grow}" length="${sz[1] + 2 * grow}"/></xacro:if>
+    </geometry>
+  </xacro:macro>
+  <xacro:macro name="cam_parts" params="parts frame">
+    <xacro:if value="${parts}">
+      <xacro:property name="pt" value="${parts[0]}"/>
+      <xacro:if value="${pt['frame'] == frame}">
+        <visual name="wrist_cam_${pt['name']}"><xacro:cam_part_geom pt="${pt}" grow="0"/>
+          <material name="b_wrist_cam_${pt['name']}_mat"><color rgba="${pt['rgba'][0]} ${pt['rgba'][1]} ${pt['rgba'][2]} ${pt['rgba'][3]}"/></material>
+        </visual>
+        <collision name="wrist_cam_${pt['name']}"><xacro:cam_part_geom pt="${pt}" grow="0.001"/></collision>
+      </xacro:if>
+      <xacro:cam_parts parts="${parts[1:]}" frame="${frame}"/>
+    </xacro:if>
+  </xacro:macro>
   <link name="b_wrist_cam_housing">
-    <visual><geometry><box size="0.024 0.030 0.024"/></geometry>
-      <material name="b_wrist_cam_mat"><color rgba="0.1 0.1 0.1 1"/></material></visual>
-    <collision><geometry><box size="0.026 0.032 0.026"/></geometry></collision>
+    <xacro:cam_parts parts="${scene['cameras']['b_wrist_camera_parts']}" frame="camera"/>
   </link>
   <joint name="b_wrist_cam_housing_joint" type="fixed">
     <parent link="b_wrist_cam_optical"/><child link="b_wrist_cam_housing"/>
-    <!-- MJCF housing: 14 mm behind the lens along the view axis, box axes = Menagerie base axes -->
-    <origin xyz="0 0 -0.014" rpy="${-atan2(-cos(wc_phi), -sin(wc_phi))} 0 0"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
   </joint>
-  <!-- bracket holding the housing to the gripper base; link frame = Menagerie gripper base frame (the TCP frame is
-       that frame rotated +90 deg about z and raised to the cube centre). Collision boxes 1 mm larger per side. -->
-  <xacro:macro name="bracket_box" params="lo hi grow">
-    <origin xyz="${(lo[0] + hi[0]) / 2} ${(lo[1] + hi[1]) / 2} ${(lo[2] + hi[2]) / 2}"/>
-    <geometry><box size="${hi[0] - lo[0] + 2 * grow} ${hi[1] - lo[1] + 2 * grow} ${hi[2] - lo[2] + 2 * grow}"/></geometry>
-  </xacro:macro>
   <link name="b_wrist_cam_bracket">
-    <xacro:property name="bk" value="${scene['cameras']['b_wrist_bracket']}"/>
-    <xacro:property name="bk0" value="${bk[0]}"/>
-    <xacro:property name="bk1" value="${bk[1]}"/>
-    <visual><xacro:bracket_box lo="${bk0[0]}" hi="${bk0[1]}" grow="0"/>
-      <material name="b_wrist_bracket_mat"><color rgba="0.32 0.33 0.35 1"/></material></visual>
-    <visual><xacro:bracket_box lo="${bk1[0]}" hi="${bk1[1]}" grow="0"/>
-      <material name="b_wrist_bracket_mat"/></visual>
-    <collision><xacro:bracket_box lo="${bk0[0]}" hi="${bk0[1]}" grow="0.001"/></collision>
-    <collision><xacro:bracket_box lo="${bk1[0]}" hi="${bk1[1]}" grow="0.001"/></collision>
+    <xacro:cam_parts parts="${scene['cameras']['b_wrist_camera_parts']}" frame="base"/>
   </link>
   <joint name="b_wrist_cam_bracket_joint" type="fixed">
     <parent link="b_tcp"/><child link="b_wrist_cam_bracket"/>

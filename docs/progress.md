@@ -328,3 +328,34 @@
   put in collision (13 / 241 pinch, 9 / 121 cup; all a_upper_arm_link vs a_pedestal; exactly the benchmark's "setup"
   exclusions); Library.draw skips them (unit tests).
 - Verification, all three, default configuration: **59/60 = 98 % [91-100], 60/60 valid, 0 rejected trajectories**.
+
+## v2.3 — B's arm configuration, wrist camera hardware, RViz (2026-10-03) ✅
+Report: `docs/v2_arm_config.md`, data `docs/v2/arm_config/`. No leftover sim/jobs at the start (machine rebooted).
+- **IK branch** = `catch_kinematics.UR5e.branch()` (shoulder, elbow, wrist signs of the closed-form IK). Phase 1 ready
+  pose: (+1, +1, +1), elbow only 4.7 cm above the shoulder; home: (+1, +1, −1). **The reactive planner never changed
+  branch: 0 changes in 251 recorded v2.1 / v2.2 trials** (+ 59 now); the visible flips were home ⇄ ready around the
+  catch (wrist 2 through 0, twice per throw in the demo).
+- **Elbow-up search:** the Phase 1 envelope tool (`--style home`, B home's branch, elbow ≥ 15 cm) picked (0.35, 0.25,
+  1.30) / 75° — 0/10 live (all aborts: the prior family reaches high intercepts the library does not have; the library
+  arrives low). Re-scored on A's library with the live planner (`ready_library_score.py`): elbow ≥ 15 cm + approach
+  ≥ 60° → 80 % feasible, 55° → 89 % (Phase 1 pose 100 %); above 15 cm every 5 cm of elbow height costs 14–33 points
+  (≥ 60° approach).
+- **`ik_branch: free | fixed`**, ready poses as `reactive.yaml ready_poses` entries (env CATCH_READY_POSE /
+  CATCH_IK_BRANCH), tracker intercept_ref follows the pose; planned speed / torque ratios + measured B speed in the
+  benchmark rows.
+- **Benchmark (each cell alone, 60 throws, medium noise, camera-only pinch): Phase 1 / free 59/59 = 100 % [94–100];
+  elbow-up 60° / fixed 30/59 = 51 % [38–63]; 55° / fixed 33/59 = 56 % [43–68]** (aborts: can't reach the low
+  arrivals; misses: cube stops at the fingertips, 18° off the approach axis). Peak planned speed 0.85 in all; torque
+  0.56 → 0.74 / 0.77. **Decision: −44 to −49 points ≫ 3 → Phase 1 pose stays default**, elbow-up poses are variants.
+- Found in the benchmark: an elbow-up catch pose the capsules cleared by 10.6 mm had B's new camera mount in B's
+  forearm for MoveIt (START_STATE_IN_COLLISION, B stuck; the UR forearm mesh is fatter than MuJoCo's). export_collision
+  now also checks the camera capsules against the URDF meshes (+21.5 mm); all cells were re-run with that model.
+- **B waits at home, gets ready at LOAD** (ReactiveCatch prepare_only: direct capsule-checked joint move, not
+  move_group): demo seeds 1–3 9/9 caught first time, 9/9 placed ≤ 1.01 mm, VERIFY = GT 9/9; B ready 0.48–3.59 s before
+  A reached the stroke start; runs 78–84 s (was 86–92 s).
+- **Wrist camera:** 42 × 42 × 23 mm generic depth camera on a clamp + extrusion mount (scene.yaml parts → MJCF visual,
+  URDF visual + collision); optical frame unchanged (FK test), camera capsules (0 false free vs MuJoCo, 0 vs MoveIt
+  meshes), SRDF unchanged, throw ff / library regenerated (identical but the hash), MoveIt library check unchanged.
+- **RViz:** robot model instead of MotionPlanning (no goal arm), TF disabled, no frustums, GT cube markers (display
+  only, `catch_sim rviz_display`), B's wrist camera image (triggered at 4 Hz only with RViz), view of both arms;
+  `docs/media/rviz.png` (tools/screenshot_window.py). sim_ctl.sh stop now also kills robot_state_publisher.

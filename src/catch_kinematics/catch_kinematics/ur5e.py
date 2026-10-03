@@ -79,12 +79,13 @@ class UR5e:
         return J
 
     # --- inverse kinematics -------------------------------------------------------------------
-    def ik_all(self, world_T_tcp):
-        """All (up to 8) closed-form solutions for a TCP pose, each wrapped to [-pi, pi)."""
+    def ik_all(self, world_T_tcp, branches=False):
+        """All (up to 8) closed-form solutions for a TCP pose, each wrapped to [-pi, pi).
+        branches=True: (solution, (shoulder, elbow, wrist)) pairs, the signs of the three IK choices (see branch())."""
         T = self.dh_T_world @ world_T_tcp @ self.tcp_T_tool0
         d1, d4, d5, d6 = D[0], D[3], D[4], D[5]
         a2, a3 = A[1], A[2]
-        sols = []
+        sols, tags = [], []
         p05 = T @ np.array([0, 0, -d6, 1.0])
         r = np.hypot(p05[0], p05[1])
         if r < abs(d4):
@@ -122,13 +123,26 @@ class UR5e:
                     T34 = inv_tf(T13) @ T14
                     t4 = np.arctan2(T34[1, 0], T34[0, 0])
                     sols.append(wrap(np.array([t1, t2, t3, t4, t5, t6])))
-        return sols
+                    tags.append((s1, s3, s5))
+        return list(zip(sols, tags)) if branches else sols
 
-    def ik_closest(self, world_T_tcp, q_ref, check=True):
-        """Solution closest to q_ref (each joint unwrapped to the 2*pi copy nearest q_ref)."""
+    def branch(self, q):
+        """IK branch of q as the (shoulder, elbow, wrist) signs ik_all enumerates (+-1 each):
+        shoulder: q1 = atan2(wrist centre) + shoulder * acos(d4 / r) + pi/2; elbow: sign(sin q3); wrist: sign(sin q5).
+        Constant along any motion that avoids the shoulder (r = d4), elbow (q3 = 0) and wrist (q5 = 0) singularities."""
+        q = np.asarray(q, float)
+        p05 = (self.dh_T_world @ self.frames(q)[5])[:3, 3]
+        s1 = np.sin(q[0] - np.pi / 2 - np.arctan2(p05[1], p05[0]))
+        return tuple(1 if x >= 0 else -1 for x in (s1, np.sin(q[2]), np.sin(q[4])))
+
+    def ik_closest(self, world_T_tcp, q_ref, check=True, branch=None):
+        """Solution closest to q_ref (each joint unwrapped to the 2*pi copy nearest q_ref); branch: only solutions of
+        that (shoulder, elbow, wrist) branch."""
         best, best_d = None, np.inf
         q_ref = np.asarray(q_ref, float)
-        for s in self.ik_all(world_T_tcp):
+        for s, b in self.ik_all(world_T_tcp, branches=True):
+            if branch is not None and b != tuple(branch):
+                continue
             s = q_ref + wrap(s - q_ref)
             if check and (np.any(np.abs(s) > POS_LIMIT)):
                 continue

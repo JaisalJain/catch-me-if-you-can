@@ -1,3 +1,4 @@
+camera_mesh_margin: {extra_radius: 0.0215, max_capsule_excess: 0.0195, n: 3000, n_contact: 643}
 capsules:
 - frame: 1
   name: f1_g0
@@ -54,6 +55,21 @@ capsules:
   p0: [-0.07423, -0.00013, 0.09124]
   p1: [0.07424, 9.0e-05, 0.09128]
   radius: 0.07286
+- frame: 6
+  name: f6_cam_head
+  p0: [0.13313, 0.03384, 0.15919]
+  p1: [0.11855, -0.02244, 0.16267]
+  radius: 0.05726
+- frame: 6
+  name: f6_cam_arm
+  p0: [0.038, 0.0, 0.0308]
+  p1: [0.162, 0.0, 0.0308]
+  radius: 0.0417
+- frame: 6
+  name: f6_cam_upright
+  p0: [0.154, 0.0, 0.05061]
+  p1: [0.154, 0.0, 0.16499]
+  radius: 0.04085
 min_clearance: 0.01
 note: 'tools/export_collision.py: capsules in UR5e DH frames (0 base .. 6 tool0), radius incl. 3 mm'
 obstacles:
@@ -81,28 +97,46 @@ self_pairs:
 - [f1_g0, f6_g8]
 - [f1_g0, f6_grip0]
 - [f1_g0, f6_grip1]
+- [f1_g0, f6_cam_head]
+- [f1_g0, f6_cam_arm]
+- [f1_g0, f6_cam_upright]
 - [f2_g1, f4_g5]
 - [f2_g1, f5_g6]
 - [f2_g1, f5_g7]
 - [f2_g1, f6_g8]
 - [f2_g1, f6_grip0]
 - [f2_g1, f6_grip1]
+- [f2_g1, f6_cam_head]
+- [f2_g1, f6_cam_arm]
+- [f2_g1, f6_cam_upright]
 - [f2_g2, f4_g5]
 - [f2_g2, f5_g6]
 - [f2_g2, f5_g7]
 - [f2_g2, f6_g8]
 - [f2_g2, f6_grip0]
 - [f2_g2, f6_grip1]
+- [f2_g2, f6_cam_head]
+- [f2_g2, f6_cam_arm]
+- [f2_g2, f6_cam_upright]
 - [f3_g3, f5_g6]
 - [f3_g3, f5_g7]
 - [f3_g3, f6_g8]
 - [f3_g3, f6_grip0]
 - [f3_g3, f6_grip1]
+- [f3_g3, f6_cam_head]
+- [f3_g3, f6_cam_arm]
+- [f3_g3, f6_cam_upright]
 - [f3_g4, f5_g6]
 - [f3_g4, f5_g7]
 - [f3_g4, f6_g8]
 - [f3_g4, f6_grip0]
 - [f3_g4, f6_grip1]
+- [f3_g4, f6_cam_head]
+- [f3_g4, f6_cam_arm]
+- [f3_g4, f6_cam_upright]
 - [f4_g5, f6_g8]
 - [f4_g5, f6_grip0]
 - [f4_g5, f6_grip1]
+- [f4_g5, f6_cam_head]
+- [f4_g5, f6_cam_arm]
+- [f4_g5, f6_cam_upright]

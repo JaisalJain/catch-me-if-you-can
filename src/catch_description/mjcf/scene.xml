@@ -430,9 +430,18 @@
                       <inertial pos="0 -2.70394e-05 0.0354675" quat="0.999999 -0.00152849 0 0" mass="0.777441" diaginertia="0.000260285 0.000225381 0.000152708"/>
                       <geom class="b_robotiq_visual" material="b_robotiq_black" mesh="b_robotiq_base"/>
                       <geom class="b_robotiq_collision" mesh="b_robotiq_base"/>
-                      <geom name="b_robotiq_wrist_cam_housing" size="0.012 0.015 0.012" pos="0 0.13381 0.152302" type="box" contype="0" conaffinity="0" group="2" rgba="0.1 0.1 0.1 1"/>
-                      <geom name="b_robotiq_wrist_cam_bracket_0" size="0.01 0.055 0.009" pos="0 0.093 0.024" type="box" contype="0" conaffinity="0" group="2" rgba="0.32 0.33 0.35 1"/>
-                      <geom name="b_robotiq_wrist_cam_bracket_1" size="0.01 0.006 0.063" pos="0 0.142 0.078" type="box" contype="0" conaffinity="0" group="2" rgba="0.32 0.33 0.35 1"/>
+                      <geom name="b_robotiq_wrist_cam_body" size="0.021 0.021 0.0115" pos="0 0.13233 0.152055" quat="0 0 0.76302 -0.646375" type="box" contype="0" conaffinity="0" group="2" rgba="0.17 0.18 0.2 1"/>
+                      <geom name="b_robotiq_wrist_cam_glass" size="0.018 0.009 0.0004" pos="0 0.120789 0.150132" quat="0 0 0.76302 -0.646375" type="box" contype="0" conaffinity="0" group="2" rgba="0.02 0.02 0.03 1"/>
+                      <geom name="b_robotiq_wrist_cam_lens_l" size="0.0042 0.0005" pos="0.009 0.12069 0.150115" quat="0 0 0.76302 -0.646375" type="cylinder" contype="0" conaffinity="0" group="2" rgba="0.1 0.14 0.24 1"/>
+                      <geom name="b_robotiq_wrist_cam_lens_r" size="0.0042 0.0005" pos="-0.009 0.12069 0.150115" quat="0 0 0.76302 -0.646375" type="cylinder" contype="0" conaffinity="0" group="2" rgba="0.1 0.14 0.24 1"/>
+                      <geom name="b_robotiq_wrist_cam_emitter" size="0.002 0.0005" pos="0 0.12069 0.150115" quat="0 0 0.76302 -0.646375" type="cylinder" contype="0" conaffinity="0" group="2" rgba="0.06 0.06 0.07 1"/>
+                      <geom name="b_robotiq_wrist_cam_cable" size="0.0028 0.006" pos="-0.027 0.133481 0.148192" quat="0.539537 -0.457056 -0.539537 0.457056" type="cylinder" contype="0" conaffinity="0" group="2" rgba="0.05 0.05 0.05 1"/>
+                      <geom name="b_robotiq_wrist_cam_tilt_block" size="0.013 0.013 0.003" pos="0 0.146633 0.154439" quat="0 0 0.76302 -0.646375" type="box" contype="0" conaffinity="0" group="2" rgba="0.46 0.48 0.51 1"/>
+                      <geom name="b_robotiq_wrist_cam_collar" size="0.0435 0.008" pos="0 0 0.02" type="cylinder" contype="0" conaffinity="0" group="2" rgba="0.22 0.23 0.25 1"/>
+                      <geom name="b_robotiq_wrist_cam_lug" size="0.014 0.008 0.01" pos="0 0.046 0.02" type="box" contype="0" conaffinity="0" group="2" rgba="0.22 0.23 0.25 1"/>
+                      <geom name="b_robotiq_wrist_cam_arm" size="0.01 0.056 0.01" pos="0 0.106 0.02" type="box" contype="0" conaffinity="0" group="2" rgba="0.46 0.48 0.51 1"/>
+                      <geom name="b_robotiq_wrist_cam_upright" size="0.01 0.008 0.067" pos="0 0.154 0.097" type="box" contype="0" conaffinity="0" group="2" rgba="0.46 0.48 0.51 1"/>
+                      <geom name="b_robotiq_wrist_cam_knob" size="0.0065 0.015" pos="0 0.154 0.154" quat="0.707107 0 0.707107 0" type="cylinder" contype="0" conaffinity="0" group="2" rgba="0.22 0.23 0.25 1"/>
                       <site name="b_robotiq_pinch" group="5" pos="0 0 0.145" rgba="0.9 0.9 0.9 1"/>
                       <site name="b_robotiq_tcp" quat="0.707107 0 0 0.707107" size="0.004" group="4" pos="0 0 0.13" rgba="1 1 0 0"/>
                       <camera name="b_robotiq_wrist_cam" quat="0 0 0.646375 0.76302" resolution="320 240" pos="0 0.12 0.15" fovy="60"/>

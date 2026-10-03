@@ -43,6 +43,18 @@ ready:
   # natural candidates: best (joint margin, manipulability, closeness to home) per (elevation, x) cell are scored
   # by the fraction of the envelope.family throws B can intercept
 
+# 1b. Home-style ready pose (arm-configuration review, docs/v2/arm_config/): v2_ready_envelope.py --style home.
+# The ready pose must be on B home's IK branch (shoulder, elbow, wrist signs; home -> ready -> catch never crosses a
+# singularity, no wrist flip) with the elbow clearly up (elbow joint >= min_elbow_rise above the shoulder axis; home:
+# 0.37 m, the Phase 1 ready pose: 0.05 m). Wider / higher grid than Phase 1: a raised elbow needs the TCP higher or
+# closer to the base. The envelope is evaluated with the branch fixed (the reactive planner's ik_branch: fixed).
+ready_home:
+  x: [0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50, 0.55]
+  y: [0.0, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30]
+  z: [1.10, 1.15, 1.20, 1.25, 1.30, 1.35, 1.40, 1.45, 1.50]
+  elevation_deg: [30, 45, 60, 75]
+  min_elbow_rise: 0.15
+
 # 2. Perception
 perception:
   rates_hz: [60, 120, 240]

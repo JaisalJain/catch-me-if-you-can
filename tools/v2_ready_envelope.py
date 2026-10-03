@@ -9,6 +9,13 @@ elbow / wrist family) among the "natural" ones: elbow up, >= 30 deg from the wri
 >= 5 cm from table / pedestals / pallets. The chosen pose is rendered (docs/v2/ready_pose.png) to check that the
 wrist is not flipped.
 
+--style home (arm-configuration review, docs/v2/arm_config/): candidates on B home's IK branch only, elbow joint
+>= ready_home.min_elbow_rise above the shoulder axis (v2_study.yaml ready_home grid); the envelope is computed with
+the IK branch fixed to the ready pose's (reactive.yaml ik_branch: fixed). The Phase 1 pose is evaluated the same
+way with a free branch (= the v2.2 planner) for the comparison (docs/v2/arm_config/ready_compare.json).
+
+    env -u PYTHONPATH .venv/bin/python tools/v2_ready_envelope.py --style home
+
 Envelope: for a ready pose, every grid point is an intercept candidate; B's move = one synchronized quintic
 rest-to-rest from the ready pose to the IK solution (branch-continuous) whose duration is the shortest that keeps
 joint speed <= 85 % of 180 deg/s and the inverse-dynamics torque (gravity included) <= 80 % of the UR5e limits.
@@ -28,10 +35,12 @@ import numpy as np  # noqa: E402
 import v2_common as V  # noqa: E402
 
 W = {}
+ARM_OUT = os.path.join(V.OUT, "arm_config")
 
 
-def _init():
+def _init(style="phase1"):
     import mujoco
+    W["style"] = style
     c = V.cfg()
     m, scene, phys = V.build_model()
     W["c"], W["m"], W["d"] = c, m, mujoco.MjData(m)
@@ -47,6 +56,7 @@ def _init():
     import yaml
     W["home"] = np.array(yaml.safe_load(open(os.path.join(V.REPO, "src/catch_description/config/poses.yaml")))["b"]["home"])
     W["table_z"] = scene["table"]["top_z"]
+    W["home_branch"] = W["robot"].branch(W["home"])
 
 
 def clearance(q):
@@ -70,12 +80,24 @@ def wdist(a, b):
     return float(np.linalg.norm(V.F.np.asarray(a) - b - 2 * np.pi * np.round((np.asarray(a) - b) / (2 * np.pi))))
 
 
+def elbow_rise(robot, q):
+    """Height of the elbow joint above the shoulder (lift) axis [m]."""
+    fr = robot.frames(q)
+    return float(fr[2][2, 3] - fr[1][2, 3])
+
+
 def branch_metrics(q, robot, home, c):
     margin = float(np.min(V.POS_LIMIT - np.abs(q)))
     sv = np.linalg.svd(robot.jacobian(q)[:3], compute_uv=False)
     r = dict(q=q.tolist(), margin=margin, margins=(V.POS_LIMIT - np.abs(q)).tolist(), wrist_sin=float(abs(np.sin(q[4]))),
-             elbow_up=elbow_up(robot, q), dist_home=float(np.linalg.norm(q - home)), manip_min_sv=float(sv.min()))
+             elbow_up=elbow_up(robot, q), dist_home=float(np.linalg.norm(np.arctan2(np.sin(q - home), np.cos(q - home)))), manip_min_sv=float(sv.min()),
+             branch=list(robot.branch(q)), elbow_rise=elbow_rise(robot, q))
     why = []
+    if W.get("style") == "home":
+        if tuple(r["branch"]) != W["home_branch"]:
+            why.append("not home's branch")
+        if r["elbow_rise"] < c["ready_home"]["min_elbow_rise"]:
+            why.append("elbow not raised")
     if not r["elbow_up"]:
         why.append("elbow down")
     if r["wrist_sin"] < c["ready"]["min_wrist_sin"]:
@@ -99,7 +121,12 @@ def eval_candidate(args):
     sols = robot.ik_all(V.make_tf(R, p))
     if not sols:
         return None
-    brs = [branch_metrics(home + np.arctan2(np.sin(s - home), np.cos(s - home)), robot, home, c) for s in sols]
+    # phase1: each joint unwrapped towards home; home style: the max-margin copy (all joints in [-pi, pi); B's waiting
+    # pose then uses the wrist-1 copy that turns the short way to the ready pose, poses.yaml b.wait)
+    if W.get("style") == "home":
+        brs = [branch_metrics(np.arctan2(np.sin(s), np.cos(s)), robot, home, c) for s in sols]
+    else:
+        brs = [branch_metrics(home + np.arctan2(np.sin(s - home), np.cos(s - home)), robot, home, c) for s in sols]
     good = [b for b in brs if not b["why"]]
     best = min(good or brs, key=lambda b: b["dist_home"])
     res = dict(p=list(p), elev=elev, n_branches=len(brs), n_natural=len(good), wrist_sign=int(np.sign(np.sin(best["q"][4]))))
@@ -138,9 +165,10 @@ def move_time(q0, q1, lim, t_lo=0.03, t_hi=1.5):
 
 
 def eval_point(args):
-    q_ready, p, R = args
+    q_ready, p, R = args[:3]
+    branch = args[3] if len(args) > 3 else None
     c, robot = W["c"], W["robot"]
-    q = V.ik_near(robot, R, p, np.asarray(q_ready), max_jump=2.0)
+    q = V.ik_near(robot, R, p, np.asarray(q_ready), max_jump=2.0, branch=branch)
     if q is None:
         return np.nan, "ik"
     if np.min(V.POS_LIMIT - np.abs(q)) < c["limits"]["pos_margin"] or abs(np.sin(q[4])) < 0.25:
@@ -198,14 +226,14 @@ def path_points(p, v, c):
     return pts
 
 
-def catchable(pool, q_ready, fam, R_fn, c, t_decs=None):
+def catchable(pool, q_ready, fam, R_fn, c, t_decs=None, branch=None):
     """Fraction of the family B can intercept: some point on the path with move time <= t - t_decision.
     With t_decs: also the fraction for each of those decision times."""
     t_dec = c["envelope"]["t_decision_s"]
     jobs, owner = [], []
     for i, (p, v) in enumerate(fam):
         for t, pos, vel in path_points(p, v, c):
-            jobs.append((list(q_ready), pos, R_fn(pos, vel)))
+            jobs.append((list(q_ready), pos, R_fn(pos, vel), branch))
             owner.append((i, t))
     res = pool.map(eval_point, jobs, chunksize=16)
     def frac(td):
@@ -220,9 +248,9 @@ def catchable(pool, q_ready, fam, R_fn, c, t_decs=None):
     return f, slack, {float(td): frac(td)[0] for td in t_decs}
 
 
-def envelope(pool, q_ready, R_fn, xs, ys, zs):
+def envelope(pool, q_ready, R_fn, xs, ys, zs, branch=None):
     pts = [(x, y, z) for x in xs for y in ys for z in zs]
-    res = pool.map(eval_point, [(list(q_ready), np.array(p), R_fn(np.array(p))) for p in pts], chunksize=16)
+    res = pool.map(eval_point, [(list(q_ready), np.array(p), R_fn(np.array(p)), branch) for p in pts], chunksize=16)
     T = np.array([r[0] for r in res]).reshape(len(xs), len(ys), len(zs))
     return T
 
@@ -230,11 +258,17 @@ def envelope(pool, q_ready, R_fn, xs, ys, zs):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--quick", action="store_true")
+    ap.add_argument("--style", choices=("phase1", "home"), default="phase1")
+    ap.add_argument("--evaluate", nargs="*", default=None, metavar="POSE",
+                    help="only evaluate reactive.yaml ready poses (envelope + family), IK branch as the benchmark ran "
+                         "them (phase1 free, others fixed) -> docs/v2/arm_config/envelope_eval.json")
     a = ap.parse_args()
+    if a.evaluate is not None:
+        return evaluate_poses(a.evaluate)
     c = V.cfg()
-    rc = c["ready"]
-    _init()
-    pool = mp.Pool(min(22, os.cpu_count()), initializer=_init)
+    rc = c["ready"] if a.style == "phase1" else dict(c["ready"], **c["ready_home"])
+    _init(a.style)
+    pool = mp.Pool(min(22, os.cpu_count()), initializer=_init, initargs=(a.style,))
     cands = [((x, y, z), e) for x in rc["x"] for y in rc["y"] for z in rc["z"] for e in rc["elevation_deg"]]
     res = [r for r in pool.map(eval_candidate, cands, chunksize=8) if r is not None]
     ok = [r for r in res if r["ok"]]
@@ -247,7 +281,7 @@ def main():
     ok.sort(key=lambda r: r["pre_score"], reverse=True)
     pick, seen = [], set()
     for r in ok:
-        key = (r["elev"], round(r["p"][0], 2))
+        key = (r["elev"], round(r["p"][0], 2)) + ((round(r["p"][2], 2),) if a.style == "home" else ())   # home: per z too
         if key not in seen:
             seen.add(key)
             pick.append(r)
@@ -257,10 +291,12 @@ def main():
     v_nom = flight.velocity(T_nom)
     fam = family(c)
     print(f"scoring {len(pick)} ready candidates on {len(fam)} throws of the prior family", flush=True)
+    fixed = a.style == "home"
     for r in pick:
         z_ready = V.ready_rotation(r["elev"])[:, 2]
-        r["catch_ready"] = catchable(pool, r["q"], fam, lambda p, v: V.ready_rotation(r["elev"]), c)[0]
-        r["catch_cup30"] = catchable(pool, r["q"], fam, lambda p, v: V.catch_rotation(z_ready, v, np.radians(30), "cup")[0], c)[0]
+        br = tuple(r["branch"]) if fixed else None
+        r["catch_ready"] = catchable(pool, r["q"], fam, lambda p, v: V.ready_rotation(r["elev"]), c, branch=br)[0]
+        r["catch_cup30"] = catchable(pool, r["q"], fam, lambda p, v: V.catch_rotation(z_ready, v, np.radians(30), "cup")[0], c, branch=br)[0]
         r["score"] = 0.5 * (r["catch_ready"] + r["catch_cup30"])
         print(f"p={np.round(r['p'], 2).tolist()} elev={r['elev']:2d} margin={r['margin']:.2f} sv={r['manip_min_sv']:.2f} "
               f"home_dist={r['dist_home']:.2f} clr={r['clearance'] * 1000:.0f} mm -> catchable: ready-orientation "
@@ -275,8 +311,9 @@ def main():
     print(f"refining around {np.round(b0['p'], 2).tolist()} elev {b0['elev']}: {len(ref)} more candidates", flush=True)
     for r in ref:
         z_ready = V.ready_rotation(r["elev"])[:, 2]
-        r["catch_ready"] = catchable(pool, r["q"], fam, lambda p, v: V.ready_rotation(r["elev"]), c)[0]
-        r["catch_cup30"] = catchable(pool, r["q"], fam, lambda p, v: V.catch_rotation(z_ready, v, np.radians(30), "cup")[0], c)[0]
+        br = tuple(r["branch"]) if fixed else None
+        r["catch_ready"] = catchable(pool, r["q"], fam, lambda p, v: V.ready_rotation(r["elev"]), c, branch=br)[0]
+        r["catch_cup30"] = catchable(pool, r["q"], fam, lambda p, v: V.catch_rotation(z_ready, v, np.radians(30), "cup")[0], c, branch=br)[0]
         r["score"] = 0.5 * (r["catch_ready"] + r["catch_cup30"])
     pick += ref
     top = sorted(pick, key=lambda r: r["score"], reverse=True)[:10]
@@ -287,15 +324,85 @@ def main():
     smax = top[0]["score"]
     best = max([r for r in top if r["score"] >= smax - 0.01], key=lambda r: r["margin"])
     print("chosen ready pose:", best)
-    # full-resolution envelope of the chosen pose
     xs, ys, zs = grid(c)
-    R_ready = V.ready_rotation(best["elev"])
+    env, fam_res = pose_eval(pool, best["q"], best["elev"], tuple(best["branch"]) if fixed else None, fam, c, v_nom)
+    if a.style == "home":
+        # the Phase 1 pose (reactive.yaml before this review) the same way, free branch (= the v2.2 planner)
+        ref = V.ready_reference()
+        ref_env, ref_fam = pose_eval(pool, ref["q"], ref["elev"], None, fam, c, v_nom)
+    pool.close()
+    out = dict(V.flags(c), style=a.style, candidates=res, evaluated=pick, chosen=best, grid=dict(x=xs, y=ys, z=zs),
+               family=[dict(p=p, v=v) for p, v in fam], family_result=fam_res,
+               envelope_move_time={k: np.where(np.isnan(v), -1, v) for k, v in env.items()},
+               nominal_throw=dict(intercept=cpt, v=v_nom, T=T_nom),
+               note="move time [s] rest-to-rest from the ready pose, -1 = unreachable; orientation: ready / cup "
+                    "limited to 30 deg around the ready approach axis / cup full (palm against the M1 arrival velocity)")
+    import yaml
+    home = yaml.safe_load(open(os.path.join(V.REPO, "src/catch_description/config/poses.yaml")))["b"]["home"]
+    if a.style == "phase1":
+        V.save_json("ready_envelope.json", out)
+        plot(out, c)
+        render_pose(best["q"], os.path.join(V.OUT, "ready_pose.png"), extra=[(home, "B home (v1)")])
+        return
+    os.makedirs(ARM_OUT, exist_ok=True)
+    V.save_json("arm_config/ready_envelope_home.json", out)
+    plot(out, c, path=os.path.join(ARM_OUT, "catch_envelope_home.png"))
+    cmp_ = dict(V.flags(c), t_left_s=c["envelope"]["t_left_s"], t_decision_s=c["envelope"]["t_decision_s"],
+                note="grid points (2.5 cm grid, x 0.15-0.60, y -0.10-0.45, z 0.95-1.45) B reaches from rest within the "
+                     "time left (85 % speed / 80 % torque, joint margins, clearance); family = fraction of the 252-throw "
+                     "prior family catchable at t_decision; phase1 = free IK branch (v2.2 planner), home = branch fixed")
+    for key, q, el, br, e, f in (("phase1", ref["q"], ref["elev"], None, ref_env, ref_fam),
+                                 ("home", best["q"], best["elev"], tuple(best["branch"]), env, fam_res)):
+        cmp_[key] = dict(q=list(q), elev=el, branch=list(W["robot"].branch(np.asarray(q))), ik_branch="fixed" if br else "free",
+                         elbow_rise=elbow_rise(W["robot"], np.asarray(q)), tcp=W["robot"].fk(np.asarray(q))[:3, 3].tolist(),
+                         grid_points={name: {str(tl): int(np.sum(e[name] <= tl)) for tl in c["envelope"]["t_left_s"]} for name in e},
+                         family={name: dict(catchable=f[name]["catchable"], by_t_decision=f[name]["by_t_decision"]) for name in f})
+    V.save_json("arm_config/ready_compare.json", cmp_)
+    render_pose(best["q"], os.path.join(ARM_OUT, "ready_home_candidate.png"), label="home-style ready (candidate)",
+                extra=[(ref["q"], "Phase 1 ready (v2.2)"), (home, "B home")])
+
+
+def evaluate_poses(names):
+    """Envelope (grid points reachable within the time left) and catchable family fraction of reactive.yaml ready
+    poses; phase1 with a free IK branch (= the v2.2 planner), every other pose with its branch fixed."""
+    import yaml
+    c = V.cfg()
+    rc = yaml.safe_load(open(os.path.join(V.REPO, "src/catch_catcher/config/reactive.yaml")))
+    names = names or list(rc["ready_poses"])
+    _init("phase1")
+    pool = mp.Pool(min(22, os.cpu_count()), initializer=_init, initargs=("phase1",))
+    flight, T_nom, cpt = nominal()
+    v_nom = flight.velocity(T_nom)
+    fam = family(c)
+    out = dict(V.flags(c), t_left_s=c["envelope"]["t_left_s"], t_decision_s=c["envelope"]["t_decision_s"], poses={},
+               note="grid points (2.5 cm grid, x 0.15-0.60, y -0.10-0.45, z 0.95-1.45) B reaches from rest within the "
+                    "time left (85 % speed / 80 % torque, joint margins, clearance); family = fraction of the 252-throw "
+                    "prior family catchable at t_decision")
+    for name in names:
+        p = rc["ready_poses"][name]
+        q = np.array(p["q"])
+        br = None if name == "phase1" else W["robot"].branch(q)
+        print(f"{name}: q {np.round(q, 3).tolist()}, ik branch {'free' if br is None else 'fixed ' + str(br)}", flush=True)
+        env, fr = pose_eval(pool, q, p["elev_deg"], br, fam, c, v_nom)
+        out["poses"][name] = dict(q=q.tolist(), elev=p["elev_deg"], tcp=W["robot"].fk(q)[:3, 3].tolist(),
+                                  branch=list(W["robot"].branch(q)), ik_branch="free" if br is None else "fixed",
+                                  elbow_rise=elbow_rise(W["robot"], q),
+                                  grid_points={k: {str(tl): int(np.sum(env[k] <= tl)) for tl in c["envelope"]["t_left_s"]} for k in env},
+                                  family={k: dict(catchable=v["catchable"], by_t_decision=v["by_t_decision"]) for k, v in fr.items()})
+    pool.close()
+    V.save_json("arm_config/envelope_eval.json", out)
+
+
+def pose_eval(pool, q, elev, branch, fam, c, v_nom):
+    """Full-resolution envelope (grid points' move times) and the family's catchable fraction of one ready pose."""
+    xs, ys, zs = grid(c)
+    R_ready = V.ready_rotation(elev)
     z_ready = R_ready[:, 2]
     env = {}
     for name, fn in (("ready", lambda p: R_ready),
                      ("cup30", lambda p: V.catch_rotation(z_ready, v_nom, np.radians(30), "cup")[0]),
                      ("cup_full", lambda p: V.catch_rotation(z_ready, v_nom, np.pi, "cup")[0])):
-        env[name] = envelope(pool, best["q"], fn, xs, ys, zs)
+        env[name] = envelope(pool, q, fn, xs, ys, zs, branch=branch)
         for tl in c["envelope"]["t_left_s"]:
             print(f"  {name}: {int(np.sum(env[name] <= tl))} grid points ({c['envelope']['grid_step'] * 100:.1f} cm) reachable in {tl} s")
     t_decs = [0.10, 0.15, 0.20, 0.25, 0.30]
@@ -303,25 +410,14 @@ def main():
     for name, fn in (("ready", lambda p, v: R_ready),
                      ("cup30", lambda p, v: V.catch_rotation(z_ready, v, np.radians(30), "cup")[0]),
                      ("cup_full", lambda p, v: V.catch_rotation(z_ready, v, np.pi, "cup")[0])):
-        f, slack, by_t = catchable(pool, best["q"], fam, fn, c, t_decs)
+        f, slack, by_t = catchable(pool, q, fam, fn, c, t_decs, branch=branch)
         fam_res[name] = dict(catchable=f, slack=np.where(np.isinf(slack), -9, slack), by_t_decision=by_t)
         print(f"  {name}: catchable {f:.2f} of the family at t_decision {c['envelope']['t_decision_s']} s; by decision time "
-              + ", ".join(f"{k:.2f}s: {v:.2f}" for k, v in by_t.items()))
-    pool.close()
-    out = dict(V.flags(c), candidates=res, evaluated=pick, chosen=best, grid=dict(x=xs, y=ys, z=zs),
-               family=[dict(p=p, v=v) for p, v in fam], family_result=fam_res,
-               envelope_move_time={k: np.where(np.isnan(v), -1, v) for k, v in env.items()},
-               nominal_throw=dict(intercept=cpt, v=v_nom, T=T_nom),
-               note="move time [s] rest-to-rest from the ready pose, -1 = unreachable; orientation: ready / cup "
-                    "limited to 30 deg around the ready approach axis / cup full (palm against the M1 arrival velocity)")
-    V.save_json("ready_envelope.json", out)
-    plot(out, c)
-    import yaml
-    home = yaml.safe_load(open(os.path.join(V.REPO, "src/catch_description/config/poses.yaml")))["b"]["home"]
-    render_pose(best["q"], os.path.join(V.OUT, "ready_pose.png"), extra=[(home, "B home (v1)")])
+              + ", ".join(f"{k:.2f}s: {v:.2f}" for k, v in by_t.items()), flush=True)
+    return env, fam_res
 
 
-def render_pose(q_b, path, extra=()):
+def render_pose(q_b, path, extra=(), label="ready"):
     """Render B at q_b (A at home) from two free cameras -> png (checks that the wrist is not flipped)."""
     os.environ.setdefault("MUJOCO_GL", "egl")
     os.environ.setdefault("__EGL_VENDOR_LIBRARY_FILENAMES", "/usr/share/glvnd/egl_vendor.d/10_nvidia.json")
@@ -332,7 +428,7 @@ def render_pose(q_b, path, extra=()):
     poses = yaml.safe_load(open(os.path.join(V.REPO, "src/catch_description/config/poses.yaml")))
     jid = lambda n: m.jnt_qposadr[mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_JOINT, n)]
     imgs = []
-    for qb, label in [(q_b, "ready")] + list(extra):
+    for qb, label in [(q_b, label)] + list(extra):
         for k, q in (("a", poses["a"]["home"]), ("b", qb)):
             for j, n in enumerate(V.JN):
                 d.qpos[jid(f"{k}_{n}")] = q[j]
@@ -353,7 +449,7 @@ def render_pose(q_b, path, extra=()):
     cv2.imwrite(path, np.concatenate(imgs, axis=0)[:, :, ::-1])
 
 
-def plot(out, c):
+def plot(out, c, path=None):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -392,7 +488,7 @@ def plot(out, c):
         fig.colorbar(im, ax=axs[row].tolist(), label="B move time from the ready pose [s]", shrink=0.8)
     fig.suptitle(f"Catch envelope from the ready pose (star): rest-to-rest move time within 85 % speed / 80 % torque; "
                  f"white contours = time left {levels} s; gripper_profile n/a (kinematics only)")
-    fig.savefig(os.path.join(V.OUT, "catch_envelope.png"), dpi=100)
+    fig.savefig(path or os.path.join(V.OUT, "catch_envelope.png"), dpi=100)
 
 
 if __name__ == "__main__":

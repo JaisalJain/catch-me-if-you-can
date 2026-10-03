@@ -1,4 +1,4 @@
-"""Small sim monitors: ground-truth cube TF, real-time factor, GPU check, camera optical-frame TFs."""
+"""Small sim monitors: ground-truth cube TF, real-time factor, GPU check, camera optical-frame TFs, RViz display."""
 import os
 import subprocess
 import time
@@ -135,6 +135,62 @@ class CameraTF(Node):
         self.br.sendTransform(tfs)
 
 
+class RvizDisplay(Node):
+    """RViz only (bringup starts it with rviz:=true; never in benchmarks): ground-truth cube markers on
+    /display/ground_truth_cubes (namespace "ground truth (display only)" - no robot decision reads them) and
+    B's wrist camera triggered at a low rate so its (polled) image shows live in RViz. Wall-clock timers
+    (use_sim_time false: display only)."""
+
+    def __init__(self):
+        super().__init__("rviz_display")
+        from std_srvs.srv import Trigger
+        from visualization_msgs.msg import MarkerArray
+        self.declare_parameter("marker_rate", 20.0)
+        self.declare_parameter("wrist_camera_rate", 4.0)
+        scene = load_scene()
+        self.edge = float(scene["cube"]["edge"])
+        self.latest = None
+        self.pub = self.create_publisher(MarkerArray, "/display/ground_truth_cubes", 1)
+        self.create_subscription(FreeJointStateArray, "/free_joint_state_publisher/free_joint_states", self.on_fj, 1)
+        self.create_timer(1.0 / self.get_parameter("marker_rate").value, self.publish)
+        self.trig = self.create_client(Trigger, "/cameras/b_wrist/trigger")
+        self.pending = None
+        r = self.get_parameter("wrist_camera_rate").value
+        if r > 0:
+            self.create_timer(1.0 / r, self.trigger)
+
+    def on_fj(self, m):
+        self.latest = m
+
+    def publish(self):
+        from visualization_msgs.msg import Marker, MarkerArray
+        m = self.latest
+        if m is None:
+            return
+        rgb = {"red": (0.85, 0.12, 0.12), "green": (0.12, 0.7, 0.2), "blue": (0.15, 0.3, 0.9)}
+        out = MarkerArray()
+        for k, f in enumerate(m.free_joints):
+            mk = Marker()
+            mk.header.frame_id = "world"
+            # stamp 0 = latest transform (display node on wall-clock timers; world is static anyway)
+            mk.ns = "ground truth (display only)"
+            mk.id = k
+            mk.type = Marker.CUBE
+            mk.pose = f.pose.pose
+            mk.scale.x = mk.scale.y = mk.scale.z = self.edge
+            c = rgb.get(f.name.replace("cube_", ""), (0.8, 0.8, 0.8))
+            mk.color.r, mk.color.g, mk.color.b, mk.color.a = c[0], c[1], c[2], 1.0
+            out.markers.append(mk)
+        self.pub.publish(out)
+
+    def trigger(self):
+        from std_srvs.srv import Trigger
+        if self.pending is not None and not self.pending.done():
+            return
+        if self.trig.service_is_ready():
+            self.pending = self.trig.call_async(Trigger.Request())
+
+
 def _run(cls):
     rclpy.init()
     n = cls()
@@ -158,6 +214,10 @@ def rtf_main():
 
 def gpu_main():
     _run(GpuCheck)
+
+
+def rviz_display_main():
+    _run(RvizDisplay)
 
 
 def camera_tf_main():

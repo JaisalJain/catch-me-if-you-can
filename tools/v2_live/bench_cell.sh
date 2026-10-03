@@ -32,7 +32,7 @@ sleep 8
 # real-time factor and load average are recorded per trial by reactive_eval (summary.rtf, summary.loadavg_1min)
 # recordings: failures only, except the fast-gripper cells (all trials: offline-vs-live comparison per throw,
 # tools/v2_live/fastclose_diag.py); recording runs on every trial anyway, only the saving differs
-REC="--rec-fail-only"; case "$LABEL" in fastclose_medium|fastidealized_medium) REC="";; esac
+REC="--rec-fail-only"; case "$LABEL" in fastclose_medium|fastidealized_medium|armcfg_*) REC="";; esac
 ros2 run catch_tasks reactive_eval --throws "$N" --mode "$MODE" --source "$SRC" --noise "$NOISE" --seed "$SEED" \
     --label "$LABEL" --out "$OUT_DIR/$LABEL.json" --rec-dir "$D/$LABEL" $REC > "$D/$LABEL.eval.log" 2>&1
 grep SUMMARY "$D/$LABEL.eval.log" | cut -c1-400

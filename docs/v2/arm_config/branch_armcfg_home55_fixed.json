@@ -1,0 +1,1826 @@
+{
+ "q_ready": [
+  -0.710104,
+  -0.372121,
+  1.539435,
+  0.891593,
+  -1.187563,
+  0.613561
+ ],
+ "ready": {
+  "branch": [
+   1,
+   1,
+   -1
+  ],
+  "elbow_above_shoulder_m": 0.155,
+  "elbow_above_line_m": 0.26,
+  "wrist2_sign": -1
+ },
+ "cells": {
+  "armcfg_home55_fixed": {
+   "summary": {
+    "n": 59,
+    "trials_with_change": 0,
+    "total_changes": 0,
+    "start_at_ready": 59,
+    "max_dev_over_trials": [
+     0.344,
+     0.252,
+     0.336,
+     0.35,
+     0.144,
+     0.369
+    ],
+    "median_max_dev": [
+     0.08,
+     0.044,
+     0.118,
+     0.049,
+     0.043,
+     0.086
+    ],
+    "min_wrist2_abs_sin": 0.8640914880245258,
+    "branches_seen": [
+     [
+      1,
+      1,
+      -1
+     ]
+    ]
+   },
+   "trials": [
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_000.npz",
+     "outcome": "held",
+     "n": 1372,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.207,
+      0.032,
+      0.099,
+      0.06,
+      0.119,
+      0.216
+     ],
+     "wrist2_min_abs_sin": 0.9276933960247971,
+     "elbow_min_abs": 1.5402427812801975
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_001.npz",
+     "outcome": "held",
+     "n": 1370,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.095,
+      0.048,
+      0.016,
+      0.009,
+      0.045,
+      0.086
+     ],
+     "wrist2_min_abs_sin": 0.9271945798393664,
+     "elbow_min_abs": 1.5238884280535419
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_002.npz",
+     "outcome": "abort",
+     "n": 1039,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.001,
+      0.0,
+      0.001,
+      0.001,
+      0.001,
+      0.0
+     ],
+     "wrist2_min_abs_sin": 0.927704101425028,
+     "elbow_min_abs": 1.540422720241324
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_003.npz",
+     "outcome": "missed intercept",
+     "n": 1383,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.28,
+      0.021,
+      0.168,
+      0.058,
+      0.124,
+      0.303
+     ],
+     "wrist2_min_abs_sin": 0.8741379044172458,
+     "elbow_min_abs": 1.3712527099126934
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_004.npz",
+     "outcome": "fingertip",
+     "n": 1387,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.17,
+      0.044,
+      0.119,
+      0.109,
+      0.087,
+      0.162
+     ],
+     "wrist2_min_abs_sin": 0.9278091306674919,
+     "elbow_min_abs": 1.5385121409282394
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_005.npz",
+     "outcome": "held",
+     "n": 1355,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.013,
+      0.221,
+      0.19,
+      0.028,
+      0.005,
+      0.009
+     ],
+     "wrist2_min_abs_sin": 0.9272790902598439,
+     "elbow_min_abs": 1.3495380572241604
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_006.npz",
+     "outcome": "held",
+     "n": 1411,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.103,
+      0.053,
+      0.308,
+      0.22,
+      0.053,
+      0.102
+     ],
+     "wrist2_min_abs_sin": 0.9271411917615114,
+     "elbow_min_abs": 1.5386205962821229
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_007.npz",
+     "outcome": "missed intercept",
+     "n": 1387,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.274,
+      0.033,
+      0.175,
+      0.023,
+      0.116,
+      0.278
+     ],
+     "wrist2_min_abs_sin": 0.8780857773319913,
+     "elbow_min_abs": 1.3646562192384515
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_008.npz",
+     "outcome": "held",
+     "n": 1368,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.053,
+      0.185,
+      0.178,
+      0.013,
+      0.007,
+      0.015
+     ],
+     "wrist2_min_abs_sin": 0.9247266807928303,
+     "elbow_min_abs": 1.3617615189017247
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_009.npz",
+     "outcome": "abort",
+     "n": 1012,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.001,
+      0.0,
+      0.0,
+      0.001,
+      0.001,
+      0.001
+     ],
+     "wrist2_min_abs_sin": 0.9276533898490366,
+     "elbow_min_abs": 1.5395602998057933
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_010.npz",
+     "outcome": "held",
+     "n": 1391,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.07,
+      0.048,
+      0.131,
+      0.111,
+      0.036,
+      0.075
+     ],
+     "wrist2_min_abs_sin": 0.9135333286303842,
+     "elbow_min_abs": 1.5395606394521288
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_011.npz",
+     "outcome": "abort",
+     "n": 1036,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.0,
+      0.0,
+      0.001,
+      0.001,
+      0.001,
+      0.001
+     ],
+     "wrist2_min_abs_sin": 0.9276784799571819,
+     "elbow_min_abs": 1.5398665295614935
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_012.npz",
+     "outcome": "held",
+     "n": 1397,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.055,
+      0.072,
+      0.108,
+      0.033,
+      0.012,
+      0.024
+     ],
+     "wrist2_min_abs_sin": 0.9230989566166934,
+     "elbow_min_abs": 1.4311610286970482
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_013.npz",
+     "outcome": "fingertip",
+     "n": 1359,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.077,
+      0.009,
+      0.076,
+      0.043,
+      0.037,
+      0.072
+     ],
+     "wrist2_min_abs_sin": 0.9272013419702712,
+     "elbow_min_abs": 1.5391514466599883
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_014.npz",
+     "outcome": "held",
+     "n": 1389,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.06,
+      0.113,
+      0.163,
+      0.035,
+      0.025,
+      0.053
+     ],
+     "wrist2_min_abs_sin": 0.9177369183959011,
+     "elbow_min_abs": 1.3763554281338701
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_015.npz",
+     "outcome": "abort",
+     "n": 1033,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.001,
+      0.0,
+      0.0,
+      0.0,
+      0.001,
+      0.001
+     ],
+     "wrist2_min_abs_sin": 0.9272691720538212,
+     "elbow_min_abs": 1.539732913015004
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_016.npz",
+     "outcome": "fingertip",
+     "n": 1353,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.074,
+      0.13,
+      0.137,
+      0.016,
+      0.028,
+      0.058
+     ],
+     "wrist2_min_abs_sin": 0.9167532340039376,
+     "elbow_min_abs": 1.402695394469518
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_017.npz",
+     "outcome": "held",
+     "n": 1389,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.014,
+      0.033,
+      0.191,
+      0.171,
+      0.007,
+      0.015
+     ],
+     "wrist2_min_abs_sin": 0.9246878185055399,
+     "elbow_min_abs": 1.538628748426156
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_018.npz",
+     "outcome": "held",
+     "n": 1396,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.115,
+      0.084,
+      0.024,
+      0.029,
+      0.065,
+      0.124
+     ],
+     "wrist2_min_abs_sin": 0.9277796661032209,
+     "elbow_min_abs": 1.5149761731569853
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_019.npz",
+     "outcome": "held",
+     "n": 1393,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.165,
+      0.059,
+      0.059,
+      0.073,
+      0.069,
+      0.131
+     ],
+     "wrist2_min_abs_sin": 0.9275916671412585,
+     "elbow_min_abs": 1.537835099470044
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_020.npz",
+     "outcome": "held",
+     "n": 1378,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.077,
+      0.07,
+      0.131,
+      0.097,
+      0.042,
+      0.09
+     ],
+     "wrist2_min_abs_sin": 0.9108130665692535,
+     "elbow_min_abs": 1.5390804884787053
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_021.npz",
+     "outcome": "abort",
+     "n": 1039,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.001,
+      0.0,
+      0.001,
+      0.0,
+      0.001,
+      0.0
+     ],
+     "wrist2_min_abs_sin": 0.927247914009914,
+     "elbow_min_abs": 1.5397685929347338
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_022.npz",
+     "outcome": "missed intercept",
+     "n": 1340,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.085,
+      0.043,
+      0.133,
+      0.054,
+      0.052,
+      0.101
+     ],
+     "wrist2_min_abs_sin": 0.92725125115145,
+     "elbow_min_abs": 1.5397687030047493
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_023.npz",
+     "outcome": "held",
+     "n": 1363,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.069,
+      0.008,
+      0.119,
+      0.084,
+      0.04,
+      0.078
+     ],
+     "wrist2_min_abs_sin": 0.927214366171621,
+     "elbow_min_abs": 1.5386079640653318
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_024.npz",
+     "outcome": "missed intercept",
+     "n": 1369,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.194,
+      0.155,
+      0.261,
+      0.038,
+      0.119,
+      0.216
+     ],
+     "wrist2_min_abs_sin": 0.9275679740344346,
+     "elbow_min_abs": 1.5403020886056427
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_026.npz",
+     "outcome": "fingertip",
+     "n": 1391,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.282,
+      0.149,
+      0.219,
+      0.048,
+      0.114,
+      0.273
+     ],
+     "wrist2_min_abs_sin": 0.8788984344462674,
+     "elbow_min_abs": 1.3208884314221143
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_027.npz",
+     "outcome": "fingertip",
+     "n": 1369,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.344,
+      0.252,
+      0.271,
+      0.145,
+      0.144,
+      0.369
+     ],
+     "wrist2_min_abs_sin": 0.8640914880245258,
+     "elbow_min_abs": 1.268506649206161
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_028.npz",
+     "outcome": "held",
+     "n": 1400,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.05,
+      0.058,
+      0.138,
+      0.067,
+      0.018,
+      0.036
+     ],
+     "wrist2_min_abs_sin": 0.9277979051774204,
+     "elbow_min_abs": 1.5390976128749865
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_029.npz",
+     "outcome": "abort",
+     "n": 1037,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.0,
+      0.001,
+      0.001,
+      0.001,
+      0.001,
+      0.0
+     ],
+     "wrist2_min_abs_sin": 0.9271773562737203,
+     "elbow_min_abs": 1.538674150337383
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_030.npz",
+     "outcome": "held",
+     "n": 1405,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.071,
+      0.053,
+      0.118,
+      0.138,
+      0.048,
+      0.093
+     ],
+     "wrist2_min_abs_sin": 0.9271870917867033,
+     "elbow_min_abs": 1.5386743818846864
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_031.npz",
+     "outcome": "fingertip",
+     "n": 1387,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.283,
+      0.151,
+      0.222,
+      0.048,
+      0.115,
+      0.276
+     ],
+     "wrist2_min_abs_sin": 0.8783411568340608,
+     "elbow_min_abs": 1.3175824656123682
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_032.npz",
+     "outcome": "held",
+     "n": 1410,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.161,
+      0.07,
+      0.216,
+      0.224,
+      0.083,
+      0.188
+     ],
+     "wrist2_min_abs_sin": 0.8934280220567073,
+     "elbow_min_abs": 1.540308684134796
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_033.npz",
+     "outcome": "held",
+     "n": 1378,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.057,
+      0.067,
+      0.11,
+      0.071,
+      0.041,
+      0.08
+     ],
+     "wrist2_min_abs_sin": 0.9277350678913522,
+     "elbow_min_abs": 1.4295608763737273
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_034.npz",
+     "outcome": "held",
+     "n": 1399,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.193,
+      0.107,
+      0.109,
+      0.065,
+      0.074,
+      0.165
+     ],
+     "wrist2_min_abs_sin": 0.8974773668942729,
+     "elbow_min_abs": 1.430183602610344
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_035.npz",
+     "outcome": "abort",
+     "n": 1033,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.0,
+      0.001,
+      0.0,
+      0.001,
+      0.0,
+      0.0
+     ],
+     "wrist2_min_abs_sin": 0.927516013527254,
+     "elbow_min_abs": 1.539595407526717
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_036.npz",
+     "outcome": "held",
+     "n": 1392,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.212,
+      0.039,
+      0.153,
+      0.198,
+      0.088,
+      0.202
+     ],
+     "wrist2_min_abs_sin": 0.8908576205715445,
+     "elbow_min_abs": 1.5395954671939218
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_037.npz",
+     "outcome": "abort",
+     "n": 1018,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.0,
+      0.0,
+      0.001,
+      0.001,
+      0.0,
+      0.001
+     ],
+     "wrist2_min_abs_sin": 0.9274312813124758,
+     "elbow_min_abs": 1.538578324186008
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_038.npz",
+     "outcome": "held",
+     "n": 1399,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.082,
+      0.036,
+      0.329,
+      0.264,
+      0.043,
+      0.083
+     ],
+     "wrist2_min_abs_sin": 0.9274313537235769,
+     "elbow_min_abs": 1.5385786456073944
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_039.npz",
+     "outcome": "held",
+     "n": 1350,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.097,
+      0.164,
+      0.154,
+      0.049,
+      0.046,
+      0.098
+     ],
+     "wrist2_min_abs_sin": 0.9094529171845718,
+     "elbow_min_abs": 1.3855978894351515
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_040.npz",
+     "outcome": "abort",
+     "n": 1051,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.001,
+      0.0,
+      0.001,
+      0.001,
+      0.0,
+      0.0
+     ],
+     "wrist2_min_abs_sin": 0.9276036856352475,
+     "elbow_min_abs": 1.538897559070431
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_041.npz",
+     "outcome": "abort",
+     "n": 1042,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.001,
+      0.0,
+      0.001,
+      0.001,
+      0.0,
+      0.0
+     ],
+     "wrist2_min_abs_sin": 0.9275986104377554,
+     "elbow_min_abs": 1.5388973543642646
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_042.npz",
+     "outcome": "held",
+     "n": 1390,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.11,
+      0.069,
+      0.067,
+      0.031,
+      0.048,
+      0.092
+     ],
+     "wrist2_min_abs_sin": 0.9276036868095112,
+     "elbow_min_abs": 1.4724645805677203
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_043.npz",
+     "outcome": "fingertip",
+     "n": 1357,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.069,
+      0.019,
+      0.092,
+      0.049,
+      0.029,
+      0.062
+     ],
+     "wrist2_min_abs_sin": 0.9160313790315935,
+     "elbow_min_abs": 1.4475826839441477
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_044.npz",
+     "outcome": "held",
+     "n": 1391,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.107,
+      0.053,
+      0.276,
+      0.189,
+      0.051,
+      0.098
+     ],
+     "wrist2_min_abs_sin": 0.9275093590901295,
+     "elbow_min_abs": 1.5388708548978296
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_045.npz",
+     "outcome": "missed intercept",
+     "n": 1346,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.187,
+      0.043,
+      0.089,
+      0.072,
+      0.096,
+      0.179
+     ],
+     "wrist2_min_abs_sin": 0.9276342864658012,
+     "elbow_min_abs": 1.540122201293179
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_046.npz",
+     "outcome": "held",
+     "n": 1384,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.045,
+      0.008,
+      0.132,
+      0.125,
+      0.02,
+      0.04
+     ],
+     "wrist2_min_abs_sin": 0.9273168045859712,
+     "elbow_min_abs": 1.5389137164744888
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_047.npz",
+     "outcome": "held",
+     "n": 1396,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.2,
+      0.03,
+      0.138,
+      0.186,
+      0.083,
+      0.188
+     ],
+     "wrist2_min_abs_sin": 0.8932933850737964,
+     "elbow_min_abs": 1.5387477631149216
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_048.npz",
+     "outcome": "abort",
+     "n": 1033,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.001,
+      0.001,
+      0.001,
+      0.0,
+      0.001,
+      0.001
+     ],
+     "wrist2_min_abs_sin": 0.9276738992428545,
+     "elbow_min_abs": 1.5388358131505768
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_049.npz",
+     "outcome": "held",
+     "n": 1389,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.08,
+      0.055,
+      0.336,
+      0.258,
+      0.04,
+      0.076
+     ],
+     "wrist2_min_abs_sin": 0.927679428511618,
+     "elbow_min_abs": 1.5388360675004642
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_050.npz",
+     "outcome": "held",
+     "n": 1355,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.098,
+      0.019,
+      0.013,
+      0.009,
+      0.044,
+      0.086
+     ],
+     "wrist2_min_abs_sin": 0.9272262604141307,
+     "elbow_min_abs": 1.5307394437346642
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_051.npz",
+     "outcome": "held",
+     "n": 1375,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.191,
+      0.149,
+      0.163,
+      0.058,
+      0.079,
+      0.177
+     ],
+     "wrist2_min_abs_sin": 0.8952308244496033,
+     "elbow_min_abs": 1.3761065642806578
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_052.npz",
+     "outcome": "held",
+     "n": 1387,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.127,
+      0.022,
+      0.008,
+      0.069,
+      0.055,
+      0.12
+     ],
+     "wrist2_min_abs_sin": 0.9053675763121691,
+     "elbow_min_abs": 1.5316198281414914
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_053.npz",
+     "outcome": "held",
+     "n": 1404,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.066,
+      0.064,
+      0.111,
+      0.029,
+      0.025,
+      0.05
+     ],
+     "wrist2_min_abs_sin": 0.9272294799856726,
+     "elbow_min_abs": 1.5402009197649875
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_054.npz",
+     "outcome": "missed intercept",
+     "n": 1377,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.186,
+      0.085,
+      0.012,
+      0.024,
+      0.068,
+      0.152
+     ],
+     "wrist2_min_abs_sin": 0.8997014276883705,
+     "elbow_min_abs": 1.5279148966568856
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_055.npz",
+     "outcome": "missed intercept",
+     "n": 1339,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.089,
+      0.051,
+      0.099,
+      0.017,
+      0.045,
+      0.096
+     ],
+     "wrist2_min_abs_sin": 0.9098648873369052,
+     "elbow_min_abs": 1.44011329081172
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_056.npz",
+     "outcome": "held",
+     "n": 1390,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.22,
+      0.126,
+      0.179,
+      0.055,
+      0.107,
+      0.252
+     ],
+     "wrist2_min_abs_sin": 0.8823799971584437,
+     "elbow_min_abs": 1.3608385430262957
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_057.npz",
+     "outcome": "held",
+     "n": 1363,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.013,
+      0.031,
+      0.086,
+      0.049,
+      0.008,
+      0.016
+     ],
+     "wrist2_min_abs_sin": 0.9245262125617153,
+     "elbow_min_abs": 1.453349150536982
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_058.npz",
+     "outcome": "abort",
+     "n": 1042,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.0,
+      0.001,
+      0.001,
+      0.001,
+      0.001,
+      0.0
+     ],
+     "wrist2_min_abs_sin": 0.9277148388931354,
+     "elbow_min_abs": 1.5402354154714235
+    },
+    {
+     "file": "log/p2/bench/armcfg_home55_fixed/trial_059.npz",
+     "outcome": "held",
+     "n": 1415,
+     "start_branch": [
+      1,
+      1,
+      -1
+     ],
+     "start_at_ready": true,
+     "n_changes": 0,
+     "changes": [],
+     "branches_seen": [
+      [
+       1,
+       1,
+       -1
+      ]
+     ],
+     "max_dev": [
+      0.099,
+      0.005,
+      0.308,
+      0.35,
+      0.051,
+      0.11
+     ],
+     "wrist2_min_abs_sin": 0.907220415590886,
+     "elbow_min_abs": 1.5402355997631663
+    }
+   ]
+  }
+ }
+}

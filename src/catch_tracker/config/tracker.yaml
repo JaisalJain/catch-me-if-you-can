@@ -15,5 +15,5 @@ cube_tracker:
     acquire_speed: 0.8
     lose_residual: 0.015
     max_frames: 120
-    intercept_ref: [0.30, 0.25, 1.10]   # B's ready TCP (v2 Phase 1)
+    intercept_ref: [0.30, 0.25, 1.10]   # default only: tracker.launch.py sets B's ready TCP from reactive.yaml
     intercept_z_min: 0.95

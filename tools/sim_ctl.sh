@@ -14,6 +14,7 @@ kill_sim() {
   pkill -9 -f "^/usr/bin/python3 /opt/ros/jazzy/bin/ros2 launch catch_" 2>/dev/null
   pkill -f "$REPO/install/catch_" 2>/dev/null
   pkill -f "moveit_ros_move_group/move_group" 2>/dev/null
+  pkill -f "robot_state_publisher/robot_state_publisher" 2>/dev/null   # outlived the launch (v2.3)
   pkill -f "rviz2/rviz2" 2>/dev/null
   true
 }

@@ -43,6 +43,24 @@ def test_ik_closest_returns_seed_branch():
         np.testing.assert_allclose(s, q, atol=1e-6)
 
 
+def test_branch_matches_ik_tags():
+    r = robot()
+    for q in random_q(200):
+        for s, b in r.ik_all(r.fk(q), branches=True):
+            assert r.branch(s) == b
+            assert r.branch(s + 2 * np.pi * np.array([1, 0, 0, -1, 1, 1])) == b   # 2 pi copies: same branch
+
+
+def test_ik_closest_branch_filter():
+    r = robot()
+    for q in random_q(50):
+        T = r.fk(q)
+        for b in {b for _, b in r.ik_all(T, branches=True)}:
+            s = r.ik_closest(T, q, check=False, branch=b)
+            assert s is not None and r.branch(s) == b
+            assert np.linalg.norm(r.fk(s)[:3, 3] - T[:3, 3]) < 1e-8
+
+
 def test_jacobian_finite_difference():
     r = robot()
     for q in random_q(20):

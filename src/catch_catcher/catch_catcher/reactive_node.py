@@ -49,7 +49,7 @@ from catch_sim.joint_state_cache import JointStateCache
 from catch_sim.sim_clock import offload_sim_clock
 from catch_tasks.moveit_client import MoveItClient
 
-from .reactive import ReactivePlanner, ballistic, sample_times
+from .reactive import ReactivePlanner, ballistic, resolve_config, sample_times
 
 JN = ["shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint", "wrist_1_joint", "wrist_2_joint", "wrist_3_joint"]
 CHI3_95 = 2.7955
@@ -148,7 +148,7 @@ class ReactiveCatcher(Node):
         self.source = self.get_parameter("source").value
         if self.source not in ("vision", "plan"):
             raise ValueError("source must be vision or plan")
-        self.cfg = load("catch_catcher", "config/reactive.yaml")
+        self.cfg = resolve_config(load("catch_catcher", "config/reactive.yaml"))
         self.declare_parameter("latency_assumed", 0.010)   # B's compensation of the gripper command latency
         scene = load("catch_description", "config/scene.yaml")
         self.robot, self.robot_a = make_robot(scene, "b"), make_robot(scene, "a")
@@ -169,7 +169,9 @@ class ReactiveCatcher(Node):
                                  callback_group=cb)
         action = "/reactive_catch" if self.source == "vision" else "/reactive_catch_plan"
         ActionServer(self, ReactiveCatch, action, self.execute, callback_group=cb)
-        self.get_logger().info(f"reactive catcher: source {self.source}, action {action}, gripper model "
+        self.get_logger().info(f"reactive catcher: source {self.source}, action {action}, ready pose "
+                               f"{self.cfg['ready_pose']} {np.round(self.q_ready, 3).tolist()}, ik_branch "
+                               f"{self.cfg['ik_branch']} (branch {self.robot.branch(self.q_ready)}), gripper model "
                                f"{self.grip_model['name']} ({1000 * self.grip_model['gap_speed']:.0f} mm/s, "
                                f"{1000 * self.grip_model['latency']:.0f} ms), assumed latency "
                                f"{1000 * self.get_parameter('latency_assumed').value:.0f} ms")
@@ -245,6 +247,51 @@ class ReactiveCatcher(Node):
                                f"{', '.join(f'{1000 * x:.1f}' for x in samples)} ms)")
         return d
 
+    def move_direct(self, q_goal, speed_ratio=None):
+        """Joint-space quintic from rest to rest straight to q_goal on arm_b_controller (not move_group, which
+        serves A meanwhile), at most speed_ratio of 180 deg/s and within the planner's speed / torque limits,
+        collision-checked with the capsule model (environment, self, arm A at its current configuration).
+        Returns (ok, message); waits until the move is done."""
+        speed_ratio = speed_ratio or self.cfg["prepare"]["speed_ratio"]
+        q0 = np.array(self.mi.joints("b"))
+        dq = float(np.max(np.abs(q_goal - q0)))
+        if dq < 1e-3:
+            return True, "already there"
+        T = max(self.cfg["prepare"]["min_time"], 1.875 * dq / (speed_ratio * np.pi))
+        q_a = np.array(self.js.positions([f"a_{j}" for j in JN]))
+        t0 = self.now() + self.cfg["send_lead"]
+        from .reactive import Plan, Quintic
+        seg = Quintic(q0, 0, 0, q_goal, 0, 0, T)
+        ratio = self.planner.limit_ratio(seg)
+        clr = self.planner.clearance(seg, q_a)
+        if ratio > 1.0 or clr < self.caps.min_clearance:
+            return False, f"direct move refused (limit ratio {ratio:.2f}, clearance {1000 * clr:.0f} mm)"
+        self.send_plan(Plan(t0, seg, np.asarray(q_goal, float), t0 + T, t0 + T, np.zeros(3), np.zeros(3), ratio, clr))
+        while self.now() < t0 + T + 0.15:
+            time.sleep(0.005)
+        err = float(np.max(np.abs(np.array(self.mi.joints("b")) - q_goal)))
+        return err < 0.01, f"direct move {T:.2f} s, clearance >= {1000 * clr:.0f} mm, final error {err:.4f} rad"
+
+    def get_ready(self, gh, direct):
+        """Ready pose (direct joint move or MoveIt), pre-gap, delay probe. (ok, message)."""
+        gh.publish_feedback(ReactiveCatch.Feedback(phase="to ready"))
+        msg = "at the ready pose"
+        if np.max(np.abs(self.mi.joints("b") - self.q_ready)) > 0.01:
+            ok = False
+            if direct:
+                ok, msg = self.move_direct(self.q_ready)
+                if not ok:
+                    self.get_logger().warn(f"{msg}; falling back to MoveIt")
+            if not ok:
+                self.mi.wait_ready(30)
+                ok, msg = self.mi.move_joints("b", self.q_ready)
+                if not ok:
+                    return False, f"could not reach the ready pose: {msg}"
+        self.mi.gripper("b", self.k_pre, timeout=5.0)
+        if self.delay_est is None and self.cfg.get("delay_probe", {}).get("enabled"):
+            self.delay_est = self.probe_delay() or 0.0
+        return True, msg
+
     # ------------------------------------------------------------------ estimates
     def estimate(self, t_after):
         """(stamp, pred(t), e95 [m], t_first) of the newest estimate after t_after, or None."""
@@ -272,18 +319,18 @@ class ReactiveCatcher(Node):
         res = ReactiveCatch.Result()
         res.trigger = "none"
         cfg = self.cfg
+        res.ready_pose = f"{cfg['ready_pose']}/{cfg['ik_branch']}"
+        if g.prepare_only:
+            ok, msg = self.get_ready(gh, direct=True)
+            res.success, res.t_ready, res.message = ok, self.now(), msg
+            (gh.succeed if ok else gh.abort)()
+            return res
         if not g.skip_ready_move:
-            gh.publish_feedback(ReactiveCatch.Feedback(phase="to ready"))
-            self.mi.wait_ready(30)
-            if np.max(np.abs(self.mi.joints("b") - self.q_ready)) > 0.01:
-                ok, msg = self.mi.move_joints("b", self.q_ready)
-                if not ok:
-                    gh.abort()
-                    res.message = f"could not reach the ready pose: {msg}"
-                    return res
-            self.mi.gripper("b", self.k_pre, timeout=5.0)
-            if self.delay_est is None and cfg.get("delay_probe", {}).get("enabled"):
-                self.delay_est = self.probe_delay() or 0.0
+            ok, msg = self.get_ready(gh, direct=False)
+            if not ok:
+                gh.abort()
+                res.message = msg
+                return res
         # contact watch (baseline from now until the commit)
         t_ready = self.now()
         self.inputs.armed = dict(base=[], f0=None, t_arm=t_ready + 0.1, thr=cfg["contact_threshold_n"], peak=0.0,
@@ -332,6 +379,7 @@ class ReactiveCatcher(Node):
         self.send_plan(plan)
         gh.publish_feedback(ReactiveCatch.Feedback(phase="committed"))
         n_sent, t_last_send, ratios, clrs = 1, self.now(), [plan.ratio], [plan.clearance]
+        vt = [(plan.info.get("vel_ratio", 0.0), plan.info.get("torque_ratio", 0.0))]
         n_kept = 0
 
         def t_close_for(p):
@@ -400,6 +448,7 @@ class ReactiveCatcher(Node):
                     t_last_send = now
                     ratios.append(plan.ratio)
                     clrs.append(plan.clearance)
+                    vt.append((plan.info.get("vel_ratio", 0.0), plan.info.get("torque_ratio", 0.0)))
             time.sleep(0.001)
         # ---- intercept: contact (primary) or the scheduled timed close
         t_end = plan.t_intercept + cfg["settle"]
@@ -428,13 +477,16 @@ class ReactiveCatcher(Node):
         span = max(plan.t_intercept - cfg["freeze_before"] - t_commit, 1e-3)
         res.replan_rate_hz = (n_sent - 1) / span
         res.max_limit_ratio = float(max(ratios))
+        res.max_vel_ratio = float(max(x[0] for x in vt))
+        res.max_torque_ratio = float(max(x[1] for x in vt))
         res.min_clearance = float(min(clrs))
         res.plan_ms_median = float(np.median(plan_ms))
         res.message = (f"{'held' if res.success else 'not held'} ({mode}, {self.source}): trigger {res.trigger}, "
                        + (f"gripper delay {1000 * self.delay_est:.1f} ms (probed), " if self.delay_est else "")
                        + f"commit {1000 * res.t_commit:.0f} ms after first fix, {res.n_replans} replans ({n_kept} kept) "
                        f"({res.replan_rate_hz:.0f} Hz, {res.plan_ms_median:.1f} ms each), limit ratio <= "
-                       f"{res.max_limit_ratio:.2f}, clearance >= {1000 * res.min_clearance:.0f} mm, knuckle {k:.3f}")
+                       f"{res.max_limit_ratio:.2f} (speed {res.max_vel_ratio:.2f}, torque {res.max_torque_ratio:.2f} of the "
+                       f"limits), ready {res.ready_pose}, clearance >= {1000 * res.min_clearance:.0f} mm, knuckle {k:.3f}")
         self.get_logger().info(res.message)
         gh.succeed()
         return res

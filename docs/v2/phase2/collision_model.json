@@ -1,11 +1,12 @@
 {
  "stats": {
   "n": 4000,
-  "mj_coll": 1751,
-  "cap_coll": 2224,
+  "mj_coll": 1957,
+  "cap_coll": 2420,
   "false_free": 0,
-  "false_alarm": 473,
-  "check_ms_median": 0.21040349929535296
+  "false_alarm": 463,
+  "cam_coll": 206,
+  "check_ms_median": 0.18235749939776724
  },
  "false_free_examples": [],
  "capsules": [
@@ -173,6 +174,51 @@
     0.09128
    ],
    "radius": 0.07286
+  },
+  {
+   "name": "f6_cam_head",
+   "frame": 6,
+   "p0": [
+    0.13313,
+    0.03384,
+    0.15919
+   ],
+   "p1": [
+    0.11855,
+    -0.02244,
+    0.16267
+   ],
+   "radius": 0.05726
+  },
+  {
+   "name": "f6_cam_arm",
+   "frame": 6,
+   "p0": [
+    0.038,
+    0.0,
+    0.0308
+   ],
+   "p1": [
+    0.162,
+    0.0,
+    0.0308
+   ],
+   "radius": 0.0417
+  },
+  {
+   "name": "f6_cam_upright",
+   "frame": 6,
+   "p0": [
+    0.154,
+    0.0,
+    0.05061
+   ],
+   "p1": [
+    0.154,
+    0.0,
+    0.16499
+   ],
+   "radius": 0.04085
   }
  ],
  "obstacles": [

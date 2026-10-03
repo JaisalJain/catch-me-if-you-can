@@ -49,6 +49,9 @@ def generate_launch_description():
         # ... and the plan-informed baseline (benchmark only)
         Node(package="catch_catcher", executable="reactive_catcher", name="reactive_catcher_plan", output="both",
              parameters=[{"use_sim_time": True, "source": "plan"}], condition=IfCondition(LaunchConfiguration("plan_catcher"))),
+        # RViz only: ground-truth cube markers (display only) + B's polled wrist camera triggered at 4 Hz
+        Node(package="catch_sim", executable="rviz_display", output="log", parameters=[{"use_sim_time": False}],
+             condition=IfCondition(LaunchConfiguration("rviz"))),
         Node(package="rviz2", executable="rviz2", arguments=["-d", rviz_cfg], output="log",
              condition=IfCondition(LaunchConfiguration("rviz")),
              parameters=[mc.robot_description, mc.robot_description_semantic, mc.robot_description_kinematics,

@@ -14,6 +14,8 @@
 - v2 Phase 2 ✅ random throws, vision-only reactive pinch, live benchmark, demo (docs/v2_phase2.md, docs/v2/phase2/; tag v2.0)
 - v2.1 ✅ review fixes: benchmark re-run with every cell alone, v1 30/30 contradiction resolved, fast_close vs offline bounded
 - v2.2 ✅ gripper delay probe (100 % at 0-30 ms true latency), trajectory sample-time fix, MoveIt-invalid library entries skipped
+- v2.3 ✅ arm configuration (elbow-up variants 51/56 % vs 100 %: Phase 1 pose stays default; ik_branch flag; B waits at
+  home, gets ready at LOAD), wrist depth camera hardware, RViz default (docs/v2_arm_config.md)
 
 - Progress log: `docs/progress.md`
 
@@ -84,6 +86,12 @@
   re-label stored cells `tools/v2_live/reclassify.py`, close timing `tools/v2_live/close_timing.py`, clips
   `tools/v2_live/render_failures.py` (venv), demo GT check `tools/analyze_runs.py run.json:rec.npz`,
   `ros2 run catch_tasks run_demo --seed 1` (v2: random throws, vision-only pinch; `--v1` for the v1 loop).
+- v2.3 arm configuration: ready poses are `reactive.yaml ready_poses` entries (`ready_pose:` / env `CATCH_READY_POSE`),
+  `ik_branch: free|fixed` (env `CATCH_IK_BRANCH`); benchmark `tools/v2_live/bench_armconfig.sh`; IK-branch changes in
+  recordings `tools/v2_live/ik_branch_analysis.py --pose NAME CELL...` (system python, PYTHONPATH=src/catch_kinematics);
+  poses scored on A's library with the live planner `tools/v2_live/ready_library_score.py [--refine]`; envelope
+  `tools/v2_ready_envelope.py --style home | --evaluate [POSE...]` (venv); pose image `tools/render_ready_compare.py`;
+  window screenshot (xdotool + xwd, venv) `tools/screenshot_window.py "RViz" out.png --size 1600x900`.
 - v2 offline (venv): `tools/v2_perception.py`, `tools/v2_ready_envelope.py`, `tools/v2_throws.py [--square|--id]`,
   `tools/v2_catch_sim.py --cup|--pinch|--corrections|--live-match [--throws square]` (resumable), `tools/v2_plots.py`.
 - After changing scene.yaml / physics.yaml / throw.yaml: `tools/throw_feedforward.py` AND `tools/build_throw_library.py`
@@ -127,6 +135,16 @@
 - New subscriptions need DDS discovery time: subscribe before you need the data (catcher: at goal start).
 - Don't `pkill -f`/`pgrep -f` with a pattern that also appears in your own command line (kills your shell);
   kill by PID.
+- B's wrist camera hardware = `scene.yaml cameras.b_wrist_camera_parts` (primitives in the optical or gripper-base
+  frame, generated into MJCF (visual only) and URDF (visual + collision)); after changing it: build_mjcf, colcon build,
+  `tools/export_collision.py` (needs ROS sourced: also checks the camera capsules against the URDF meshes and inflates
+  them; the MuJoCo forearm is slimmer than the UR mesh), gen_srdf, throw_feedforward + build_throw_library (scene.yaml
+  hash), check_library_moveit.
+- The tracker's `intercept_ref` (commit error reference) is set by tracker.launch.py from the selected ready pose's TCP.
+- RViz2 configs: a display's checkbox is its `Value:` key (`Enabled:` alone is ignored for some displays).
+- xdotool on this Wayland desktop: `windowmove --sync` hangs, the pointer cannot be moved; xwd here gives 24 bpp packed
+  pixels with padded lines (tools/screenshot_window.py handles it).
+- `ros2 launch` can leave robot_state_publisher running after the sim stops (sim_ctl.sh stop kills it now): check.
 - B's wrist camera frame `b_wrist_cam_optical` is in the URDF (tested against the MJCF camera); perception nodes
   use a /tf_static-only buffer (a full TransformListener drowns rclpy in 500 Hz /tf).
 

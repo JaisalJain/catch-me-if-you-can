@@ -50,6 +50,11 @@ ros2 run catch_tasks run_demo --seed 1                   # in a second terminal:
 ```
 Headless: `ros2 launch catch_bringup bringup.launch.py headless:=true rviz:=false`.
 
+![RViz](docs/media/rviz.png)
+
+RViz default: both arms (B at its ready pose here, with its wrist depth camera), table, pallets, the cubes
+(ground-truth markers, display only) and B's live wrist-camera image.
+
 Evaluations (each needs the bringup running):
 
 | | Command |
@@ -235,6 +240,15 @@ agrees with ground truth 9/9. Video: [`docs/media/demo_v2_seed1.mp4`](docs/media
 catch from its ready pose; real time around each throw, 0.25× close-ups). Failure clips from the benchmark:
 `docs/media/v2_fail_{missed_intercept,late_close,slide_off,fingertip,abort}.mp4` (no collision occurred).
 
+**v2.3: B's arm configuration.** The reactive planner never changed IK branch during a catch (0 changes in 310
+recorded trials); the visible wrist flips were the moves home ⇄ ready around it (wrist 2 through 0 twice per throw).
+An elbow-up ready pose on home's branch (no flip, elbow 15 cm above the shoulder) with the branch fixed catches only
+51 % (60° approach) / 56 % (55°) of the same throws against 100 % for the Phase 1 pose: waiting higher, B cannot reach
+the low arrivals of A's throw library in time. The Phase 1 pose stays the default; the elbow-up poses are
+`reactive.yaml` variants (`CATCH_READY_POSE`, `ik_branch: fixed`). In the demo B now waits at home and gets ready
+while A loads (0.5–3.6 s early, runs 78–84 s instead of 86–92 s). B's wrist camera is a 42 × 42 × 23 mm depth camera
+on a clamp mount now (capsule model checked against MuJoCo and MoveIt's meshes). `docs/v2_arm_config.md`.
+
 v1 numbers with the realistic gripper: the v1 catch evaluation (plan-informed cup, configured throw) still catches
 **30/30** (placed 30/30) and M4 throws 20/20. The v1 headline 30/30 was measured with the faster v1 sim gripper, but
 does not depend on it: the pre-positioned cup holds the cube at rest in the palm (≤ 6 mm drift) for the 340 ms a
@@ -243,4 +257,4 @@ does not depend on it: the pre-positioned cup holds the cube at rest in the palm
 ## Documentation
 `docs/progress.md` (milestone log) and per milestone `docs/m0_toolchain.md`, `m1_feasibility.md`,
 `m2_scene_bringup.md`, `m3_perception_pick_place.md`, `m4_throw.md`, `m5_catch.md`, `m6_full_loop.md`;
-v2: `v2_phase1_feasibility.md`, `v2_phase2.md`.
+v2: `v2_phase1_feasibility.md`, `v2_phase2.md`, `v2_arm_config.md` (v2.3).

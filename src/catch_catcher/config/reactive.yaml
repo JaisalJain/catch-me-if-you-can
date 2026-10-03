@@ -1,8 +1,27 @@
 # v2 reactive catcher (catch_catcher/reactive_node.py, reactive.py). Metres, seconds, radians.
-ready:                          # v2 Phase 1 ready pose (docs/v2_phase1_feasibility.md, tools/v2_ready_envelope.py)
-  q: [-0.87968, -0.111865, 1.891186, -2.997496, 1.175298, 3.949908]
-  tcp: [0.30, 0.25, 1.10]
-  elev_deg: 60                  # approach axis 60 deg above horizontal towards A; closing axis along world y
+ready_pose: phase1              # B's ready pose, one of ready_poses (env CATCH_READY_POSE overrides it: benchmark)
+ready_poses:
+  phase1:                       # v2 Phase 1 ready pose (docs/v2_phase1_feasibility.md, tools/v2_ready_envelope.py)
+    q: [-0.87968, -0.111865, 1.891186, -2.997496, 1.175298, 3.949908]
+    tcp: [0.30, 0.25, 1.10]
+    elev_deg: 60                # approach axis 60 deg above horizontal towards A; closing axis along world y
+    wait_q: [-0.3907, -1.0556, 2.5894, -3.1046, -1.5708, 2.7509]   # B waits here between throws (demo): home
+  home_style:                   # arm-configuration review (docs/v2_arm_config.md): on B home's IK branch (1, 1, -1),
+                                # elbow 15.5 cm above the shoulder, wrist not flipped, approach 60 deg; the best such pose
+                                # for A's throw library (tools/v2_live/ready_library_score.py --refine: 80 % feasible)
+    q: [-0.762367, -0.372357, 1.414843, 0.923847, -1.218219, 0.691004]
+    tcp: [0.225, 0.25, 1.325]
+    elev_deg: 60
+    wait_q: [-0.3907, -1.0556, 2.5894, 3.1786, -1.5708, 2.7509]    # home with wrist 1 on its +2 pi copy: the
+                                # wrist-1 pitch to the ready pose turns the short way, on one branch (no wrist-2 flip)
+  home_style_55:                # same, approach 55 deg (89 % feasible; a shallower approach costs pinch margin, Phase 1)
+    q: [-0.710104, -0.372121, 1.539435, 0.891593, -1.187563, 0.613561]
+    tcp: [0.225, 0.20, 1.30]
+    elev_deg: 55
+    wait_q: [-0.3907, -1.0556, 2.5894, 3.1786, -1.5708, 2.7509]
+prepare: {speed_ratio: 0.45, min_time: 1.0}   # prepare_only: direct joint move to the ready pose (<= 45 % of 180 deg/s)
+ik_branch: free                 # free: IK closest to B's current state, any branch | fixed: only the ready pose's
+                                # (shoulder, elbow, wrist) branch (env CATCH_IK_BRANCH overrides it)
 pre_gap_mm: 56                  # fingers pre-opened to 56 mm (cube 40 mm: +-8 mm)
 limits: {vel_ratio: 0.85, torque_ratio: 0.80, pos_margin: 0.15}
 max_joint_jump: 2.5             # rad from the ready pose (IK branch continuity)

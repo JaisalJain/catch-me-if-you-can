@@ -47,6 +47,10 @@ def generate_launch_description():
     cfg = os.path.join(get_package_share_directory("catch_tracker"), "config", "tracker.yaml")
     cams = camera_params(scene)
     params = {"use_sim_time": True, "cameras": list(cams), "colors": list(perception["colors"])}
+    # intercept reference = B's ready TCP of the selected ready pose (reactive.yaml ready_pose, env CATCH_READY_POSE)
+    rc = yaml.safe_load(open(os.path.join(get_package_share_directory("catch_catcher"), "config", "reactive.yaml")))
+    ready = rc["ready_poses"][os.environ.get("CATCH_READY_POSE") or rc["ready_pose"]]
+    params["intercept_ref"] = [float(v) for v in ready["tcp"]]
     for name, p in cams.items():
         params.update({f"{name}.{k}": v for k, v in p.items()})
     for name, p in color_params(perception).items():

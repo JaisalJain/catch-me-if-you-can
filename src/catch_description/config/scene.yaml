@@ -48,10 +48,23 @@ cameras:
   tracking:
     track_side: {pos: [0.15, -1.30, 1.30], target: [0.15, 0.20, 1.25], fovy: 45, resolution: [320, 240]}
     track_top:  {pos: [0.15, 0.20, 2.35], target: [0.15, 0.20, 1.25], up: [0.0, 1.0, 0.0], fovy: 55, resolution: [320, 240]}
-  # L-bracket holding the wrist camera housing (24 x 30 x 24 mm, 14 mm behind the lens) to the gripper base: boxes
-  # as [min corner, max corner] in the Menagerie gripper base frame. The arm leaves the base side face below the
-  # finger linkages (lowest finger point on that side z = 0.045, outermost |y| = 0.074 over the stroke); the strut
-  # rises behind the lens (y > 0.12) to the housing's underside (z = 0.140). Out of the wrist camera's view.
-  b_wrist_bracket:
-    - [[-0.010, 0.038, 0.015], [0.010, 0.148, 0.033]]
-    - [[-0.010, 0.136, 0.015], [0.010, 0.148, 0.141]]
+  # B's wrist camera hardware (visual; MoveIt collision = each part 1 mm larger; the capsule model covers it): a
+  # generic small stereo depth camera, 42 x 42 x 23 mm, on a compact wrist mount (clamp collar on the gripper base,
+  # 20 x 20 mm extrusion arm under the finger linkages - lowest finger point on that side z = 0.045, outermost |y| =
+  # 0.074 over the stroke - and an upright behind the camera with a tilt block). The optical frame (b_wrist above)
+  # is unchanged. frame camera: optical frame (origin = optical centre, on the front face; z = view direction,
+  # x right, y down; every camera part lies behind z = 0, out of its own view); frame base: Menagerie gripper base
+  # frame. box: size = full edges; cylinder: [radius, length] along `axis`.
+  b_wrist_camera_parts:
+    - {name: body,    frame: camera, type: box,      size: [0.042, 0.042, 0.023], pos: [0.0, 0.0, -0.0125], rgba: [0.17, 0.18, 0.20, 1]}
+    - {name: glass,   frame: camera, type: box,      size: [0.036, 0.018, 0.0008], pos: [0.0, 0.0, -0.0008], rgba: [0.02, 0.02, 0.03, 1]}
+    - {name: lens_l,  frame: camera, type: cylinder, size: [0.0042, 0.0010], axis: z, pos: [-0.009, 0.0, -0.0007], rgba: [0.10, 0.14, 0.24, 1]}
+    - {name: lens_r,  frame: camera, type: cylinder, size: [0.0042, 0.0010], axis: z, pos: [0.009, 0.0, -0.0007], rgba: [0.10, 0.14, 0.24, 1]}
+    - {name: emitter, frame: camera, type: cylinder, size: [0.0020, 0.0010], axis: z, pos: [0.0, 0.0, -0.0007], rgba: [0.06, 0.06, 0.07, 1]}
+    - {name: cable,   frame: camera, type: cylinder, size: [0.0028, 0.012], axis: x, pos: [0.027, 0.004, -0.013], rgba: [0.05, 0.05, 0.05, 1]}
+    - {name: tilt_block, frame: camera, type: box,   size: [0.026, 0.026, 0.006], pos: [0.0, 0.0, -0.027], rgba: [0.46, 0.48, 0.51, 1]}
+    - {name: collar,  frame: base,   type: cylinder, size: [0.0435, 0.016], axis: z, pos: [0.0, 0.0, 0.020], rgba: [0.22, 0.23, 0.25, 1]}
+    - {name: lug,     frame: base,   type: box,      size: [0.028, 0.016, 0.020], pos: [0.0, 0.046, 0.020], rgba: [0.22, 0.23, 0.25, 1]}
+    - {name: arm,     frame: base,   type: box,      size: [0.020, 0.112, 0.020], pos: [0.0, 0.106, 0.020], rgba: [0.46, 0.48, 0.51, 1]}
+    - {name: upright, frame: base,   type: box,      size: [0.020, 0.016, 0.134], pos: [0.0, 0.154, 0.097], rgba: [0.46, 0.48, 0.51, 1]}
+    - {name: knob,    frame: base,   type: cylinder, size: [0.0065, 0.030], axis: x, pos: [0.0, 0.154, 0.154], rgba: [0.22, 0.23, 0.25, 1]}

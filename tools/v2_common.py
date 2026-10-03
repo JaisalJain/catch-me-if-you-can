@@ -249,13 +249,19 @@ def catch_rotation(z_ready, v, cone_rad, mode):
     return toss_orientation(z, xa), ang
 
 
-def ik_near(robot, R, p, q_ref, max_jump=None):
-    q = robot.ik_closest(make_tf(R, p), q_ref)
+def ik_near(robot, R, p, q_ref, max_jump=None, branch=None):
+    """IK closest to q_ref (branch: only that (shoulder, elbow, wrist) branch, catch_kinematics.UR5e.branch)."""
+    q = robot.ik_closest(make_tf(R, p), q_ref, branch=branch)
     if q is None:
         return None
     if max_jump is not None and np.max(np.abs(q - q_ref)) > max_jump:
         return None
     return q
+
+
+def ready_reference():
+    """The Phase 1 ready pose (B's ready pose up to v2.2): q and approach elevation."""
+    return dict(q=[-0.87968, -0.111865, 1.891186, -2.997496, 1.175298, 3.949908], elev=60, tcp=[0.30, 0.25, 1.10])
 
 
 def flags(c=None, profile=None):

@@ -135,6 +135,8 @@ class ReactiveEval(TrackerEval):
                    abort_reason=res.abort_reason if res else "", t_commit=res.t_commit if res else None,
                    n_replans=res.n_replans if res else None, replan_rate_hz=res.replan_rate_hz if res else None,
                    max_limit_ratio=res.max_limit_ratio if res else None, plan_min_clearance=res.min_clearance if res else None,
+                   max_vel_ratio=res.max_vel_ratio if res else None, max_torque_ratio=res.max_torque_ratio if res else None,
+                   ready_pose=res.ready_pose if res else None, b_speed_ratio_measured=b_speed_ratio(arr),
                    plan_ms=res.plan_ms_median if res else None, knuckle=res.knuckle if res else None,
                    t_close_minus_intercept_ms=round(1000 * (res.t_close_cmd - res.t_intercept), 1) if res and res.t_close_cmd else None,
                    t_contact_minus_intercept_ms=round(1000 * (res.t_contact - res.t_intercept), 1) if res and res.t_contact else None,
@@ -236,6 +238,22 @@ def classify(r):
     return "late close"             # came close, fingers never closed on it
 
 
+def b_speed_ratio(arr):
+    """B's peak joint speed / 180 deg/s measured over a recording (/joint_states, 500 Hz; central differences over
+    10 ms against sample noise)."""
+    names = list(arr.get("names", []))
+    if len(arr.get("t_js", [])) < 12 or not names:
+        return None
+    idx = [names.index(f"b_{j}") for j in ("shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint", "wrist_1_joint",
+                                         "wrist_2_joint", "wrist_3_joint")]
+    t, q = np.asarray(arr["t_js"]), np.asarray(arr["q"])[:, idx]
+    k = 5
+    dt = t[2 * k:] - t[:-2 * k]
+    ok = dt > 1e-4
+    qd = (q[2 * k:] - q[:-2 * k])[ok] / dt[ok, None]
+    return round(float(np.max(np.abs(qd)) / np.pi), 3) if len(qd) else None
+
+
 def summarize(rows, args):
     n = len(rows)
     valid = [r for r in rows if r.get("stage") not in ("setup", "throw")]
@@ -259,6 +277,9 @@ def summarize(rows, args):
                    replan_rate_hz_p10_p90=[round(float(x), 1) for x in np.percentile([r["replan_rate_hz"] for r in v], [10, 90])],
                    plan_ms=round(float(np.median([r["plan_ms"] for r in v])), 2),
                    max_limit_ratio=round(float(max(r["max_limit_ratio"] for r in v)), 3),
+                   **{f"{key}_{st}": round(float(fn([r[key] for r in v if r.get(key) is not None])), 3)
+                      for key in ("max_vel_ratio", "max_torque_ratio", "b_speed_ratio_measured")
+                      for st, fn in (("max", max), ("median", np.median)) if any(r.get(key) is not None for r in v)},
                    min_plan_clearance_mm=round(1000 * float(min(r["plan_min_clearance"] for r in v)), 1))
     re = [r for r in valid if "release_speed_err_rel" in r]
     if re:
@@ -271,7 +292,10 @@ def summarize(rows, args):
                        gripper_profile=os.environ.get("CATCH_GRIPPER_PROFILE", "realistic"),
                        gripper_latency=os.environ.get("CATCH_GRIPPER_LATENCY", "profile default"),
                        camera_rate=os.environ.get("CATCH_CAMERA_RATE", "125"),
-                       mujoco_model=os.environ.get("CATCH_MJCF", "default"))
+                       mujoco_model=os.environ.get("CATCH_MJCF", "default"),
+                       ready_pose=os.environ.get("CATCH_READY_POSE", "reactive.yaml default"),
+                       ik_branch=os.environ.get("CATCH_IK_BRANCH", "reactive.yaml default"),
+                       ready_pose_used=sorted({r["ready_pose"] for r in rows if r.get("ready_pose")}))
     return out
 
 

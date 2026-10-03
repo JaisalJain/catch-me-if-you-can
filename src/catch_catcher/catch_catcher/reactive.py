@@ -7,6 +7,9 @@ acceleration) to rest at that pose:
     the closing axis); B arrives at rest at the intercept time; the fingers (pre-opened) close on timing;
   * cup:   palm normal against the velocity, limited to a cone around the ready axis; B is at rest arrive_early
     before the intercept; the fingers close on palm contact.
+IK branch (cfg ik_branch): "free" = the IK solution closest to B's current state on any branch (within max_joint_jump
+of the ready pose); "fixed" = only the ready pose's (shoulder, elbow, wrist) branch (catch_kinematics.UR5e.branch),
+so every catch configuration has the ready pose's elbow / wrist configuration.
 Every plan is checked against the limits (joint speed <= 85 %, inverse-dynamics torque with gravity <= 80 %
 (catch_kinematics.dynamics), joint margins) and for collisions (capsule model incl. arm A, catch_kinematics.collision)
 before it is sent. v2 Phase 1 (tools/v2_catch_sim.py) is the offline version of the same logic.
@@ -108,12 +111,16 @@ class ReactivePlanner:
         self.q_ready = np.asarray(q_ready, float)
         self.z_ready = ready_rotation(ready_elev_deg)[:, 2]
         self.lim = cfg["limits"]
+        mode = cfg.get("ik_branch", "free")
+        if mode not in ("free", "fixed"):
+            raise ValueError(f"ik_branch must be free or fixed, got {mode}")
+        self.branch = robot.branch(self.q_ready) if mode == "fixed" else None
 
     # ------------------------------------------------------------------ pieces
     def goal(self, p, v, mode, q_ref):
         cone = np.radians(self.cfg[mode]["cone_deg"])
         R = catch_rotation(self.z_ready, v, cone, mode)
-        q = self.robot.ik_closest(make_tf(R, p), q_ref)
+        q = self.robot.ik_closest(make_tf(R, p), q_ref, branch=self.branch)
         if q is None or np.max(np.abs(q - self.q_ready)) > self.cfg["max_joint_jump"]:
             return None
         if np.min(POS_LIMIT - np.abs(q)) < self.lim["pos_margin"] or abs(np.sin(q[4])) < 0.25:
@@ -132,6 +139,7 @@ class ReactivePlanner:
         ratio = max(vel / self.lim["vel_ratio"], tq / self.lim["torque_ratio"])
         if np.min(POS_LIMIT - np.abs(Q)) < self.lim["pos_margin"]:
             ratio = max(ratio, 9.0)
+        self.last_ratios = (vel, tq)        # of the cap (not of the margin): reported per plan
         return ratio
 
     def clearance(self, seg, q_a=None):
@@ -156,6 +164,7 @@ class ReactivePlanner:
             return None, "no IK / margins"
         seg = Quintic(q0, qd0, qdd0, q1, 0, 0, T)
         plan = Plan(t_now, seg, q1, t_arr, t_c, np.asarray(p), np.asarray(v), self.limit_ratio(seg), np.inf)
+        plan.info["vel_ratio"], plan.info["torque_ratio"] = self.last_ratios
         return plan, ("ok" if plan.ratio <= 1.0 else "over limits")
 
     def plan_to(self, t_now, state, t_c, p, v, mode, q_a=None):
@@ -203,6 +212,20 @@ class ReactivePlanner:
     def feedforward(self, Q, QD, QDD):
         """Effort feed-forward for the JTC, batch (the sim compensates gravity itself)."""
         return self.dyn.torques(Q, QD, QDD, gravity=False)
+
+
+def resolve_config(cfg, env=None):
+    """reactive.yaml -> cfg["ready"] (the selected entry of ready_poses) and cfg["ik_branch"]; the benchmark selects
+    variants with the env vars CATCH_READY_POSE / CATCH_IK_BRANCH."""
+    import os
+    env = os.environ if env is None else env
+    cfg = dict(cfg)
+    name = env.get("CATCH_READY_POSE") or cfg["ready_pose"]
+    if name not in cfg["ready_poses"]:
+        raise ValueError(f"ready pose {name!r} not in reactive.yaml ready_poses {sorted(cfg['ready_poses'])}")
+    cfg["ready_pose"], cfg["ready"] = name, cfg["ready_poses"][name]
+    cfg["ik_branch"] = env.get("CATCH_IK_BRANCH") or cfg.get("ik_branch", "free")
+    return cfg
 
 
 def ballistic(p0, v0, t0):

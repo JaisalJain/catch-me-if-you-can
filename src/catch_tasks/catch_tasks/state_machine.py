@@ -12,7 +12,10 @@ plan; --mode pinch|cup). --v1 runs the v1 loop (configured throw, B pre-position
 * DETECT: overhead camera A (fresh frame); the cube to throw is chosen at random (seeded) among those detected.
 * PICK / LOAD: A picks it (MoveIt), turns palm-up, loosens so the cube drops onto the palm insert, re-grips and
   moves to the stroke start.
-* PREPOSITION: /catch goal with the throw-plan preview; B goes to its cup pose and reports "ready" before A throws.
+* PREPOSITION: v1: /catch goal with the throw-plan preview; B goes to its cup pose and reports "ready" before A
+  throws. v2: B waits between throws in its waiting pose (reactive.yaml ready_poses.<pose>.wait_q: elbow up, tool
+  down) and gets ready (/reactive_catch prepare_only: direct joint move to the ready pose, pre-gap) as soon as A
+  starts LOAD, in parallel with A; PREPOSITION waits for it and logs how early B was (b_ready_slack_s).
 * THROW: /throw (plan published latched on /throw_plan before the stroke). CATCH: B closes on palm contact.
 * COLOR: B's wrist camera decides the color (A's color is logged as a cross-check only).
 * IN_HAND: wrist-camera estimate of the cube pose in B's hand. PLACE: corrected top-down place in that color's slot.
@@ -100,6 +103,15 @@ class Demo:
         # v2 (default): random library throws with release noise, vision-only reactive catch (B never sees A's plan)
         self.v1, self.noise, self.library, self.catch_mode = v1, noise, library, mode
         self.rcatch = ActionClient(self.node, ReactiveCatch, "/reactive_catch")
+        self.prep = None            # pending prepare_only goal (v2: sent when A starts LOAD)
+        self.t_load = None
+        if not v1:
+            # B's waiting pose between throws = the selected ready pose's wait_q (home, each joint on the copy that
+            # turns the short way to that ready pose): it replaces B's home in the v2 loop
+            # (reactive.yaml read directly: catch_catcher depends on catch_tasks; same selection as resolve_config)
+            rc = yaml.safe_load(open(get_package_share_directory("catch_catcher") + "/config/reactive.yaml"))
+            ready = rc["ready_poses"][os.environ.get("CATCH_READY_POSE") or rc["ready_pose"]]
+            self.poses["b"]["home"] = list(ready["wait_q"])
         self.entry_rng = np.random.default_rng(random.Random(f"catch-v2-{self.seed}").getrandbits(32))   # reproducible
         self.pv = None              # selected library throw (v2)
         self.preview = self.node.create_client(GetThrowPlan, "/throw/preview")
@@ -188,6 +200,10 @@ class Demo:
 
     def s_load(self):
         sk, c = self.sk, self.a_color
+        self.t_load = self.now()
+        if not self.v1:         # B gets ready in parallel with A's LOAD (direct joint move, not move_group)
+            self.rcatch.wait_for_server(timeout_sec=10)
+            self.prep = self.rcatch.send_goal_async(ReactiveCatch.Goal(mode=self.catch_mode, prepare_only=True))
         ok, msg = self.mi.move_joints("a", self.poses["a"]["palm_up"])
         if not ok:
             self.log(S.LOAD, f"palm_up failed: {msg}")
@@ -217,8 +233,26 @@ class Demo:
         self.log(S.LOAD, "cube seated on the palm, A at the stroke start" if ok else f"stroke start failed: {msg}")
         return S.PREPOSITION if ok else S.RECOVER
 
+    def _wait_prepare(self, timeout=30.0):
+        """Result of the pending prepare_only goal (None if none / failed)."""
+        if self.prep is None:
+            return None
+        h = _wait(self.prep, 10)
+        self.prep = None
+        r = _wait(h.get_result_async(), timeout) if h else None
+        return r.result if r else None
+
     def s_preposition(self):
         if not self.v1:
+            t_load_end = self.now()
+            pr = self._wait_prepare()
+            if pr is not None and pr.success:
+                slack = t_load_end - pr.t_ready
+                self.log(S.PREPOSITION, f"B ready {pr.t_ready - self.t_load:.2f} s after LOAD started, "
+                                        f"{slack:+.2f} s before A reached the stroke start ({pr.message})",
+                         b_ready_after_load_s=round(pr.t_ready - self.t_load, 3), b_ready_slack_s=round(slack, 3))
+            else:
+                self.log(S.PREPOSITION, f"B's prepare failed ({pr.message if pr else 'timeout'}): ready move now")
             self.rcatch.wait_for_server(timeout_sec=10)
             self.phase = None
             self.catch_handle = _wait(self.rcatch.send_goal_async(
@@ -337,6 +371,7 @@ class Demo:
     def s_recover(self):
         """Drop / failure: log it, reset the scene for this cube (sim: back to its slot on A's pallet), arms home."""
         c = self.a_color
+        self._wait_prepare()        # B's ready move (if still running) before any other command to B
         self.log(S.RECOVER, f"failure with the {c} cube: resetting it to A's pallet and continuing", dropped=c)
         self.sk.detach_cube("a", c)
         self.sk.detach_cube("b", c)
