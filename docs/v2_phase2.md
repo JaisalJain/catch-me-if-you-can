@@ -9,14 +9,15 @@ command latency modelled. Phase 1 (offline study): `docs/v2_phase1_feasibility.m
 Defaults everywhere: `gripper_profile: realistic` (2F-85 150 mm/s gap speed, 10 ms command latency). `fast_close`
 and `fast_idealized` (NOT a real 2F-85) appear only in the benchmark and are labelled there.
 
-**Key numbers** (live ROS pipeline, 60 throws per cell, ground truth):
-* Default — vision-only pinch, medium release noise, realistic 2F-85: **59/59 = 100 % [94–100]** with the sim
-  running alone (95 % [86–98] with three sims in parallel); offline with the same measured perception 98 %.
-* Plan-informed B (A's published plan) collapses with noise: 98 → 39 → 27 % (none → medium → high); vision-only
-  stays at 86–100 %.
+**Key numbers** (v2.1: live ROS pipeline, every benchmark cell run alone, 60 throws per cell, ground truth):
+* Default — camera-only pinch, medium release noise, realistic 2F-85: **59/59 = 100 % [94–100]**; offline on the same throws 98 % [91–100].
+* Camera-only barely notices the release noise (100 / 100 / 100 / 95 % for none / low / medium / high, although
+  the noise moves the arrival by up to 15 cm); plan-informed B (A's published plan) collapses: 100 → 100 → 39 → 22 %.
 * Perception: **5 ms** render → estimate (median), 128.7 Hz, first estimate 47 ms after release, 9.7 mm (95 %)
   intercept error 0.20 s ahead. B commits ~75 ms after the first estimate and re-plans at 39 Hz (4 ms per plan).
+* The gripper is the limit: a 2F-85 that reacts 10 / 20 ms later than B assumes costs ~30 / ~35 points (71 / 64 %).
 * Full loop, 3 seeds, medium noise: **9/9 caught first time, 9/9 placed (≤ 1.1 mm), VERIFY = ground truth 9/9**.
+* v2.0's parallel benchmark (three sims at once) lost up to 24 points to CPU load: "Under load" in step 6.
 
 <!-- STEPS -->
 
@@ -130,73 +131,120 @@ Same framework, `mode: cup`: palm against the predicted velocity within a 10° c
 pre-closed to 56 mm, B at rest 30 ms before the arrival, contact close (timed fallback 30 ms after the predicted
 arrival), square-arrival throws (cup library). Smoke test (8 throws, no noise): **8/8, contact trigger every time**.
 
-## Step 6 — live benchmark
-`tools/v2_live/bench.sh` (15 cells, three ROS domains in parallel; `bench_cell.sh` for one cell), `ros2 run
-catch_tasks reactive_eval`, 60 throws per cell, same seeded library entries in every pinch cell, judged on ground
-truth (held = cube at rest in the hand < 25 mm from the pad centre, as offline). Table + plots:
-`env -u PYTHONPATH .venv/bin/python tools/v2_live/plot_bench.py`. Offline counterparts: `tools/v2_catch_sim.py
---live-match` (MuJoCo, B's controller and planner logic, the **measured** live perception: 128.7 Hz, 5 ms, first fix
-47 ms, 1/1/2 mm white noise; exact library throws).
+## Step 6 — live benchmark (v2.1: every cell alone)
+**Method.** `tools/v2_live/bench_seq.sh`: all 15 cells **sequentially, one sim at a time, nothing else heavy running**
+(`tools/v2_live/bench_cell.sh` per cell, ROS domain 41), `ros2 run catch_tasks reactive_eval`, 60 throws per cell, the
+same seeded library entries and release-noise draws in every pinch cell, judged on ground truth (held = cube at rest
+in the hand < 25 mm from the pad centre, as offline). Recorded per trial: the real-time factor (sim/wall over the whole
+trial, and the minimum 2 s window of rtf_monitor) and the 1 min load average. Over all cells: **RTF ≥ 0.9979
+per trial, ≥ 0.9956 in any 2 s window; load average median 2.4–5.5, max 33.4 on
+24 cores; camera-only re-planning 35.7–39.3 Hz (median per cell)**. One sim alone loads the machine
+to ~3–7; the few trials above that (latency 20 ms trials 21–43: up to 26, latency 30 ms trials 56–59: up to 33,
+fast_close trials 0–3: up to 16, at 10:51–10:57 and 11:14–11:15) coincide with no job of the benchmark or of
+mine — load from elsewhere on the desktop machine; RTF and re-planning stayed at ≥ 0.997 / 38–39 Hz in those
+trials and their failure rate is the cell's (latency 20 ms: 6 of 16 vs 17 of 59), so the cells were kept. The first
+default run overlapped light single-core offline diagnostics; it was re-run strictly alone (59/59 both times, load
+max 7.7 vs 7.6). Offline counterparts on the
+**same throws** (same library entries + the same release-noise draws, measured live perception):
+`tools/v2_live/offline_cells.py`. Table + plots: `env -u PYTHONPATH .venv/bin/python tools/v2_live/plot_bench.py`.
 
 ![benchmark](v2/phase2/bench.png)
 
-| cell | n | caught | rate [95 % CI] | offline (same config) | outcomes | trigger | commit after 1st fix | replans | realised release error (speed sd, direction rms, time sd; A's execution error median) |
-|---|---|---|---|---|---|---|---|---|---|
-| vision-only, pinch, noise none | 59 | 55 | **93 %** [84–97] | 98 % [93–99] | held 55, fingertip 3, missed intercept 1, setup 1 | timed 59 | 100 ms | 29.5 Hz | 0.54 % (mean +0.59), 0.24°, 0.0 ms; A's own error 13 mm/s |
-| vision-only, pinch, noise low | 59 | 51 | **86 %** [75–93] | 98 % [93–99] | held 51, fingertip 3, abort 2, late close 2, missed intercept 1, setup 1 | timed 57, none 2 | 99 ms | 29.5 Hz | 0.36 % (mean +0.46), 0.22°, 1.0 ms; A's own error 12 mm/s |
-| **vision-only, pinch, noise medium (default)** | 59 | 56 | **95 %** [86–98] | 98 % [93–99] | held 56, missed intercept 2, fingertip 1, setup 1 | timed 59 | 102 ms | 29.3 Hz | 1.14 % (mean +0.59), 0.68°, 4.9 ms; A's own error 17 mm/s |
-| ... same, sim running alone (no parallel cells) | 59 | 59 | **100 %** [94–100] | 98 % [93–99] | held 59, setup 1 | timed 59 | 73 ms | 39.3 Hz | 1.11 % (mean +0.28), 0.68°, 4.9 ms; A's own error 13 mm/s |
-| vision-only, pinch, noise high | 59 | 53 | **90 %** [80–95] | 98 % [93–99] | held 53, fingertip 4, missed intercept 1, abort 1, setup 1 | timed 58, none 1 | 98 ms | 31.4 Hz | 2.05 % (mean +0.59), 1.22°, 9.9 ms; A's own error 20 mm/s |
-| plan-informed, pinch, noise none | 58 | 57 | **98 %** [91–100] | — | held 57, setup 2, fingertip 1 | timed 58 | before the throw (A's plan) | — | 0.64 % (mean +0.69), 0.25°, 0.0 ms; A's own error 14 mm/s |
-| plan-informed, pinch, noise low | 59 | 58 | **98 %** [91–100] | — | held 58, fingertip 1, setup 1 | timed 59 | before the throw (A's plan) | — | 0.32 % (mean +0.59), 0.24°, 1.0 ms; A's own error 13 mm/s |
-| plan-informed, pinch, noise medium | 59 | 23 | **39 %** [28–52] | — | missed intercept 24, held 23, fingertip 11, late close 1, setup 1 | timed 59 | before the throw (A's plan) | — | 1.14 % (mean +0.59), 0.66°, 4.9 ms; A's own error 16 mm/s |
-| plan-informed, pinch, noise high | 59 | 16 | **27 %** [17–40] | — | missed intercept 41, held 16, fingertip 2, setup 1 | timed 59 | before the throw (A's plan) | — | 2.03 % (mean +0.66), 1.22°, 9.9 ms; A's own error 22 mm/s |
-| vision-only, pre-closed cup (square throws), medium | 57 | 45 | **79 %** [67–88] | 92 % [86–96] | held 45, late close 7, setup 3, missed intercept 2, fingertip 2, abort 1 | contact 53, timed 3, none 1 | 94 ms | 27.3 Hz | 1.20 % (mean +0.60), 0.64°, 4.8 ms; A's own error 17 mm/s |
-| ... same, sim running alone | 58 | 49 | **84 %** [73–92] | 92 % [86–96] | held 49, late close 5, setup 2, fingertip 2, missed intercept 2 | contact 56, timed 2 | 76 ms | 35.7 Hz | 1.24 % (mean +0.37), 0.66°, 4.9 ms; A's own error 14 mm/s |
-| vision-only, pinch, 64 Hz cameras, medium | 59 | 56 | **95 %** [86–98] | 98 % [94–100] | held 56, abort 2, missed intercept 1, setup 1 | timed 57, none 2 | 91 ms | 31.4 Hz | 1.11 % (mean +0.61), 0.68°, 4.9 ms; A's own error 16 mm/s |
-| vision-only, pinch, gripper latency 0 ms (B assumes 10), medium | 58 | 44 | **76 %** [63–85] | 100 % [97–100] | held 44, fingertip 11, missed intercept 2, throw failed 1, setup 1, abort 1 | timed 57, none 1 | 103 ms | 28.6 Hz | 1.17 % (mean +0.67), 0.66°, 5.0 ms; A's own error 18 mm/s |
-| ... same, sim running alone | 59 | 59 | **100 %** [94–100] | 100 % [97–100] | held 59, setup 1 | timed 59 | 73 ms | 39.3 Hz | 1.19 % (mean +0.32), 0.69°, 4.9 ms; A's own error 14 mm/s |
-| ... latency 20 ms | 58 | 46 | **79 %** [67–88] | 61 % [52–69] | held 46, late close 6, fingertip 5, setup 2, slide-off 1 | timed 58 | 100 ms | 29.5 Hz | 1.15 % (mean +0.58), 0.67°, 4.8 ms; A's own error 16 mm/s |
-| ... latency 30 ms | 59 | 34 | **58 %** [45–69] | 52 % [44–61] | held 34, late close 12, fingertip 10, slide-off 2, abort 1, setup 1 | timed 58, none 1 | 98 ms | 29.5 Hz | 1.16 % (mean +0.61), 0.67°, 4.9 ms; A's own error 16 mm/s |
-| B's gripper fast_close (NOT a 2F-85; 10x speed, realistic force), medium (ran alone) | 59 | 53 | **90 %** [80–95] | 69 % [60–77] | held 53, fingertip 5, setup 1, late close 1 | timed 59 | 75 ms | 39.3 Hz | 1.14 % (mean +0.27), 0.70°, 4.9 ms; A's own error 13 mm/s |
-| B's gripper fast_idealized (NOT a 2F-85; 10x speed, 5x force), medium | 59 | 57 | **97 %** [88–99] | 100 % [97–100] | held 57, setup 1, abort 1, missed intercept 1 | timed 57, none 1, contact 1 | 102 ms | 29.0 Hz | 1.12 % (mean +0.56), 0.66°, 4.9 ms; A's own error 14 mm/s |
+| cell | n | caught | rate [95 % CI] | offline, same throws | outcomes | trigger | commit after 1st fix | re-plan rate median (p10–p90) | RTF trial median / min 2 s window | load avg 1 min median / max (24 cores) | realised release error (speed sd, direction rms, time sd) |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| vision-only, pinch, noise none | 59 | 59 | **100 %** [94–100] | 100 % [94–100] | held 59, setup 1 | timed 59 | 74 ms | 39 Hz (39–39) | 1.000 / 1.000 | 3.8 / 7.0 | 0.29 %, 0.28°, 0.0 ms |
+| vision-only, pinch, noise low | 59 | 59 | **100 %** [94–100] | 100 % [94–100] | held 59, setup 1 | timed 59 | 74 ms | 39 Hz (39–39) | 1.000 / 0.999 | 3.2 / 7.2 | 0.32 %, 0.28°, 1.0 ms |
+| **vision-only, pinch, noise medium (default)** | 59 | 59 | **100 %** [94–100] | 98 % [91–100] | held 59, setup 1 | timed 59 | 74 ms | 39 Hz (39–39) | 1.000 / 1.000 | 2.8 / 7.6 | 1.15 %, 0.68°, 4.9 ms |
+| vision-only, pinch, noise high | 59 | 56 | **95 %** [86–98] | 100 % [94–100] | held 56, abort 2, missed intercept 1, setup 1 | timed 57, none 2 | 74 ms | 39 Hz (39–39) | 1.000 / 0.999 | 3.2 / 7.3 | 2.02 %, 1.23°, 9.9 ms |
+| plan-informed, pinch, noise none | 59 | 59 | **100 %** [94–100] | — | held 59, setup 1 | timed 59 | before the throw (plan) | — | 1.000 / 1.000 | 3.1 / 8.1 | 0.26 %, 0.26°, 0.0 ms |
+| plan-informed, pinch, noise low | 59 | 59 | **100 %** [94–100] | — | held 59, setup 1 | timed 59 | before the throw (plan) | — | 1.000 / 1.000 | 2.9 / 5.7 | 0.32 %, 0.29°, 1.0 ms |
+| plan-informed, pinch, noise medium | 59 | 23 | **39 %** [28–52] | — | missed intercept 25, held 23, fingertip 10, late close 1, setup 1 | timed 59 | before the throw (plan) | — | 1.000 / 1.000 | 2.4 / 8.3 | 1.20 %, 0.69°, 4.9 ms |
+| plan-informed, pinch, noise high | 58 | 13 | **22 %** [14–35] | — | missed intercept 38, held 13, fingertip 6, setup 2, late close 1 | timed 58 | before the throw (plan) | — | 1.000 / 1.000 | 4.1 / 8.8 | 2.04 %, 1.23°, 9.6 ms |
+| vision-only, pre-closed cup (square throws), medium | 58 | 52 | **90 %** [79–95] | 87 % [76–93] | held 52, late close 3, missed intercept 2, setup 2, fingertip 1 | contact 56, timed 2 | 74 ms | 36 Hz (32–36) | 1.000 / 1.000 | 3.7 / 7.6 | 1.21 %, 0.67°, 4.9 ms |
+| vision-only, pinch, 64 Hz cameras, medium | 59 | 57 | **97 %** [88–99] | 97 % [89–99] | held 57, setup 1, abort 1, fingertip 1 | timed 58, none 1 | 85 ms | 39 Hz (39–39) | 1.000 / 1.000 | 2.9 / 5.0 | 1.09 %, 0.69°, 4.9 ms |
+| vision-only, pinch, gripper latency 0 ms (B assumes 10), medium | 59 | 57 | **97 %** [88–99] | 100 % [94–100] | held 57, fingertip 2, setup 1 | timed 59 | 73 ms | 39 Hz (39–39) | 1.000 / 0.999 | 2.9 / 6.4 | 1.13 %, 0.69°, 4.9 ms |
+| ... latency 20 ms | 59 | 42 | **71 %** [59–81] | 67 % [54–77] | held 42, fingertip 10, late close 7, setup 1 | timed 59 | 73 ms | 39 Hz (39–39) | 1.000 / 0.998 | 5.5 / 25.7 | 1.27 %, 0.69°, 4.9 ms |
+| ... latency 30 ms | 59 | 38 | **64 %** [52–75] | 50 % [38–62] | held 38, late close 13, fingertip 8, setup 1 | timed 59 | 74 ms | 39 Hz (38–39) | 1.000 / 0.997 | 4.9 / 33.4 | 1.33 %, 1.46°, 4.9 ms |
+| B's gripper fast_close (NOT a 2F-85; 10x speed, realistic force), medium  | 59 | 52 | **88 %** [77–94] | 80 % [68–88] | held 52, fingertip 7, setup 1 | timed 59 | 74 ms | 39 Hz (39–39) | 1.000 / 0.998 | 4.0 / 15.6 | 1.13 %, 0.69°, 4.9 ms |
+| B's gripper fast_idealized (NOT a 2F-85; 10x speed, 5x force), medium | 59 | 59 | **100 %** [94–100] | 100 % [94–100] | held 59, setup 1 | timed 59 | 74 ms | 39 Hz (39–39) | 1.000 / 0.996 | 5.5 / 8.7 | 1.15 %, 0.70°, 4.9 ms |
 
 "setup" = A could not start the throw (library entry 79: MoveIt fails to reach its stroke start from the load
-pose, in every cell; excluded, not a catch attempt); "throw failed" = A refused the throw (one, before the stroke
-blend fix; excluded). Offline counterparts have no release noise; for vision-only B
-the noise level only moves the intercept around.
+pose, in every cell; excluded, not a catch attempt).
 
-### Live vs offline
-* **Default configuration (vision-only pinch, medium noise, realistic 2F-85): 100 % [94–100] live with the sim
-  running alone, 95 % [86–98] with three sims in parallel, 98 % [93–99] offline.** Vision-only is insensitive to the
-  release noise (93 / 86 / 95 / 90 % for none / low / medium / high, all CIs overlapping); plan-informed collapses
-  from 98 % to 39 % (medium) and 27 % (high): B commits to A's published plan before the throw and cannot follow
-  the realised flight (missed intercepts).
-* **Parallel load explains the shortfalls.** Three sims on 24 cores slow B's planner (replans 11–12 ms at ~29 Hz
-  instead of 4 ms at 39 Hz; commit ~100 ms instead of 73 ms after the first fix). The one cell more than 15 points
-  below offline, **gripper latency 0 ms (76 % vs 100 %), catches 59/59 = 100 % run alone.** Mechanism (recorded
-  failures, `tools/v2_live/close_timing.py`): with the true latency 10 ms shorter than B assumes, the fingers reach 40 mm
-  10 ms after the arrival instead of ~20 ms after it (see the timing check), so a cube a few millimetres off-centre is caught by the fingertips 33–44 mm
-  out of the hand (fingertip) — the slower replanning under load leaves those few millimetres. The pre-closed cup:
-  79 % parallel, **84 % [73–92] alone, 92 % [86–96] offline** (CIs overlap): the contact-triggered close of a 150 mm/s
-  gripper fires on the arrival but needs ~117 ms (10 ms latency + 16 mm) — the cube rebounds out first (late close).
-* **Timing check.** In every recorded failure the gap reaches 40 mm ~10 ms later than B schedules (latency 0 / 10 / 20
-  / 30 → +10 / +19 / +30 / +39 ms after the arrival): the MuJoCo finger actuator lags its reference ramp by kv/kp =
-  10 ms, offline and live alike.
-* **Gripper latency** (true latency varied, B assumes 10 ms): live 76 (100 alone) / 95 / 79 / 58 %, offline 100 / 98 /
-  61 / 52 % for 0 / 10 / 20 / 30 ms — a late close loses the cube (late close, rebound), an early one is tolerated only
-  with good aim.
-* **Closing speed is the limit, not force.** B's gripper alone made faster (NOT a real 2F-85): fast_close (10×
-  speed, realistic force) 90 %, fast_idealized (10× speed, 5× force) 97 % — vs 95–100 % for the realistic gripper
-  with the timed pinch close. The pinch already hides the 2F-85's slowness by starting the close ~110 ms early.
-  Open discrepancy: offline fast_close is lower (69 %) with more closes on a cube that has rebounded off the palm
-  (25 of 120 vs 5 of 59 live); not resolved.
-* **Cameras at 64 Hz**: 95 % (offline 98 %), the same as at 128.7 Hz under the same load.
-* Earlier versions of three cells were wrong and were re-run: high-noise throws whose perturbed stroke started
-  > 0.05 rad from the nominal start were refused by throw_node (now blended in, ≤ 6 rad/s², and A's refusals are
-  excluded as "throw failed"); the fast_close / fast_idealized cells had also given A's gripper the fast actuator
-  (A's release then changed: −23 ± 55 mm/s; 32 aborts) — now only B's gripper varies (`mjcf_variant.py --arms b`,
-  `CATCH_GRIPPER_ARMS=b`). Old results: `log/p2/bench_v0/`.
+### Does the camera-only catch rate drop as the noise rises?
+* vision: caught 59/59, 59/59, 59/59, 56/59 (none → high); Cochran–Armitage trend z = -2.34, p = 0.0194; slope -1.5 points per level
+* plan: caught 59/59, 59/59, 23/59, 13/58 (none → high); Cochran–Armitage trend z = -10.58, p = 0; slope -29.4 points per level
+
+| noise level | arrival shift median [mm] | p95 | max |
+|---|---|---|---|
+| none | 4 | 7 | 8 |
+| low | 7 | 15 | 18 |
+| medium | 26 | 61 | 78 |
+| high | 46 | 118 | 151 |
+
+Barely, and only at the highest level: camera-only 59/59, 59/59, 59/59,
+56/59 (none → high; the trend test is significant at p ≈ 0.02 only because of the high cell's 3
+failures, −1.5 points per level), plan-informed 59/59, 59/59, 23/59,
+13/58 (−29 points per level). Evidence for why:
+* **The noise is real and large.** The realised release error grows as configured (table: speed sd, direction rms,
+  timing sd per level), and it moves the cube's arrival by a median 4 / 7 / 26 / 46 mm, up to 151 mm (table above).
+* **Camera-only does not use the release.** B estimates the flight from the cameras after the release and plans to
+  where the cube *will be*; the arrival shift only moves the intercept inside B's envelope. Offline, on the same
+  throws and noise draws, the result is just as flat: 100 % [94–100], 100 % [94–100], 98 % [91–100],
+  100 % [94–100].
+* **What high noise does cost:** the 3 high-noise failures are 2 aborts (the moved intercept needs > 85 % joint speed
+  / 80 % torque everywhere: "over limits") and 1 missed intercept — throws pushed to the edge of the envelope, not
+  tracking errors.
+* **Plan-informed B** commits to A's *published* (nominal) plan before the throw: from medium noise on, the arrival
+  shift exceeds the pinch's tolerance (fingers at 56 mm around a 40 mm cube: ±8 mm) and it misses.
+
+### Live vs offline (same throws)
+* **Default (camera-only pinch, medium noise, realistic 2F-85): 100 % [94–100] live, 98 % [91–100] offline.**
+* Pre-closed cup 90 % [79–95] (offline 87 % [76–93]): the contact-triggered close of a 150 mm/s gripper
+  fires on the arrival but needs ~117 ms (10 ms latency + 16 mm) — the cube sometimes rebounds out first (late close).
+* 64 Hz cameras 97 % [88–99] (offline 97 % [89–99]): half the camera rate commits later but costs little.
+* Gripper latency (true latency varied, B assumes 10 ms): 97 % [88–99] / 100 % [94–100] /
+  71 % [59–81] / 64 % [52–75] live for 0 / 10 / 20 / 30 ms; offline 100 % [94–100] /
+  98 % [91–100] / 67 % [54–77] / 50 % [38–62]. A close that comes later than B assumes
+  loses the cube (late close, rebound → fingertip); an earlier one is tolerated with good aim.
+* B's gripper made faster (NOT a real 2F-85): fast_close 88 % [77–94] (offline 80 % [68–88]),
+  fast_idealized 100 % [94–100] (offline 100 % [94–100]). The realistic gripper's timed pinch
+  close already hides the 2F-85's slowness (it starts ~110 ms early).
+* **Timing check.** In the recorded failures the gap reaches 40 mm ~10 ms later than B schedules (latency 0 / 10 / 20
+  / 30 → +10 / +19 / +30 / +39 ms after the arrival, v2.0 recordings, `tools/v2_live/close_timing.py`): the MuJoCo
+  finger actuator lags its reference ramp by kv/kp = 10 ms, offline and live alike.
+
+### Under load (v2.0: three sims in parallel)
+The v2.0 benchmark ran three cells at a time (three ROS domains on 24 cores); `docs/v2/phase2/bench_v2.0/`. Load
+slowed B's planner (re-plans 11–12 ms at ~29 Hz instead of 4 ms at 39 Hz; commit ~100 ms instead of 73 ms after the
+first fix) and cost up to 24 points (latency 0 ms: 76 % under load, 97–100 % alone — with the fingers closing 10 ms
+earlier than B assumes, the few millimetres of extra aim error left by the slower re-planning are enough for the
+fingertips to catch the cube). Cells without re-planning (plan-informed) are unaffected (plan medium 23/59 in both).
+Under load the camera-only rates also scattered without a noise trend (93 / 86 / 95 / 90 %), which v2.0 reported as
+"insensitive to noise"; alone they are 100 / 100 / 100 / 95 %.
+
+| cell | v2.0 under load (3 sims in parallel) | re-plan rate | v2.1 alone | re-plan rate |
+|---|---|---|---|---|
+| vision-only, pinch, noise none | 93 % [84–97] (55/59) | 29.5 Hz | 100 % [94–100] (59/59) | 39.3 Hz |
+| vision-only, pinch, noise low | 86 % [75–93] (51/59) | 29.5 Hz | 100 % [94–100] (59/59) | 39.3 Hz |
+| **vision-only, pinch, noise medium (default)** | 95 % [86–98] (56/59) | 29.3 Hz | 100 % [94–100] (59/59) | 39.3 Hz |
+| vision-only, pinch, noise high | 90 % [80–95] (53/59) | 31.4 Hz | 95 % [86–98] (56/59) | 39.3 Hz |
+| plan-informed, pinch, noise none | 98 % [91–100] (57/58) | 0.0 Hz | 100 % [94–100] (59/59) | 0.0 Hz |
+| plan-informed, pinch, noise low | 98 % [91–100] (58/59) | 0.0 Hz | 100 % [94–100] (59/59) | 0.0 Hz |
+| plan-informed, pinch, noise medium | 39 % [28–52] (23/59) | 0.0 Hz | 39 % [28–52] (23/59) | 0.0 Hz |
+| plan-informed, pinch, noise high | 27 % [17–40] (16/59) | 0.0 Hz | 22 % [14–35] (13/58) | 0.0 Hz |
+| vision-only, pre-closed cup (square throws), medium | 79 % [67–88] (45/57) | 27.3 Hz | 90 % [79–95] (52/58) | 35.7 Hz |
+| vision-only, pinch, 64 Hz cameras, medium | 95 % [86–98] (56/59) | 31.4 Hz | 97 % [88–99] (57/59) | 39.2 Hz |
+| vision-only, pinch, gripper latency 0 ms (B assumes 10), medium | 76 % [63–85] (44/58) | 28.6 Hz | 97 % [88–99] (57/59) | 39.3 Hz |
+| ... latency 20 ms | 79 % [67–88] (46/58) | 29.5 Hz | 71 % [59–81] (42/59) | 39.3 Hz |
+| ... latency 30 ms | 58 % [45–69] (34/59) | 29.5 Hz | 64 % [52–75] (38/59) | 39.3 Hz |
+| B's gripper fast_close (NOT a 2F-85; 10x speed, realistic force), medium  | 90 % [80–95] (53/59) | 39.3 Hz | 88 % [77–94] (52/59) | 39.3 Hz |
+| B's gripper fast_idealized (NOT a 2F-85; 10x speed, 5x force), medium | 97 % [88–99] (57/59) | 29.0 Hz | 100 % [94–100] (59/59) | 39.3 Hz |
+
+Earlier versions of three v2.0 cells were wrong and were re-run then: high-noise throws whose perturbed stroke
+started > 0.05 rad from the nominal start were refused by throw_node (now blended in, ≤ 6 rad/s², A's refusals are
+"throw failed", excluded); the fast_close / fast_idealized cells had also given A's gripper the fast actuator — now
+only B's gripper varies (`mjcf_variant.py --arms b`, `CATCH_GRIPPER_ARMS=b`).
 
 ### Failure taxonomy (ground truth, `reactive_eval.classify`)
 | class | meaning | where it happens |
@@ -250,6 +298,57 @@ is now "arrived after the trigger").
 Demo video: [`media/demo_v2_seed1.mp4`](media/demo_v2_seed1.mp4) (seed 1: B starts from the ready pose and moves to
 each cube; real time around each throw, 0.25× close-up of each catch). Failure clips from the benchmark:
 `media/v2_fail_*.mp4` (`v2/phase2/failure_clips.json`).
+
+## v2.1 review fixes
+
+### The v1 30/30 contradiction (resolved)
+Phase 1 wrote that "the M5 cup's 30/30 was obtained with the v1 sim gripper, i.e. faster than the real hardware can
+close", and the README added that the headline "was measured with the faster v1 sim gripper" — implying the result
+depended on it. Step 0 then re-ran the v1 evaluation with the realistic model and got 30/30 again. The recordings of
+both runs (`python3 tools/v2_live/v1_close_analysis.py log/m5/force log/p2/v1_realistic`) settle which claim is
+wrong:
+
+| | M5 (v1 sim gripper) | step 0 re-run (realistic) |
+|---|---|---|
+| gripper | MJCF actuator kp 100 / kv 10 / ±5 N, step command (GripperActionController) | kp 1000 / kv 10 / ±5 N (default MJCF), 2F-85 command model: 10 ms latency + 150 mm/s ramp on a JTC |
+| gap speed reached (80 → 45 mm) | 480 mm/s | **150 mm/s** |
+| palm impact → pads on the cube (gap 41 mm) | 108 ms | **340 ms** |
+| contact trigger vs predicted arrival | −2.8 ms | −3.3 ms |
+| cube movement in the palm between 20 ms after the impact and the grip | ≤ 6.1 mm (median 3.0) | ≤ 5.3 mm (median 2.7) |
+| caught / placed | 30/30 / 30/30 | 30/30 / 30/30 |
+
+The re-run really used the slow gripper, and the catch did not need speed: in v1, B is pre-positioned from A's plan
+with the palm square against the arrival, the cube comes to rest in the palm within ~20 ms and waits there for the
+fingers. **The implication "v1 depended on the fast gripper" was wrong**; the statement that the v1 gripper was
+faster (~3×, 480 vs 150 mm/s) is right. Closing speed matters for the catches from the ready pose (Phase 1 and v2),
+where the cube is not cupped. Corrected in `docs/v2_phase1_feasibility.md`, the README and `docs/progress.md`.
+
+### fast_close: live 90 % vs offline 69 % (resolved to 88 % vs 80 %, residual bounded; ~1 h)
+`tools/v2_live/fastclose_diag.py`, `tools/v2_live/offline_cells.py`, `tools/v2_live/close_timing.py`:
+1. **Throw population (~9 points).** The v2.0 offline number came from the Phase 1 throw distribution
+   (`docs/v2/throw_distribution.json`, 213 throws), not from the library A actually throws. On the same 60 library
+   entries as the live cell: 78 % (47/60); with the same release-noise draws as live (throw_node's sample_noise,
+   seed·1000+i): **80 % (48/60) [68–88]**. Every other cell's offline counterpart is now computed the same way.
+2. **Ruled out** (identical or measured equal): MJCF / contact parameters (the offline model is compiled from the
+   same scene + physics YAML), timestep (1 ms), B's actuator (fast_close: kp 2000 / kv 10 / ±5 N both), B's arm
+   gains (controllers.yaml in both), close timing (gap 40 mm reached +27.6 ms after the arrival offline vs +26.9 ms
+   live, median), closing speed reached (706 vs 667–706 mm/s — the ±5 N force limit caps the "1500 mm/s" profile at
+   ~700 mm/s in both), intercept time (offline − live: median −4 ms, sd 12 ms), release noise (78 → 80 %), cube spin
+   (live 0.96–2.01 rad/s vs planned 1.05–2.09, same axis) and release orientation (2–8° from the offline model).
+3. **What decides a fast_close failure, in both**: the cube's rotation relative to the pads at the arrival. Offline,
+   failures arrive misaligned by 16.5° (median, 10.8–24.8) vs 7.3° for catches; live, every v2.0 failure arrived at
+   7.5–26.5° (median 21°). 5 of the 6 live failures are offline failures too (same throws). A 10× faster close
+   catches a misaligned cube between the fingertips before it can settle against the palm (fingertip grasp); the
+   realistic 150 mm/s close leaves it the time to square up (1 fingertip grasp in the same 60 throws offline).
+4. **Per throw, clean run** (v2.1 cell, every trial recorded; `python3 tools/v2_live/fastclose_compare.py`): live
+   **52/59 = 88 % [77–94]**, offline on the same throws 80 % [68–88] — CIs overlap. 52 of 59 throws end the same way.
+   Misalignment at the arrival correlates r = 0.92 between live and offline; failures arrive at 16.6° (live) /
+   16.5° (offline), catches at 3.1° / 7.5°. The residual 8 points come from the live cube arriving slightly
+   squarer (median 2.8° less misaligned: consistent with the 2–8° release-orientation difference between the
+   physical throw and the offline model's toss orientation) and the live fingers reaching 40 mm ~1.6 ms earlier
+   (median; the live gripper JTC runs at 500 Hz, the offline reference at 1 kHz — cause not isolated): of the 6 throws only live catches, 4 arrive clearly squarer
+   (e.g. #15 6° vs 15°) and all 6 close 1.5–3 ms earlier. Not a model bug; the offline model would need A's
+   measured release orientation to close it.
 
 ## What is still idealized
 * **Cameras**: noise-free renders, fixed lighting, ideal calibration (the tracker's 1–2 mm per-fix error is pixel

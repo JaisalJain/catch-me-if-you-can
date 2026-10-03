@@ -176,8 +176,9 @@ This table is v1 (M1–M6); the v2 benchmark is in the [v2 section](#v2-random-t
   grippers through a 2F-85 model (150 mm/s ramp, 10 ms command latency from the Robotiq manual — an estimate, not a
   measurement); `fast_close` / `fast_idealized` exist only as labelled benchmark cells. The MuJoCo finger actuator
   additionally lags its reference ramp by ~10 ms.
-* **Sim timing.** Catch rates drop under CPU load (three sims in parallel: 95 % instead of 100 %): the planner, the
-  tracker and the controllers share the machine with the physics; a real robot would need the same headroom.
+* **Sim timing.** Catch rates drop under CPU load (three sims in parallel cost up to 24 points, v2.0): the planner,
+  the tracker and the controllers share the machine with the physics; the v2.1 numbers are with one sim alone (RTF
+  1.000), and a real robot would need the same headroom.
 * **Sim contacts.** Soft MuJoCo contacts (tuned solref/solimp, 1 ms step, elliptic cones) decide whether the cube
   bounces off the palm; real impacts (rubber pads, compliance, cube material) differ.
 * **Pedestals.** Both arms stand on 0.35 m pedestals: the original geometry (arms on the table, 0.7 m flight)
@@ -203,16 +204,23 @@ What changed (`docs/v2_phase2.md`; offline feasibility study first: `docs/v2_pha
 * **The real 2F-85 speed everywhere.** Both grippers are commanded through a 2F-85 model (`catch_sim/gripper_model.py`);
   the v1 sim gripper closed ~3× faster (v1's cup catch does not depend on it, see the measured numbers).
 
-**Live benchmark** (60 throws per cell, ground truth; `docs/v2/phase2/bench_table.md`; realistic 2F-85 unless marked):
+**Live benchmark** (v2.1: every cell alone, one sim at a time, 60 throws per cell, ground truth, real-time factor
+≥ 0.996 in every 2 s window; `docs/v2/phase2/bench_table.md`; realistic 2F-85 unless marked). Offline = the same throws and
+release-noise draws in the offline MuJoCo model (`tools/v2_live/offline_cells.py`):
 
-| | live | offline, same config |
+| | live | offline, same throws |
 |---|---|---|
-| **vision-only pinch, medium noise (default)** | **100 % [94–100]** alone, 95 % [86–98] with 3 sims in parallel | 98 % |
-| vision-only pinch, noise none / low / high | 93 / 86 / 90 % (parallel) | 98 % |
-| plan-informed (A's published plan), noise none / low / medium / high | 98 / 98 / **39 / 27 %** | — |
-| pre-closed cup (fingers at 56 mm, contact close), medium | 84 % alone, 79 % parallel | 92 % |
-| gripper latency 0 / 20 / 30 ms (B assumes 10) | 100 (alone) / 79 / 58 % | 100 / 61 / 52 % |
-| B's gripper fast_close / fast_idealized (**NOT a 2F-85**) | 90 / 97 % | 69 / 100 % |
+| **camera-only pinch, medium noise (default)** | **100 % [94–100]** | 98 % |
+| camera-only pinch, noise none / low / high | 100 / 100 / 95 % | 100 / 100 / 100 % |
+| plan-informed (A's published plan), noise none / low / medium / high | 100 / 100 / 39 / 22 % | — |
+| pre-closed cup (fingers at 56 mm, contact close), medium | 90 % [79–95] | 87 % |
+| cameras at 64 Hz instead of 128.7 Hz | 97 % [88–99] | 97 % |
+| gripper latency 0 / 20 / 30 ms (B assumes 10) | 97 / 71 / 64 % | 100 / 67 / 50 % |
+| B's gripper fast_close / fast_idealized (**NOT a 2F-85**) | 88 / 100 % | 80 / 100 % |
+
+Camera-only barely notices the release noise (it re-estimates the flight; the noise moves the arrival by up to
+15 cm), plan-informed collapses. With three sims in parallel (v2.0) the camera-only cells lost up to 24 points to the
+slower re-planning (`docs/v2_phase2.md`, "Under load").
 
 ![v2 benchmark](docs/v2/phase2/bench.png)
 

@@ -12,6 +12,7 @@
 - v1.0.1 ✅ robot descriptions pinned in src/external (submodules), m5 clips with the bracket
 - v2 Phase 1 ✅ offline feasibility (docs/v2_phase1_feasibility.md, tools/v2_*.py, docs/v2/)
 - v2 Phase 2 ✅ random throws, vision-only reactive pinch, live benchmark, demo (docs/v2_phase2.md, docs/v2/phase2/; tag v2.0)
+- v2.1 ✅ review fixes: benchmark re-run with every cell alone, v1 30/30 contradiction resolved, fast_close vs offline bounded
 
 - Progress log: `docs/progress.md`
 
@@ -73,8 +74,12 @@
 
 - v2 live: `ros2 run catch_tasks tracker_eval --throws 50 --seed 1 [--calibrate]` (tracker vs ground truth),
   `ros2 run catch_tasks reactive_eval --mode pinch|cup --source vision|plan --noise none|low|medium|high --throws 60`,
-  benchmark `tools/v2_live/bench.sh` (3 ROS domains in parallel, resumable; one cell: `tools/v2_live/bench_cell.sh`;
-  headline cells must run ALONE — parallel load costs ~5-25 points), table/plots `tools/v2_live/plot_bench.py` (venv),
+  benchmark `tools/v2_live/bench_seq.sh` (v2.1: every cell ALONE, sequentially, resumable; reactive_eval records RTF
+  + load average per trial; nothing else heavy may run — parallel load cost up to 24 points in v2.0, whose 3-domain
+  runner is `tools/v2_live/bench.sh`; one cell: `tools/v2_live/bench_cell.sh`, OUT_DIR=...), offline counterpart of
+  every cell on the same throws + noise draws `tools/v2_live/offline_cells.py` (venv, < 1 min per cell),
+  fast_close / same-throw diagnostics `tools/v2_live/fastclose_diag.py`, v1 close analysis
+  `tools/v2_live/v1_close_analysis.py`, table/plots `tools/v2_live/plot_bench.py` (venv),
   re-label stored cells `tools/v2_live/reclassify.py`, close timing `tools/v2_live/close_timing.py`, clips
   `tools/v2_live/render_failures.py` (venv), demo GT check `tools/analyze_runs.py run.json:rec.npz`,
   `ros2 run catch_tasks run_demo --seed 1` (v2: random throws, vision-only pinch; `--v1` for the v1 loop).

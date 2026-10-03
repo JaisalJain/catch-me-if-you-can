@@ -1,0 +1,592 @@
+[
+ {
+  "i": 0,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 2.3380841828467065,
+  "live_dt40": 27.199999999997004,
+  "off_held": true,
+  "off_mis": 7.1,
+  "off_dt40": 28.0
+ },
+ {
+  "i": 1,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 4.265731845241998,
+  "live_dt40": 26.199999999995782,
+  "off_held": true,
+  "off_mis": 6.4,
+  "off_dt40": 28.0
+ },
+ {
+  "i": 2,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 15.769263908536342,
+  "live_dt40": 26.80000000000149,
+  "off_held": true,
+  "off_mis": 13.8,
+  "off_dt40": 28.0
+ },
+ {
+  "i": 3,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 1.5565688095691157,
+  "live_dt40": 24.799999999999045,
+  "off_held": true,
+  "off_mis": 8.1,
+  "off_dt40": 28.4
+ },
+ {
+  "i": 4,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 0.40031661956774245,
+  "live_dt40": 27.19999999999345,
+  "off_held": true,
+  "off_mis": 6.2,
+  "off_dt40": 27.6
+ },
+ {
+  "i": 5,
+  "live_held": false,
+  "live_outcome": "fingertip",
+  "live_mis": 7.760298177529279,
+  "live_dt40": 26.799999999994384,
+  "off_held": false,
+  "off_mis": 15.9,
+  "off_dt40": 27.2
+ },
+ {
+  "i": 6,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 0.9768249612885508,
+  "live_dt40": 25.199999999998113,
+  "off_held": true,
+  "off_mis": 1.1,
+  "off_dt40": 27.2
+ },
+ {
+  "i": 7,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 0.3674753714766905,
+  "live_dt40": 25.000000000005684,
+  "off_held": true,
+  "off_mis": 9.5,
+  "off_dt40": 28.2
+ },
+ {
+  "i": 8,
+  "live_held": false,
+  "live_outcome": "fingertip",
+  "live_mis": 9.60545060151224,
+  "live_dt40": 25.999999999982037,
+  "off_held": true,
+  "off_mis": 12.7,
+  "off_dt40": 28.4
+ },
+ {
+  "i": 9,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 1.5191170716476403,
+  "live_dt40": 26.600000000001955,
+  "off_held": true,
+  "off_mis": 5.1,
+  "off_dt40": 27.4
+ },
+ {
+  "i": 10,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 6.932471765189049,
+  "live_dt40": 26.00000000001046,
+  "off_held": true,
+  "off_mis": 4.2,
+  "off_dt40": 27.0
+ },
+ {
+  "i": 11,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 20.37824677784493,
+  "live_dt40": 27.799999999984948,
+  "off_held": true,
+  "off_mis": 28.4,
+  "off_dt40": 27.2
+ },
+ {
+  "i": 12,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 1.760116334358326,
+  "live_dt40": 25.59999999999718,
+  "off_held": true,
+  "off_mis": 4.7,
+  "off_dt40": 28.2
+ },
+ {
+  "i": 13,
+  "live_held": false,
+  "live_outcome": "fingertip",
+  "live_mis": 17.43760982236935,
+  "live_dt40": 26.00000000001046,
+  "off_held": false,
+  "off_mis": 20.2,
+  "off_dt40": 27.6
+ },
+ {
+  "i": 14,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 0.16805886519669658,
+  "live_dt40": 25.39999999999054,
+  "off_held": true,
+  "off_mis": 0.4,
+  "off_dt40": 27.2
+ },
+ {
+  "i": 15,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 6.072619981584244,
+  "live_dt40": 26.600000000001955,
+  "off_held": false,
+  "off_mis": 15.0,
+  "off_dt40": 28.0
+ },
+ {
+  "i": 16,
+  "live_held": false,
+  "live_outcome": "fingertip",
+  "live_mis": 17.141502233516185,
+  "live_dt40": 24.399999999985766,
+  "off_held": false,
+  "off_mis": 22.7,
+  "off_dt40": 27.4
+ },
+ {
+  "i": 17,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 1.3425732294465287,
+  "live_dt40": 25.999999999953616,
+  "off_held": true,
+  "off_mis": 7.0,
+  "off_dt40": 27.2
+ },
+ {
+  "i": 18,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 6.41996182644297,
+  "live_dt40": 27.799999999956526,
+  "off_held": true,
+  "off_mis": 9.6,
+  "off_dt40": 28.0
+ },
+ {
+  "i": 19,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 5.0440078834870965,
+  "live_dt40": 24.600000000020827,
+  "off_held": true,
+  "off_mis": 10.9,
+  "off_dt40": 28.0
+ },
+ {
+  "i": 20,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 1.7134219829301527,
+  "live_dt40": 26.00000000001046,
+  "off_held": true,
+  "off_mis": 4.5,
+  "off_dt40": 28.2
+ },
+ {
+  "i": 21,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 10.743146732286554,
+  "live_dt40": 25.199999999983902,
+  "off_held": false,
+  "off_mis": 10.8,
+  "off_dt40": 28.2
+ },
+ {
+  "i": 22,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 20.68120964764224,
+  "live_dt40": 25.199999999983902,
+  "off_held": false,
+  "off_mis": 16.4,
+  "off_dt40": 28.0
+ },
+ {
+  "i": 23,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 3.557863974939492,
+  "live_dt40": 24.00000000000091,
+  "off_held": true,
+  "off_mis": 5.3,
+  "off_dt40": 27.2
+ },
+ {
+  "i": 24,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 2.097830496777522,
+  "live_dt40": 25.59999999999718,
+  "off_held": true,
+  "off_mis": 2.4,
+  "off_dt40": 28.0
+ },
+ {
+  "i": 26,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 4.859376644116608,
+  "live_dt40": 27.7999989999671,
+  "off_held": true,
+  "off_mis": 7.5,
+  "off_dt40": 28.2
+ },
+ {
+  "i": 27,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 18.912767230493667,
+  "live_dt40": 26.400000000023738,
+  "off_held": false,
+  "off_mis": 24.8,
+  "off_dt40": 27.2
+ },
+ {
+  "i": 28,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 11.868030268767171,
+  "live_dt40": 26.600000000030377,
+  "off_held": true,
+  "off_mis": 14.6,
+  "off_dt40": 28.2
+ },
+ {
+  "i": 29,
+  "live_held": false,
+  "live_outcome": "fingertip",
+  "live_mis": 10.141189781008684,
+  "live_dt40": 25.399999999933698,
+  "off_held": false,
+  "off_mis": 16.7,
+  "off_dt40": 27.0
+ },
+ {
+  "i": 30,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 15.22931750369419,
+  "live_dt40": 26.199999999960255,
+  "off_held": true,
+  "off_mis": 17.9,
+  "off_dt40": 27.2
+ },
+ {
+  "i": 31,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 1.1914827799842496,
+  "live_dt40": 25.999999999953616,
+  "off_held": true,
+  "off_mis": 7.8,
+  "off_dt40": 28.4
+ },
+ {
+  "i": 32,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 1.774685548227339,
+  "live_dt40": 26.800000000037016,
+  "off_held": true,
+  "off_mis": 2.1,
+  "off_dt40": 27.4
+ },
+ {
+  "i": 33,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 1.1974257973982334,
+  "live_dt40": 24.799999999970623,
+  "off_held": true,
+  "off_mis": 1.1,
+  "off_dt40": 27.2
+ },
+ {
+  "i": 34,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 3.779245359354379,
+  "live_dt40": 28.600000000039927,
+  "off_held": true,
+  "off_mis": 10.0,
+  "off_dt40": 28.2
+ },
+ {
+  "i": 35,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 28.92157842372364,
+  "live_dt40": 23.799999999937427,
+  "off_held": true,
+  "off_mis": 29.6,
+  "off_dt40": 28.2
+ },
+ {
+  "i": 36,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 0.8029864061149453,
+  "live_dt40": 25.19999999992706,
+  "off_held": true,
+  "off_mis": 3.2,
+  "off_dt40": 27.2
+ },
+ {
+  "i": 37,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 29.942743959767636,
+  "live_dt40": 25.80000000000382,
+  "off_held": true,
+  "off_mis": 32.1,
+  "off_dt40": 28.4
+ },
+ {
+  "i": 38,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 0.4848284393372563,
+  "live_dt40": 24.200000000064392,
+  "off_held": true,
+  "off_mis": 1.0,
+  "off_dt40": 27.2
+ },
+ {
+  "i": 39,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 22.388913307413485,
+  "live_dt40": 28.00000000002001,
+  "off_held": true,
+  "off_mis": 26.9,
+  "off_dt40": 28.2
+ },
+ {
+  "i": 40,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 17.657666202646283,
+  "live_dt40": 25.600000000054024,
+  "off_held": false,
+  "off_mis": 17.0,
+  "off_dt40": 27.2
+ },
+ {
+  "i": 41,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 25.58073806888896,
+  "live_dt40": 26.399999999966894,
+  "off_held": true,
+  "off_mis": 28.9,
+  "off_dt40": 28.4
+ },
+ {
+  "i": 42,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 1.185617766904601,
+  "live_dt40": 25.600000000054024,
+  "off_held": true,
+  "off_mis": 4.6,
+  "off_dt40": 27.2
+ },
+ {
+  "i": 43,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 10.134108203752469,
+  "live_dt40": 25.200000000040745,
+  "off_held": true,
+  "off_mis": 9.0,
+  "off_dt40": 28.4
+ },
+ {
+  "i": 44,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 0.547744178183679,
+  "live_dt40": 24.999999999977263,
+  "off_held": true,
+  "off_mis": 5.1,
+  "off_dt40": 27.0
+ },
+ {
+  "i": 45,
+  "live_held": false,
+  "live_outcome": "fingertip",
+  "live_mis": 23.151746257413734,
+  "live_dt40": 24.00000000000091,
+  "off_held": false,
+  "off_mis": 15.4,
+  "off_dt40": 27.4
+ },
+ {
+  "i": 46,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 0.8995386922955413,
+  "live_dt40": 24.00000000000091,
+  "off_held": true,
+  "off_mis": 6.0,
+  "off_dt40": 27.4
+ },
+ {
+  "i": 47,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 1.2197290953428643,
+  "live_dt40": 25.80000000000382,
+  "off_held": true,
+  "off_mis": 3.4,
+  "off_dt40": 27.0
+ },
+ {
+  "i": 48,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 28.356577869903873,
+  "live_dt40": 27.599999999893043,
+  "off_held": true,
+  "off_mis": 29.5,
+  "off_dt40": 27.4
+ },
+ {
+  "i": 49,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 0.06356423391490479,
+  "live_dt40": 26.80000000009386,
+  "off_held": true,
+  "off_mis": 0.8,
+  "off_dt40": 27.4
+ },
+ {
+  "i": 50,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 0.7251315809672185,
+  "live_dt40": 27.000000000043656,
+  "off_held": true,
+  "off_mis": 10.5,
+  "off_dt40": 28.2
+ },
+ {
+  "i": 51,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 4.2321601386624605,
+  "live_dt40": 26.2000000000171,
+  "off_held": true,
+  "off_mis": 10.5,
+  "off_dt40": 28.2
+ },
+ {
+  "i": 52,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 2.618583322444109,
+  "live_dt40": 26.59999999991669,
+  "off_held": true,
+  "off_mis": 7.6,
+  "off_dt40": 28.2
+ },
+ {
+  "i": 53,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 15.5747287344329,
+  "live_dt40": 26.600000000030377,
+  "off_held": true,
+  "off_mis": 14.8,
+  "off_dt40": 28.2
+ },
+ {
+  "i": 54,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 2.1560237848384616,
+  "live_dt40": 27.999999999906322,
+  "off_held": true,
+  "off_mis": 7.7,
+  "off_dt40": 28.0
+ },
+ {
+  "i": 55,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 15.227649255134159,
+  "live_dt40": 26.799999999980173,
+  "off_held": false,
+  "off_mis": 22.8,
+  "off_dt40": 27.0
+ },
+ {
+  "i": 56,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 11.985618713913112,
+  "live_dt40": 26.600000000030377,
+  "off_held": true,
+  "off_mis": 8.4,
+  "off_dt40": 28.2
+ },
+ {
+  "i": 57,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 2.15739934035563,
+  "live_dt40": 26.99999999992997,
+  "off_held": true,
+  "off_mis": 5.1,
+  "off_dt40": 27.0
+ },
+ {
+  "i": 58,
+  "live_held": false,
+  "live_outcome": "fingertip",
+  "live_mis": 16.62867232331654,
+  "live_dt40": 27.19999999999345,
+  "off_held": false,
+  "off_mis": 15.6,
+  "off_dt40": 27.0
+ },
+ {
+  "i": 59,
+  "live_held": true,
+  "live_outcome": "held",
+  "live_mis": 0.8377939103760564,
+  "live_dt40": 25.19999999992706,
+  "off_held": true,
+  "off_mis": 1.3,
+  "off_dt40": 27.2
+ }
+]

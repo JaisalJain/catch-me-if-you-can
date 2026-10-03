@@ -293,3 +293,25 @@
   physics time) -> arrival-based.
 - Video docs/media/demo_v2_seed1.mp4; failure clips docs/media/v2_fail_*.mp4; README updated (v2 section, benchmark,
   both v1 numbers, closing speed in "what is idealized"); tag v2.0.
+
+## v2.1 review fixes (2026-10-03) ✅
+- Leftovers stopped first: a demo-log monitor, a stuck shell with a `ros2 service call` on a crashed sim, two
+  `ros2 topic echo /sim/rtf` processes (bench_cell.sh started them with a timeout that outlived the cell; removed:
+  reactive_eval now records RTF and load average per trial).
+- **Benchmark re-run, every cell alone** (`tools/v2_live/bench_seq.sh`, one sim at a time, 60 throws per cell): RTF
+  >= 0.998 per trial (>= 0.996 in any 2 s window), camera-only re-planning 36-39 Hz. **Default 59/59 = 100 % [94-100]**
+  (run twice); camera-only 100 / 100 / 100 / 95 % (none -> high), plan-informed 100 / 100 / 39 / 22 %; cup 90 %; 64 Hz
+  cameras 97 %; gripper latency 0 / 20 / 30 ms: 97 / 71 / 64 %; fast_close 88 %, fast_idealized 100 %. Offline
+  counterparts now on the same throws + noise draws (`tools/v2_live/offline_cells.py`). v2.0's parallel numbers kept
+  as "under load" (docs/v2/phase2/bench_v2.0/, up to 24 points lower).
+- **Noise:** camera-only drops only at high noise (Cochran-Armitage p = 0.02, -1.5 points/level, 3 failures) although
+  the realised release error moves the arrival by up to 151 mm; it re-estimates the flight (offline: flat too);
+  plan-informed -29 points/level.
+- **v1 30/30 contradiction:** the implication that v1 depended on the fast sim gripper was wrong — the realistic
+  re-run really closed at 150 mm/s (pads on the cube 340 ms after impact vs 108 ms), the cube sits at rest in the
+  pre-positioned palm (<= 6 mm drift). Corrected in v2_phase1_feasibility.md, README, here.
+- **fast_close 90 vs 69 % -> 88 vs 80 % (same throws, CIs overlap):** ~9 points were the offline throw population
+  (Phase 1 distribution instead of the library); contacts, timestep, actuator, close timing (+26/+28 ms), closing
+  speed (~700 mm/s, force-limited), intercept time, noise, spin and release orientation ruled out; failures are
+  decided by the cube's misalignment in the hand at the arrival in both (r = 0.92 per throw); the residual comes
+  from the live cube arriving ~3 deg squarer and the fingers ~1.6 ms earlier.

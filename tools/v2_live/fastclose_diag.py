@@ -4,7 +4,8 @@ on the SAME throws as the live benchmark cells (pinch library entries drawn like
 release noise) and compare per entry. venv + MuJoCo; --procs to parallelise (default 1).
 
     env -u PYTHONPATH .venv/bin/python tools/v2_live/fastclose_diag.py [--profiles fast_close realistic] [--n 60]
-Output: docs/v2/phase2/fastclose_diag.json
+Output: docs/v2/phase2/fastclose_diag.json. Per-throw live vs offline (live recordings of every trial, system python):
+    python3 tools/v2_live/fastclose_compare.py
 """
 import argparse
 import json
@@ -21,8 +22,8 @@ import v2_common as V  # noqa: E402
 REPO = V.REPO
 
 
-def live_throws(n, seed=1, noise=None):
-    lib = json.load(open(os.path.join(REPO, "src/catch_throw/config/library_pinch.json")))["entries"]
+def live_throws(n, seed=1, noise=None, library="pinch"):
+    lib = json.load(open(os.path.join(REPO, f"src/catch_throw/config/library_{library}.json")))["entries"]
     rng = np.random.default_rng(seed)                 # reactive_eval: lib_rng["pinch"] = default_rng(args.seed)
     out = []
     if noise:                                         # the release velocity throw_node commands (same noise seeds)
