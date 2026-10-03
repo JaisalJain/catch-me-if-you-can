@@ -179,7 +179,8 @@
   pre-closed 90 % on square throws (40 % with open fingers on random throws: tilted cubes slide out before the
   150 mm/s fingers close); fast_idealized — 98–100 %. Side chopsticks: 0 % within limits (plans 2.5–51× over);
   velocity matching: ≤ 40 % deliverable, no benefit.
-- Finding for v1: the v1 sim gripper closes 3–5× faster than the real 2F-85 (M5's 30/30 cup used it).
+- Finding for v1: the v1 sim gripper closes 3–5× faster than the real 2F-85 (M5's 30/30 cup used it). [Corrected in
+  v2.1: the 30/30 does not depend on it — see "v2.1 review fixes".]
 - Details and Phase 2 plan: `docs/v2_phase1_feasibility.md`.
 
 ## v2 Phase 2 — step 0: corrections from the Phase 1 review (2026-10-02)

@@ -150,7 +150,7 @@ This table is v1 (M1–M6); the v2 benchmark is in the [v2 section](#v2-random-t
 | Static grasp slip, 10 s at up to 2.1 rad/s (M2, re-run after M5) | A 1.44–1.63 mm in 7 of 8 runs, one 2.35 mm outlier; B 1.43–1.60 mm in 6 runs (limit 2 mm) |
 | Cube detection, overhead camera (M3) | 1.7 mm mean / 4.7 mm max position, 0.4° yaw |
 | Release velocity, 20 throws (M4 / after M5) | speed error +8.2 ± 1.8 mm/s, direction 0.26°, spin −1.89 rad/s; catch-height crossing (4.2, 1.6) mm off the plan |
-| **Catch, 30 throws (10 per color, M5, v1)** | **30 / 30** with the v1 sim gripper (closes 3–5× faster than a 2F-85), contact trigger −2.7 ± 0.7 ms vs predicted arrival; **30 / 30 (placed 30 / 30) again with the realistic 2F-85 model** (v2 step 0) |
+| **Catch, 30 throws (10 per color, M5, v1)** | **30 / 30**, contact trigger −2.7 ± 0.7 ms vs predicted arrival (v1 sim gripper, ~3× faster than a 2F-85); **30 / 30 (placed 30 / 30) again with the realistic 2F-85 model** — v1's pre-positioned cup holds the cube at rest in the palm while even a 150 mm/s close takes 340 ms, so v1 does not depend on the closing speed |
 | Color check from B's wrist camera | 30 / 30 |
 | In-hand pose (wrist camera) vs ground truth | angle error −0.14 ± 0.22° (max 0.75°), offset error ≤ 0.3 mm; off-centre catches (up to 18° in the hand): ≤ 0.7° / 0.7 mm |
 | **Place error**, 30 catches | **30 / 30 in slot**, x −0.70 ± 0.07 mm, **yaw 0.00°** (without in-hand correction: +1.67 ± 1.19 mm; off-centre catches uncorrected: 0 / 9 in slot) |
@@ -171,7 +171,8 @@ This table is v1 (M1–M6); the v2 benchmark is in the [v2 section](#v2-random-t
 * **Known release state (v1 only).** v1's B pre-positions from A's published *plan*; that is why v1 needs no
   vision (release scatter ~7 mm/s). v2's B tracks the cube with two cameras — but the cameras are still ideal
   renders (see above), at a rate (128.7 Hz) and latency (5 ms) a real system would have to earn.
-* **Gripper closing speed.** v1's sim gripper closed 3–5× faster than a real 2F-85 (150 mm/s). v2 commands both
+* **Gripper closing speed.** v1's sim gripper closed ~3× faster than a real 2F-85 (150 mm/s); the v1 cup catch does
+  not depend on it (30/30 with the realistic model too), the v2 catches from the ready pose do. v2 commands both
   grippers through a 2F-85 model (150 mm/s ramp, 10 ms command latency from the Robotiq manual — an estimate, not a
   measurement); `fast_close` / `fast_idealized` exist only as labelled benchmark cells. The MuJoCo finger actuator
   additionally lags its reference ramp by ~10 ms.
@@ -200,7 +201,7 @@ What changed (`docs/v2_phase2.md`; offline feasibility study first: `docs/v2_pha
   joint speed ≤ 85 %, torque ≤ 80 % by inverse dynamics, capsule collision check of every plan) and closes the
   fingers on a schedule that accounts for the 2F-85's 150 mm/s and 10 ms command latency ("pinch").
 * **The real 2F-85 speed everywhere.** Both grippers are commanded through a 2F-85 model (`catch_sim/gripper_model.py`);
-  the v1 sim gripper closed 3–5× faster.
+  the v1 sim gripper closed ~3× faster (v1's cup catch does not depend on it, see the measured numbers).
 
 **Live benchmark** (60 throws per cell, ground truth; `docs/v2/phase2/bench_table.md`; realistic 2F-85 unless marked):
 
@@ -221,7 +222,9 @@ catch from its ready pose; real time around each throw, 0.25× close-ups). Failu
 `docs/media/v2_fail_{missed_intercept,late_close,slide_off,fingertip,abort}.mp4` (no collision occurred).
 
 v1 numbers with the realistic gripper: the v1 catch evaluation (plan-informed cup, configured throw) still catches
-**30/30** (placed 30/30) and M4 throws 20/20 — the v1 headline 30/30 was measured with the faster v1 sim gripper.
+**30/30** (placed 30/30) and M4 throws 20/20. The v1 headline 30/30 was measured with the faster v1 sim gripper, but
+does not depend on it: the pre-positioned cup holds the cube at rest in the palm (≤ 6 mm drift) for the 340 ms a
+150 mm/s close takes (`tools/v2_live/v1_close_analysis.py`).
 
 ## Documentation
 `docs/progress.md` (milestone log) and per milestone `docs/m0_toolchain.md`, `m1_feasibility.md`,

@@ -31,9 +31,11 @@ Details: `docs/v2_phase1_feasibility.md` ("Corrections after the Phase 1 review"
   reading … minimum delay of 5 ms between [commands]", RS-485 115.2 kbps → ≤ 5 ms slot + ~2 ms transaction + gripper
   cycle; an estimate, not a measurement), modelled offline and in the sim (`catch_sim/gripper_model.py`). Sweep with
   B assuming 10 ms: pinch 76 / 87 / 88 / 82 %, pre-closed cup 90 / 89 / 88 / 86 % at 0 / 10 / 20 / 30 ms.
-* **v1 honesty.** The v1 sim gripper closed 3–5× faster than a 2F-85. With the realistic model on both arms the v1
+* **v1 honesty.** The v1 sim gripper closed ~3× faster than a 2F-85. With the realistic model on both arms the v1
   evaluation still catches **30/30 (placed 30/30)** and M4 throws **20/20, +5.4 ± 1.8 mm/s** — the v1 demo throw lands
   square on a static, plan-informed cup, where the closing speed does not matter (it does for random throws, Phase 1).
+  Measured in both runs' recordings (v2.1, `tools/v2_live/v1_close_analysis.py`): 480 vs 150 mm/s reached, pads on
+  the cube 108 vs 340 ms after the impact, the cube at rest in the palm (≤ 6 mm drift) until they arrive.
 
 ## Step 1 — /joint_states CPU fix
 `catch_sim.joint_state_cache.JointStateCache` keeps the latest /joint_states on a helper node spun by an

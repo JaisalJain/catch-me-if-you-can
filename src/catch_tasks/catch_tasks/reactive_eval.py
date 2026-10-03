@@ -60,6 +60,10 @@ class ReactiveEval(TrackerEval):
         self.lib_n = {k: len(Library(k)) for k in ("pinch", "cup")}
         self.lib_rng = {k: np.random.default_rng(args.seed) for k in ("pinch", "cup")}   # same throws in every cell
         self.phase = None
+        # real-time factor: /sim/rtf (rtf_monitor, 2 s windows) samples + per trial sim/wall over the whole trial
+        from std_msgs.msg import Float64
+        self.rtf_samples = []
+        n.create_subscription(Float64, "/sim/rtf", lambda m: self.rtf_samples.append((time.monotonic(), m.data)), 10)
 
     def tcp_b(self):
         return self.rb.fk(self.sk.mi.joints("b"))
@@ -69,6 +73,19 @@ class ReactiveEval(TrackerEval):
         color = COLORS[i % 3]
         self.color = color
         row = dict(i=i, color=color, mode=a.mode, source=a.source, noise=a.noise)
+        w0, s0 = time.monotonic(), self.now()
+        try:
+            return self._one(i, row)
+        finally:
+            w1, s1 = time.monotonic(), self.now()
+            row["rtf_trial"] = round((s1 - s0) / max(w1 - w0, 1e-6), 4)
+            win = [v for t, v in self.rtf_samples if w0 <= t <= w1]
+            row["rtf_min_2s"] = round(min(win), 4) if win else None
+            row["loadavg_1min"] = round(os.getloadavg()[0], 2)       # evidence for "nothing else heavy running"
+
+    def _one(self, i, row):
+        a = self.args
+        color = row["color"]
         sk = self.sk
         _wait(self.reset.call_async(ResetScene.Request()), 10)
         lib = "cup" if a.mode == "cup" else "pinch"
@@ -228,9 +245,18 @@ def summarize(rows, args):
                outcomes=dict(Counter(r.get("outcome", r.get("stage")) for r in rows)),
                triggers=dict(Counter(r.get("trigger") for r in valid)))
     v = [r for r in valid if r.get("t_commit") is not None and not r.get("aborted")]
+    rt = [r["rtf_trial"] for r in rows if r.get("rtf_trial")]
+    rm = [r["rtf_min_2s"] for r in rows if r.get("rtf_min_2s")]
+    la = [r["loadavg_1min"] for r in rows if r.get("loadavg_1min") is not None]
+    if la:
+        out["loadavg_1min"] = dict(median=round(float(np.median(la)), 2), max=round(float(max(la)), 2))
+    if rt:
+        out["rtf"] = dict(trial_median=round(float(np.median(rt)), 4), trial_min=round(float(min(rt)), 4),
+                          window_2s_min=round(float(min(rm)), 4) if rm else None, n_trials_with_windows=len(rm))
     if v:
         out.update(t_commit_ms=round(1000 * float(np.median([r["t_commit"] for r in v])), 1),
                    replan_rate_hz=round(float(np.median([r["replan_rate_hz"] for r in v])), 1),
+                   replan_rate_hz_p10_p90=[round(float(x), 1) for x in np.percentile([r["replan_rate_hz"] for r in v], [10, 90])],
                    plan_ms=round(float(np.median([r["plan_ms"] for r in v])), 2),
                    max_limit_ratio=round(float(max(r["max_limit_ratio"] for r in v)), 3),
                    min_plan_clearance_mm=round(1000 * float(min(r["plan_min_clearance"] for r in v)), 1))

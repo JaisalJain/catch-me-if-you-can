@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """When did B's fingers reach 40 mm relative to the cube's actual arrival? (recorded benchmark failures)
 
-    python3 tools/v2_live/close_timing.py latency0_medium vision_medium ...   (system python, workspace sourced)
+    python3 tools/v2_live/close_timing.py latency0_medium vision_medium log/p2/bench_v2.0/fastclose_medium ...
+(system python, workspace sourced; a cell label = log/p2/bench/<label>, or a directory)
 For each log/p2/bench/<cell>/trial_*.npz: a ballistic fit (known g) to the ground-truth free flight 150 ms before the
 cube comes within 120 mm of B's TCP, extrapolated to its closest approach to the TCP (= the arrival if nothing had
 touched it), vs the time the finger gap (gripper_model.GAP_TABLE) drops below 40 mm. B schedules 40 mm at the
@@ -25,6 +26,26 @@ from catch_tasks.throw_eval import COLORS
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 G = np.array([0.0, 0.0, -9.81])
 JN = ("shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint", "wrist_1_joint", "wrist_2_joint", "wrist_3_joint")
+
+
+def _syms():
+    import itertools
+    out = []
+    for perm in itertools.permutations(range(3)):
+        for sg in itertools.product((1, -1), repeat=3):
+            M = np.zeros((3, 3))
+            for i, j in enumerate(perm):
+                M[i, j] = sg[i]
+            if np.linalg.det(M) > 0:
+                out.append(M)
+    return out
+
+
+SYMS = _syms()
+
+
+def misalign_deg(R_tool, R_cube):
+    return float(min(np.degrees(np.arccos(np.clip((np.trace(R_tool.T @ R_cube @ S) - 1) / 2, -1, 1))) for S in SYMS))
 
 
 def robot_b():
@@ -59,20 +80,31 @@ def timing(f, rb):
     gap = np.array([gap_for_knuckle(q) for q in z["q"][:, kk]])
     i40 = int(np.argmax(gap < 40.0))
     t40 = z["t_js"][i40] if gap[i40] < 40.0 else np.nan
-    return meta, 1000 * (t40 - (t0 + ts[ia])), 1000 * float(np.linalg.norm(path[ia] - p_tcp))
+    # cube misalignment in the hand at the closest approach (smallest rotation between the cube's and the TCP's
+    # axes over the cube's 24 symmetries; 0 = faces square to the pads) - same as fastclose_diag.py offline
+    i_min = int(np.argmin(d))
+    w, x, y, zq = z["cubes"][i_min, 4 + 7 * k:8 + 7 * k]
+    Rc = np.array([[1 - 2 * (y * y + zq * zq), 2 * (x * y - zq * w), 2 * (x * zq + y * w)],
+                   [2 * (x * y + zq * w), 1 - 2 * (x * x + zq * zq), 2 * (y * zq - x * w)],
+                   [2 * (x * zq - y * w), 2 * (y * zq + x * w), 1 - 2 * (x * x + y * y)]])
+    mis = misalign_deg(rb.fk(z["q"][idx[i_min], jb])[:3, :3], Rc)
+    a_, b_ = np.argmax(gap < 54.0), np.argmax(gap < 42.0)
+    speed = 12.0 / (z["t_js"][b_] - z["t_js"][a_]) if gap[b_] < 42.0 and b_ > a_ else np.nan
+    return meta, 1000 * (t40 - (t0 + ts[ia])), 1000 * float(np.linalg.norm(path[ia] - p_tcp)), speed, mis
 
 
 def main():
     rb = robot_b()
     for cell in sys.argv[1:]:
-        out = [r for f in sorted(glob.glob(os.path.join(REPO, "log/p2/bench", cell, "trial_*.npz")))
+        d = cell if os.sep in cell else os.path.join(REPO, "log/p2/bench", cell)     # a cell label or a directory
+        out = [r for f in sorted(glob.glob(os.path.join(d, "trial_*.npz")))
                if (r := timing(f, rb)) is not None]
         print(cell)
-        for meta, dt, miss in out:
+        for meta, dt, miss, sp, mis in out:
             print(f"   #{meta['i']:2d} {meta['outcome']:16s} gap 40 mm at arrival {dt:+6.1f} ms  (path passes {miss:4.1f} mm "
-                  f"from the TCP)")
+                  f"from the TCP; gap speed 54->42 mm {sp:5.0f} mm/s; cube misaligned {mis:4.1f} deg)")
         if out:
-            print(f"   median {np.nanmedian([o[1] for o in out]):+.1f} ms")
+            print(f"   median {np.nanmedian([o[1] for o in out]):+.1f} ms, misalignment {np.nanmedian([o[4] for o in out]):.1f} deg")
 
 
 if __name__ == "__main__":

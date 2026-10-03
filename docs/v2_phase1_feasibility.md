@@ -257,9 +257,18 @@ spin; A's arm holds home). B starts at the ready pose and knows nothing of the p
 |---|---|---|---|---|
 | **realistic** | 150 mm/s (2F-85 max, Robotiq product sheet: closing speed 20–150 mm/s, stroke 85 mm) | 312 ms (145 mm/s) | 117 ms (137 mm/s) | v1 force limit (same grip force as M5) |
 | **fast_idealized** (not a real 2F-85) | 1500 mm/s | 36 ms (1256 mm/s) | 16 ms (1000 mm/s) | 5× force limit, so also 5× grip force |
-| v1 sim gripper (M5, step command) | — | 93 ms (peak ~720 mm/s) | | 3–5× faster than the real 2F-85 |
+| v1 sim gripper (M5, step command) | — | 93 ms (peak ~720 mm/s) | | ~3× faster than the real 2F-85 (480 mm/s 80 → 45 mm measured in the M5 catches) |
 
-The M5 cup's 30/30 was obtained with the v1 sim gripper, i.e. faster than the real hardware can close.
+The M5 cup's 30/30 was obtained with the v1 sim gripper, i.e. faster than the real hardware can close. **Correction
+(v2.1): this did NOT make the v1 result depend on the closing speed.** Phase 2 step 0 re-ran the v1 evaluation with
+the realistic model (default MJCF actuator kp 1000 / kv 10 / ±5 N, 2F-85 command model 150 mm/s + 10 ms on the
+contact-triggered close) and caught 30/30 again. The recordings of both runs (`tools/v2_live/v1_close_analysis.py
+log/m5/force log/p2/v1_realistic`) show the realistic run really closed slowly — 150 mm/s reached (v1: 480 mm/s),
+pads on the cube 340 ms after the palm impact (v1: 108 ms), same trigger timing (−3.3 vs −2.8 ms) — and that the
+cube is at rest in the palm 20 ms after the impact and moves ≤ 6 mm (median 2.7 mm) until the pads arrive. In v1, B
+is pre-positioned from A's plan with the palm square against the arrival, so the cube stays in the cup and there is
+no race. The closing speed matters for the cups and pinches of this study (ready-pose orientation, random throws):
+there the cube rebounds or passes through before a 2F-85 can close (5a–5b).
 
 ### 5a. Natural cup: success vs cone angle
 Palm normal against the predicted arrival velocity, limited to a cone around the ready approach axis (60° up
