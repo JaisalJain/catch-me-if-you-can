@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <package format="3">
   <name>catch_throw</name>
-  <version>0.1.0</version>
+  <version>2.3.0</version>
   <description>Underhand-toss trajectory generator for robot A (numpy only) and the throw action/execution node.</description>
-  <maintainer email="jaisaljain345@gmail.com">jaisaljain</maintainer>
+  <maintainer email="jaisaljain345@gmail.com">Jaisal K Jain</maintainer>
   <license>Apache-2.0</license>
   <exec_depend>catch_ballistics</exec_depend>
   <exec_depend>catch_kinematics</exec_depend>

@@ -11,7 +11,9 @@ not depend on system package versions.
 
 Used: `ur_description` (`ur_macro.xacro`, `config/ur5e/*.yaml`, `meshes/ur5e`), `robotiq_description`
 (`robotiq_2f_85_macro.urdf.xacro`, read by `tools/gen_gripper_urdf.py`; 9 visual meshes). Licenses: BSD-3-Clause
-(both, see each `package.xml`); UR meshes additionally under Universal Robots' terms (`ur_description/meshes`).
+(`ur_description`) and BSD (`robotiq_description`), see each `package.xml`; in `ur_description` only the UR8 Long /
+UR15 / UR18 / UR20 / UR30 meshes are under Universal Robots' graphical-documentation terms (not used here). Overview:
+`THIRD_PARTY_NOTICES.md`.
 
 Bump: `git -C src/external/<pkg> fetch --tags && git -C src/external/<pkg> checkout <new tag>`, then rerun
 `tools/gen_gripper_urdf.py` (robotiq) and the tests, and update this table.

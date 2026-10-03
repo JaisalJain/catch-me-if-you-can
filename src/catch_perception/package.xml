@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <package format="3">
   <name>catch_perception</name>
-  <version>0.1.0</version>
+  <version>2.3.0</version>
   <description>Overhead HSV cube detection on the pallets and the color check at B.</description>
-  <maintainer email="jaisaljain345@gmail.com">jaisaljain</maintainer>
+  <maintainer email="jaisaljain345@gmail.com">Jaisal K Jain</maintainer>
   <license>Apache-2.0</license>
   <exec_depend>rclpy</exec_depend>
   <exec_depend>std_srvs</exec_depend>

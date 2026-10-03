@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name="catch_sim",
-    version="0.1.0",
+    version="2.3.0",
     packages=["catch_sim"],
     data_files=[("share/ament_index/resource_index/packages", ["resource/catch_sim"]),
                 ("share/catch_sim", ["package.xml"]),

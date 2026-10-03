@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <package format="3">
   <name>catch_catcher</name>
-  <version>0.1.0</version>
-  <description>Robot B: intercept planning, cup pose and contact-triggered catch.</description>
-  <maintainer email="jaisaljain345@gmail.com">jaisaljain</maintainer>
+  <version>2.3.0</version>
+  <description>Robot B: reactive camera-only intercept with a timed pinch (v2) and the plan-informed, contact-triggered cup catch (v1).</description>
+  <maintainer email="jaisaljain345@gmail.com">Jaisal K Jain</maintainer>
   <license>Apache-2.0</license>
   <exec_depend>rclpy</exec_depend>
   <exec_depend>control_msgs</exec_depend>

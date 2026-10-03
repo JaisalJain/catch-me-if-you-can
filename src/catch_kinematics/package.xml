@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <package format="3">
   <name>catch_kinematics</name>
-  <version>0.1.0</version>
+  <version>2.3.0</version>
   <description>Pure-Python UR5e kinematics (DH FK, Jacobian, analytic IK) and a minimal URDF FK (numpy only).</description>
-  <maintainer email="jaisaljain345@gmail.com">jaisaljain</maintainer>
+  <maintainer email="jaisaljain345@gmail.com">Jaisal K Jain</maintainer>
   <license>Apache-2.0</license>
   <exec_depend>python3-numpy</exec_depend>
   <exec_depend>python3-scipy</exec_depend>

@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <package format="3">
   <name>catch_sim</name>
-  <version>0.1.0</version>
+  <version>2.3.0</version>
   <description>MuJoCo sim bringup (mujoco_ros2_control), controllers, scene reset/spawn, ground truth, monitors.</description>
-  <maintainer email="jaisaljain345@gmail.com">jaisaljain</maintainer>
+  <maintainer email="jaisaljain345@gmail.com">Jaisal K Jain</maintainer>
   <license>Apache-2.0</license>
   <exec_depend>catch_description</exec_depend>
   <exec_depend>catch_interfaces</exec_depend>

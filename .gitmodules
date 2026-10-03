@@ -1,6 +1,7 @@
 [submodule "third_party/mujoco_menagerie"]
 	path = third_party/mujoco_menagerie
 	url = https://github.com/google-deepmind/mujoco_menagerie.git
+	shallow = true
 [submodule "src/external/robotiq_description"]
 	path = src/external/robotiq_description
 	url = https://github.com/ros2-gbp/ros2_robotiq_gripper-release.git

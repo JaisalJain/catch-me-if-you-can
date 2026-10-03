@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name="catch_catcher",
-    version="0.1.0",
+    version="2.3.0",
     packages=["catch_catcher"],
     data_files=[("share/ament_index/resource_index/packages", ["resource/catch_catcher"]),
                 ("share/catch_catcher", ["package.xml"]),

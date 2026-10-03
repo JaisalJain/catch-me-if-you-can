@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name="catch_throw",
-    version="0.1.0",
+    version="2.3.0",
     packages=["catch_throw"],
     data_files=[("share/ament_index/resource_index/packages", ["resource/catch_throw"]),
                 ("share/catch_throw", ["package.xml"]),

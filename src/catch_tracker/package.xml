@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <package format="3">
   <name>catch_tracker</name>
-  <version>0.2.0</version>
+  <version>2.3.0</version>
   <description>v2 flight tracking: stereo cube detection + ballistic least squares (C++ composable node)</description>
-  <maintainer email="jaisaljain345@gmail.com">jaisaljain</maintainer>
-  <license>BSD-3-Clause</license>
+  <maintainer email="jaisaljain345@gmail.com">Jaisal K Jain</maintainer>
+  <license>Apache-2.0</license>
   <buildtool_depend>ament_cmake</buildtool_depend>
   <depend>rclcpp</depend>
   <depend>rclcpp_components</depend>

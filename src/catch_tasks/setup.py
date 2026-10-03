@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name="catch_tasks",
-    version="0.1.0",
+    version="2.3.0",
     packages=["catch_tasks"],
     data_files=[("share/ament_index/resource_index/packages", ["resource/catch_tasks"]),
                 ("share/catch_tasks", ["package.xml"]),

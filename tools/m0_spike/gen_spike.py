@@ -2,7 +2,7 @@
 import os, shutil, sys
 import mujoco
 
-MEN = os.path.expanduser("~/catch/third_party/mujoco_menagerie")
+MEN = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "third_party", "mujoco_menagerie")
 OUT = os.path.dirname(os.path.abspath(__file__))
 
 
