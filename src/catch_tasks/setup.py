@@ -11,6 +11,7 @@ setup(
                 ("share/catch_tasks/config", glob("config/*.yaml")),
                 ("share/catch_tasks/launch", glob("launch/*.py"))],
     install_requires=["setuptools"],
+    tests_require=["pytest"],
     zip_safe=True,
     entry_points={"console_scripts": [
         "jog_test = catch_tasks.jog_test:main",

@@ -11,6 +11,7 @@ setup(
                 ("share/catch_catcher/config", glob("config/*.yaml")),
                 ("share/catch_catcher/launch", glob("launch/*.py"))],
     install_requires=["setuptools"],
+    tests_require=["pytest"],
     zip_safe=True,
     entry_points={"console_scripts": ["catcher = catch_catcher.catcher_node:main",
                                       "reactive_catcher = catch_catcher.reactive_node:main"]},

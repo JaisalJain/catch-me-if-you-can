@@ -11,6 +11,7 @@ setup(
                 ("share/catch_perception/config", glob("config/*.yaml")),
                 ("share/catch_perception/launch", glob("launch/*.py"))],
     install_requires=["setuptools"],
+    tests_require=["pytest"],
     zip_safe=True,
     entry_points={"console_scripts": [
         "pallet_detector = catch_perception.nodes:detector_main",

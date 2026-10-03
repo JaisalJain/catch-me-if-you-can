@@ -11,6 +11,7 @@ setup(
                 ("share/catch_sim/config", glob("config/*.yaml")),
                 ("share/catch_sim/launch", glob("launch/*.py"))],
     install_requires=["setuptools"],
+    tests_require=["pytest"],
     zip_safe=True,
     entry_points={"console_scripts": [
         "scene_manager = catch_sim.scene_manager:main",
