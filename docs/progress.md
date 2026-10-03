@@ -238,3 +238,46 @@
   9.7 / 6.3 / 4.8 mm at 0.10 / 0.15 / 0.20 / 0.25 / 0.30 s** — on the Phase 1 white-noise model (2 mm, 120 Hz, 25 ms),
   better than the Phase 1 rendered-detection estimate (18 mm at 0.20 s; it assumed a cube tumbling on all axes).
 
+
+## v2 Phase 2 — step 4: reactive intercept from the ready pose, pinch (2026-10-02)
+- `catch_catcher/reactive_node.py` + `reactive.py` (numpy only), action /reactive_catch: B waits at the Phase 1 ready
+  pose with the fingers at 56 mm; commits when the tracker's 95 % intercept error is <= 30 mm (two-stage search: IK +
+  batched inverse dynamics for every candidate on the predicted descending path, capsule collision checks best
+  first, ~20 ms); refines at most every 20 ms by re-planning the same intercept time from the current desired state
+  (quintic, ~4 ms) and replacing arm_b_controller's trajectory (points every 10 ms with inverse-dynamics feed-forward,
+  interpolate_from_desired_state) until 40 ms before the intercept.
+- Limits on every plan: joint speed <= 85 %, torque <= 80 % (numpy RNEA on MuJoCo-derived parameters, equal to
+  mj_inverse to 1e-6 N·m, test), joint margins. Collisions on every plan every 15 ms: capsule model (MuJoCo's UR5e
+  capsules + 2 gripper capsules) vs self, table/pedestals/pallets and arm A; validated on 4000 random configurations
+  against MuJoCo: 0 missed collisions, 21 % conservative, 0.2 ms each — no precomputed safe region needed.
+- Close: timed close scheduled in the gripper JTC in advance (2F-85 model, B compensates its assumed 10 ms latency,
+  40 mm gap on the predicted arrival + 10 ms); palm contact before that closes immediately; the result names the
+  trigger. A late replan that fails keeps the current plan; abort to the ready pose only if the predicted intercept
+  leaves the envelope.
+- Search speed: 260-320 ms (per-candidate RNEA) -> ~20 ms (batched RNEA 22x, two-stage); commit_lead 30 ms.
+- Smoke test, 12 throws, no noise: 12/12, commit 74 ms after the first fix, 39 Hz replans of 4.4 ms, limit ratio
+  <= 0.94, clearance >= 12 mm.
+
+## v2 Phase 2 — step 5: pre-closed cup baseline (2026-10-02)
+- Same framework, `mode: cup`: palm against the predicted velocity within 10° of the ready axis, fingers pre-closed
+  to 56 mm, B at rest 30 ms before the arrival, contact close (timed fallback 30 ms after), cup library throws.
+- Smoke test, 8 throws, no noise: 8/8, contact trigger every time.
+
+## v2 Phase 2 — step 6: live benchmark (2026-10-03)
+- 15 cells x 60 throws on the live ROS pipeline (tools/v2_live/bench.sh, three ROS domains in parallel) + three cells
+  re-run with the sim alone; offline counterparts with the measured live perception (`tools/v2_catch_sim.py
+  --live-match`). Table/plots: docs/v2/phase2/bench_table.md, bench.png; analysis in docs/v2_phase2.md.
+- **Default (vision-only pinch, medium noise, realistic 2F-85): 59/59 = 100 % [94-100] alone, 56/59 = 95 % [86-98]
+  in parallel, offline 98 %.** Vision-only 93/86/95/90 % for none/low/medium/high noise; plan-informed 98/98/39/27 %.
+  Cup 84 % alone (79 % parallel, offline 92 %); 64 Hz cameras 95 %; gripper latency 0/10/20/30 ms: 75 (100 alone) / 95 /
+  79 / 58 % (offline 100/98/61/52); B's gripper fast_close 90 %, fast_idealized 97 % (NOT a 2F-85).
+- Stop-rule check: latency 0 ms was 25 points below offline in parallel; alone it is 59/59 (parallel load slows the
+  planner 4 -> 12 ms, 39 -> 29 Hz; with an early close a few mm of aim error is caught by the fingertips).
+- Found and fixed: high-noise strokes starting > 0.05 rad from the nominal start were refused by throw_node (now
+  blended in at <= 6 rad/s^2; A's refusals are "throw failed", excluded); the fast-gripper cells had changed A's
+  gripper too (MJCF + command model) -> CATCH_GRIPPER_ARMS=b, mjcf_variant --arms b; "missed intercept" relabelled
+  "fingertip" when the cube is gripped 25-50 mm out (tools/v2_live/reclassify.py); camera plugin 0.1.1 crashes the
+  sim on a trigger of a polled camera listed after a disabled one (the wrist camera; demo camera now polled); the
+  polled wrist frame is stamped a few ms before color_check's request time (freshness now by arrival).
+- Timing check (tools/v2_live/close_timing.py): the gap reaches 40 mm ~10 ms after B's schedule — the MuJoCo finger
+  actuator's ramp lag kv/kp, the same offline.

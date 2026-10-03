@@ -48,7 +48,7 @@ class MoveItClient:
         self.grippers = {}
         self.grip_traj = {r: ActionClient(node, FollowJointTrajectory, f"/gripper_{r}_controller/follow_joint_trajectory")
                           for r in "ab"}
-        self.gripper_profile = gripper_model.load_profile()
+        self.gripper_profile = {r: gripper_model.load_profile(robot=r) for r in "ab"}
         self._last_grip_cmd = {}
         # latest /joint_states on a helper thread (EventsExecutor): a 500 Hz subscription on the caller's
         # MultiThreadedExecutor cost ~50-95 % of a core (catch_sim.joint_state_cache)
@@ -191,7 +191,7 @@ class MoveItClient:
         q_from = self.gripper_position(robot)
         if q_hold is None:
             q_hold = self._last_grip_cmd.get(robot, q_from)
-        prof = self.gripper_profile
+        prof = self.gripper_profile[robot]
         pts = gripper_model.ramp_points(q_hold, q_from, position, prof["gap_speed"], prof["latency"])
         # stamp None = zero stamp: the JTC starts the trajectory when it receives it (immediate command; a stamp
         # of "now" can arrive after a short ramp has already ended and is then rejected). Timed commands pass a stamp.

@@ -25,8 +25,10 @@ def knuckle_for_gap(gap_mm):
     return float(np.interp(-float(gap_mm), -GAP_TABLE[:, 1], GAP_TABLE[:, 0]))
 
 
-def load_profile(name=None, path=None):
-    """{'name', 'gap_speed' [m/s], 'latency' [s]} of the active profile (CATCH_GRIPPER_PROFILE overrides)."""
+def load_profile(name=None, path=None, robot=None):
+    """{'name', 'gap_speed' [m/s], 'latency' [s]} of the active profile. The env overrides (CATCH_GRIPPER_PROFILE,
+    CATCH_GRIPPER_LATENCY; benchmark) apply to the grippers listed in CATCH_GRIPPER_ARMS (default "ab"; the benchmark
+    sets "b" so that only the catching gripper varies) - robot None = any."""
     if path is None:
         try:
             from ament_index_python.packages import get_package_share_directory
@@ -34,11 +36,12 @@ def load_profile(name=None, path=None):
         except Exception:  # noqa: BLE001 - source tree (tests)
             path = os.path.join(os.path.dirname(__file__), "..", "config", "gripper.yaml")
     cfg = yaml.safe_load(open(path))
-    name = name or os.environ.get("CATCH_GRIPPER_PROFILE") or cfg["gripper_profile"]
+    env = robot is None or robot in os.environ.get("CATCH_GRIPPER_ARMS", "ab")
+    name = name or (env and os.environ.get("CATCH_GRIPPER_PROFILE")) or cfg["gripper_profile"]
     if name not in cfg["profiles"]:
         raise ValueError(f"unknown gripper profile {name}; one of {list(cfg['profiles'])}")
     prof = dict(name=name, **cfg["profiles"][name])
-    if os.environ.get("CATCH_GRIPPER_LATENCY"):          # benchmark latency sweep: the device's TRUE latency [s]
+    if env and os.environ.get("CATCH_GRIPPER_LATENCY"):          # benchmark latency sweep: the device's TRUE latency [s]
         prof["latency"] = float(os.environ["CATCH_GRIPPER_LATENCY"])
     return prof
 

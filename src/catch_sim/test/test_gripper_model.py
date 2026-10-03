@@ -31,3 +31,16 @@ def test_gap_table_round_trip_and_close_time():
 def test_profiles_load():
     p = gm.load_profile("realistic")
     assert p["gap_speed"] == 0.150 and p["latency"] == 0.010
+
+
+def test_env_override_per_arm(monkeypatch):
+    # the benchmark varies only B's gripper: CATCH_GRIPPER_ARMS=b leaves A on the default profile
+    monkeypatch.setenv("CATCH_GRIPPER_PROFILE", "fast_idealized")
+    monkeypatch.setenv("CATCH_GRIPPER_LATENCY", "0.03")
+    monkeypatch.setenv("CATCH_GRIPPER_ARMS", "b")
+    assert gm.load_profile(robot="a")["name"] == "realistic"
+    assert gm.load_profile(robot="a")["latency"] == 0.010
+    assert gm.load_profile(robot="b")["name"] == "fast_idealized"
+    assert gm.load_profile(robot="b")["latency"] == 0.03
+    monkeypatch.delenv("CATCH_GRIPPER_ARMS")
+    assert gm.load_profile(robot="a")["name"] == "fast_idealized"

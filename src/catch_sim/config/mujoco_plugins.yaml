@@ -16,7 +16,10 @@
         overhead_a: {policy: polled, trigger_service_name: /cameras/overhead_a/trigger, frame_name: overhead_a_optical, info_topic: /cameras/overhead_a/camera_info, image_topic: /cameras/overhead_a/image_raw, depth_topic: /cameras/overhead_a/depth}
         overhead_b: {policy: polled, trigger_service_name: /cameras/overhead_b/trigger, frame_name: overhead_b_optical, info_topic: /cameras/overhead_b/camera_info, image_topic: /cameras/overhead_b/image_raw, depth_topic: /cameras/overhead_b/depth}
         side: {policy: polled, trigger_service_name: /cameras/side/trigger, frame_name: side_optical, info_topic: /cameras/side/camera_info, image_topic: /cameras/side/image_raw, depth_topic: /cameras/side/depth}
-        demo: {policy: disabled}
+        # NOT "disabled": 0.1.1 skips disabled cameras when it allocates the image buffers but indexes them by MJCF
+        # camera order on a trigger, so a polled camera after a disabled one (the wrist camera) crashed the sim
+        # (vector::_M_range_check in CameraPlugin::handle_trigger). Polled + never triggered costs nothing.
+        demo: {policy: polled, trigger_service_name: /cameras/demo/trigger, frame_name: demo_optical, info_topic: /cameras/demo/camera_info, image_topic: /cameras/demo/image_raw, depth_topic: /cameras/demo/depth}
         b_robotiq_wrist_cam: {policy: polled, trigger_service_name: /cameras/b_wrist/trigger, frame_name: b_wrist_cam_optical, info_topic: /cameras/b_wrist/camera_info, image_topic: /cameras/b_wrist/image_raw, depth_topic: /cameras/b_wrist/depth}
 
 # 0.1.1 bug (fixed upstream in 0.1.2, ros-controls/mujoco_ros2_control#291): FreeJointStatePublisherPlugin reads

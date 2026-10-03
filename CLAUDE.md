@@ -9,6 +9,9 @@
 - M4 throw ✅ (docs/m4_throw.md)
 - M5 catch ✅ (docs/m5_catch.md)
 - M6 full loop + demo ✅ (docs/m6_full_loop.md, README.md)
+- v1.0.1 ✅ robot descriptions pinned in src/external (submodules), m5 clips with the bracket
+- v2 Phase 1 ✅ offline feasibility (docs/v2_phase1_feasibility.md, tools/v2_*.py, docs/v2/)
+- v2 Phase 2 (random throws, vision-only reactive catch): docs/v2_phase2.md, docs/v2/phase2/
 
 - Progress log: `docs/progress.md`
 
@@ -29,6 +32,12 @@
 - ros2_control joint names must equal MJCF joint names. Tendon actuators bind to the joint with the
   actuator's name.
 - Camera plugin yaml key must be exactly `mujoco_camera_plugin`.
+- Camera plugin: ONE rate for all streaming cameras, checked on its own ticks and restarted at "now": the setting is
+  not the rate. Measured: 150 -> 128.7 Hz, 70 -> 63.9 Hz (125 -> 115, 130-140 -> 116). Measure with tools/v2_live/rate_probe.py
+  (stamps). Non-streaming cameras are `polled` (std_srvs/Trigger at /cameras/<name>/trigger); depth is always
+  rendered and published too (nobody subscribes -> not transported). Never use `policy: disabled`: buffers skip
+  disabled cameras but triggers index by MJCF camera order, so triggering a polled camera listed after a disabled
+  one aborts the whole sim (out_of_range in CameraPlugin::handle_trigger); make unused cameras `polled` instead.
 - FreeJointStatePublisherPlugin reads un-prefixed params (`publish_rate`, `body_names`, `frame_id`) on
   node `mujoco_ros2_control_node` (bug fixed in 0.1.2).
 - Services: `/mujoco_ros2_control_node/{set_free_joint_state,reset_world,set_pause,step_simulation}`.
@@ -43,8 +52,10 @@
 
 ## Build / run
 
-- Build: `source /opt/ros/jazzy/setup.bash && colcon build && source install/setup.bash`
-- Everything (GUI): `ros2 launch catch_bringup bringup.launch.py` (args: `headless:=true rviz:=false`)
+- Build: `source /opt/ros/jazzy/setup.bash && colcon build --allow-overriding robotiq_description ur_description && source install/setup.bash`
+  (the two descriptions are pinned submodules in src/external that overlay /opt/ros; `git submodule update --init`)
+- Everything (GUI): `ros2 launch catch_bringup bringup.launch.py` (args: `headless:=true rviz:=false`,
+  v2: `camera_rate:=150` (default, 128.7 Hz), `tracker:=true` (default), `plan_catcher:=false`, `mujoco_model:=<abs path>`)
 - Scripted runs: `tools/sim_ctl.sh start catch_bringup bringup.launch.py headless:=true rviz:=false`,
   `tools/sim_ctl.sh wait 5 90`, ..., `tools/sim_ctl.sh stop` (log: `log/sim_latest.log`)
 - M2 checks: `ros2 run catch_tasks jog_test`, `ros2 run catch_tasks grasp_test --robot a`
@@ -52,13 +63,27 @@
 - M4: `ros2 run catch_tasks throw_eval --throws 20 [--from-pallet] [--out docs/m4/throws_20.json]`; plots `tools/plot_throws.py`
 - M5: `ros2 run catch_tasks catch_eval --throws 30 [--trigger time] [--no-place] [--no-correction] [--cup-offset 0.015]
 [--out docs/m5/x.json] [--rec-dir log/m5/x]`; plots `tools/plot_catch.py`; offline `tools/catch_study.py [--sweep|--envelope]`
-- M6: `ros2 run catch_tasks run_demo --seed 1 [--fault-throw N] [--out docs/m6/run.json]`; recorded batch
-  `log/run_m6.sh 1 2 3`-style (record with `install/catch_tasks/lib/catch_tasks/record_run --out x.npz`, stop with SIGINT)
+- M6: `ros2 run catch_tasks run_demo --v1 --seed 1 [--fault-throw N] [--out docs/m6/run.json]`; recorded batch
+  `tools/run_m6.sh 1 2 3` (rosbag2 + `ros2 run catch_tasks bag_to_npz`); v2: `tools/v2_live/run_demo_v2.sh 1 2 3`
 - Clips / video (venv): `tools/render_replay.py rec.npz --out x.mp4 [--view catch|throw|overview]`,
   `tools/render_demo.py rec.npz run.json --out docs/media/demo.mp4`
 - After changing throw.yaml (except `release:`), scene.yaml or physics.yaml: `env -u PYTHONPATH .venv/bin/python tools/throw_feedforward.py`
 - Venv integration tests (ROS sourced): `env -u PYTHONPATH .venv/bin/python -m pytest src/catch_description/test/test_fk_agreement.py src/catch_description/test/test_mjcf_up_to_date.py`
 - After changing the URDF/SRDF-relevant geometry: `env -u PYTHONPATH .venv/bin/python tools/gen_srdf.py`
+
+- v2 live: `ros2 run catch_tasks tracker_eval --throws 50 --seed 1 [--calibrate]` (tracker vs ground truth),
+  `ros2 run catch_tasks reactive_eval --mode pinch|cup --source vision|plan --noise none|low|medium|high --throws 60`,
+  benchmark `tools/v2_live/bench.sh` (3 ROS domains in parallel, resumable; one cell: `tools/v2_live/bench_cell.sh`),
+  `ros2 run catch_tasks run_demo --seed 1` (v2: random throws, vision-only pinch; `--v1` for the v1 loop).
+- v2 offline (venv): `tools/v2_perception.py`, `tools/v2_ready_envelope.py`, `tools/v2_throws.py [--square|--id]`,
+  `tools/v2_catch_sim.py --cup|--pinch|--corrections|--live-match [--throws square]` (resumable), `tools/v2_plots.py`.
+- After changing scene.yaml / physics.yaml / throw.yaml: `tools/throw_feedforward.py` AND `tools/build_throw_library.py`
+  (both hash those files; throw_node refuses stale tables / library entries). Robot model exports for the ROS nodes:
+  `tools/export_dynamics.py` (numpy RNEA parameters, test fixture), `tools/export_collision.py` (capsule model,
+  validated against MuJoCo). MJCF variants with another gripper actuator: `tools/v2_live/mjcf_variant.py PROFILE`.
+- Gripper model (catch_sim/gripper_model.py, config/gripper.yaml): every gripper command is a rate-limited (150 mm/s)
+  ramp starting one command latency (10 ms) later, sent to the gripper JTC; `CATCH_GRIPPER_PROFILE` /
+  `CATCH_GRIPPER_LATENCY` env vars select variants (benchmark). Both grippers are JointTrajectoryControllers now.
 
 ## Known gotchas (project)
 
@@ -72,8 +97,17 @@
   (/joint_states, wrench) only while needed, with deep queues (the catcher's palm-force queue is 1000: a lagging
   executor once dropped the 2 ms impact spike). Never time actuation with Python sleeps on the sim clock: the grip
   loosen is a time-stamped trajectory on gripper_a_controller (a JTC); a Python-timed loosen was up to 97 ms late.
-- Gripper A is a JointTrajectoryController (position, interpolate_from_desired_state), gripper B a
-  GripperActionController. MoveItClient.gripper() hides the difference.
+- Both grippers are JointTrajectoryControllers (position, interpolate_from_desired_state); command them only through
+  MoveItClient.gripper()/gripper_async() or catch_sim.gripper_model (2F-85 speed + latency). Immediate commands use a
+  ZERO header stamp (a short ramp stamped "now" can arrive after its end and is rejected); timed commands stamp the
+  sim time. Never send GripperCommand goals (no GripperActionController any more).
+- /joint_states: use catch_sim.joint_state_cache.JointStateCache (EventsExecutor helper thread), never a subscription
+  on a MultiThreadedExecutor node (cost 50-95 % of a core). MoveItClient shares one cache per node.
+- move_group must not publish /robot_description (it would race robot_state_publisher's, e.g. with an MJCF variant).
+- catch_tracker: gate stereo pairs in 3D (rays meet within 10 mm inside the flight box); a 2D region of interest lets
+  objects far below the flight volume (pallet slot borders) into the top view. Bias calibrated with tracker_eval.
+- Reactive catcher in vision mode must never subscribe /throw_plan or call /throw/preview (test_reactive_source.py).
+- Parallel sims: one ROS_DOMAIN_ID each, stop them by process group (tools/sim_ctl.sh stop kills ALL sims).
 - New subscriptions need DDS discovery time: subscribe before you need the data (catcher: at goal start).
 - Don't `pkill -f`/`pgrep -f` with a pattern that also appears in your own command line (kills your shell);
   kill by PID.

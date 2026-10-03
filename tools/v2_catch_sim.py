@@ -134,7 +134,7 @@ class CatchSim:
     # --------------------------------------------------------------------- trial ------------------------------
     def run(self, throw, mode="cup", cone_deg=30.0, match=0.0, rng=None, perception="measured", replan=None,
             gap_speed=None, cup_pre_gap=None, pinch_pre_gap=None, close_lead=0.0, ready=None, latency=None,
-            latency_assumed=None):
+            latency_assumed=None, camera_rate=None, det_latency=None, noise_model=None, first_visible=None):
         c, cs = self.c, self.c["catch_sim"]
         rng = rng or np.random.default_rng(0)
         # gripper command latency: every command reaches the fingers `latency` later; a timed close is sent
@@ -177,13 +177,14 @@ class CatchSim:
         mujoco.mj_forward(m, d)
         # perception
         pc = c["perception"]
-        rate, lat = cs["camera_rate_hz"], cs["latency_s"]
-        nm = cs["noise_model"]
+        rate = camera_rate or cs["camera_rate_hz"]
+        lat = cs["latency_s"] if det_latency is None else det_latency
+        nm = noise_model or cs["noise_model"]
         if perception == "perfect":
             rate, lat, nm = 1000.0, 0.0, dict(white_mm=0.0, corr_mm=0.0, corr_tau_s=1.0)
         a_gm = np.exp(-(1.0 / rate) / nm["corr_tau_s"])
         gm = rng.normal(0, nm["corr_mm"] / 1000, 3)
-        next_frame = t0 + pc["first_visible_s"]
+        next_frame = t0 + (pc["first_visible_s"] if first_visible is None else first_visible)
         frames, pending = [], []          # (t_frame, measured position); (t_available, index)
         planned = False
         t_c = None
@@ -360,8 +361,11 @@ def throws(c, n=None, kind="random"):
     return [dist[i] for i in idx]
 
 
+PROCS = [22]
+
+
 def batch(profile, kw, ths, seed0=0, gap_speed=None):
-    with mp.Pool(min(22, os.cpu_count()), initializer=_init, initargs=(profile, gap_speed)) as pool:
+    with mp.Pool(min(PROCS[0], os.cpu_count()), initializer=_init, initargs=(profile, gap_speed)) as pool:
         return pool.map(_job, [(t, kw, seed0 + i) for i, t in enumerate(ths)], chunksize=2)
 
 
@@ -402,11 +406,14 @@ def main():
     ap.add_argument("--n", type=int)
     ap.add_argument("--only", default=None, help="run only rows whose key contains this text")
     ap.add_argument("--corrections", action="store_true", help="Phase 2 review rows (latency, fast_close, timing)")
+    ap.add_argument("--live-match", action="store_true", help="offline counterparts of the live benchmark cells")
+    ap.add_argument("--procs", type=int, default=22)
     ap.add_argument("--throws", default="random", choices=["random", "square"],
                     help="throw distribution: random palm pitch (min joint speed) or square arrival on B's palm")
     a = ap.parse_args()
     c = V.cfg()
     prof_name = V.gripper_profile(c, a.gripper_profile)[0]
+    PROCS[0] = a.procs
     print(f"gripper_profile: {prof_name}", flush=True)
     if a.gripper:
         rows = []
@@ -426,6 +433,9 @@ def main():
         print(json.dumps(sim.run(th, mode=a.mode, cone_deg=a.cone, match=a.match, perception=a.perception), indent=1))
     if a.corrections:
         run_corrections(c, a, prof_name)
+        return
+    if a.live_match:
+        run_live_match(c, a, prof_name)
         return
     if not (a.cup or a.pinch):
         return
@@ -510,6 +520,30 @@ def run_corrections(c, a, prof_name):
         run_rows(f"catch_corrections{'_square' if kind == 'square' else ''}.json",
                  [sp for sp in specs if not a.only or a.only in sp[0]], ths, c, prof_name, kind,
                  note="Phase 2 review rows; gripper latency 10 ms (assumed 10 ms) unless the key says otherwise")
+
+
+def run_live_match(c, a, prof_name):
+    """Offline counterparts of the live benchmark cells, with the MEASURED live perception (catch_tracker,
+    docs/v2/phase2/tracker_eval_50.json): 128.7 Hz (63.9 Hz for the 60 Hz cell), 5 ms latency, first fix 47 ms after
+    release, white per-axis noise (1.0, 1.0, 2.0) mm; close +10 ms for every profile (as live); 10 ms gripper latency."""
+    cs = c["catch_sim"]
+    live = dict(camera_rate=128.7, det_latency=0.005, first_visible=0.047,
+                noise_model=dict(white_mm=1.0, corr_mm=0.0, corr_tau_s=0.2))
+    wz = dict(live, noise_model=dict(white_mm=1.0, corr_mm=0.0, corr_tau_s=0.2))
+    specs = {"random": [], "square": []}
+    P = dict(mode="pinch", cone_deg=cs["pinch_cone_deg"], close_lead=-0.010)
+    for prof in ("realistic", "fast_close", "fast_idealized"):
+        specs["random"].append((f"live|pinch|{prof}", prof, dict(P, **wz), None))
+    specs["random"].append(("live|pinch|realistic|cam64", "realistic", dict(P, **dict(wz, camera_rate=63.9)), None))
+    for lat in (0.0, 0.020, 0.030):
+        specs["random"].append((f"live|pinch|realistic|latency{int(1000 * lat)}", "realistic", dict(P, **wz, latency=lat), None))
+    specs["square"].append(("live|cup_pregap|realistic|cone10", "realistic",
+                            dict(mode="cup", cone_deg=10, cup_pre_gap=cs["pinch_pre_gap_mm"], **wz), None))
+    for kind, sp in specs.items():
+        ths = throws(c, a.n, kind)
+        run_rows(f"catch_livematch{'_square' if kind == 'square' else ''}.json",
+                 [x for x in sp if not a.only or a.only in x[0]], ths, c, prof_name, kind,
+                 note="offline counterparts of the live benchmark cells (measured live perception)")
 
 
 def run_rows(name, specs, ths, c, prof_name, kind, note=""):

@@ -121,6 +121,7 @@ class ThrowNode(Node):
         super().__init__("throw_node")
         self.declare_parameter("start_lead", 0.5)          # s of sim time between commit and stroke start
         self.declare_parameter("start_tolerance", 0.02)    # rad, arm must be this close to the stroke start
+        self.declare_parameter("blend_acc", 6.0)           # rad/s^2, blend from the nominal to a perturbed stroke start
         self.declare_parameter("use_feedforward", True)
         cb = ReentrantCallbackGroup()
         self.robot = make_robot()
@@ -130,7 +131,7 @@ class ThrowNode(Node):
         self.t_loosen = self.get_parameter("t_loosen").value
         self.loosen_to = float(rel.get("loosen_to", 0.30))
         self.hold_cmd = float(rel.get("hold", 0.70))           # grip command while holding (skills gripper_close)
-        self.grip_model = gripper_model.load_profile()         # 2F-85 speed + command latency (config/gripper.yaml)
+        self.grip_model = gripper_model.load_profile(robot="a")  # 2F-85 speed + command latency (config/gripper.yaml)
         self.ff, why = load_feedforward(len(self.plan.t))
         if self.ff is None:
             self.get_logger().warn(f"no torque feed-forward: {why}")
@@ -233,8 +234,10 @@ class ThrowNode(Node):
         res.release_velocity_commanded = Vector3(x=float(v_cmd[0]), y=float(v_cmd[1]), z=float(v_cmd[2]))
         res.release_time_offset = float(dt_off)
         q = np.array(self.js.positions([f"a_{j}" for j in JN]))
-        err = float(np.max(np.abs(q - ex_plan.q_start)))
-        tol = self.get_parameter("start_tolerance").value + (0.03 if ex_plan is not nominal else 0.0)
+        # A waits at the NOMINAL stroke start; a perturbed stroke starts up to ~0.08 rad away (high noise) and is
+        # blended in below
+        err = float(np.max(np.abs(q - nominal.q_start)))
+        tol = self.get_parameter("start_tolerance").value
         if not np.isfinite(err) or err > tol:
             gh.abort()
             res.success, res.message = False, f"arm A not at the stroke start (|dq| {err:.3f} rad)"
@@ -262,15 +265,19 @@ class ThrowNode(Node):
         if use_ff:
             last.effort, end.effort = [0.0] * 6, [0.0] * 6
         goal.trajectory.points.append(end)
+        t_blend = 0.0
         if ex_plan is not nominal:
-            # the perturbed stroke starts a few mm from the nominal start where A waits: blend in during 0.15 s
+            # the perturbed stroke starts a few mm from the nominal start where A waits: blend in (rest to rest,
+            # cubic: peak acceleration 6 d / T^2 <= blend_acc, at least 0.15 s)
+            d = float(np.max(np.abs(ex_plan.q_start - q)))
+            t_blend = max(0.15, float(np.sqrt(6.0 * d / self.get_parameter("blend_acc").value)))
             pre = JointTrajectoryPoint(positions=q.tolist(), velocities=[0.0] * 6, accelerations=[0.0] * 6,
                                        time_from_start=to_dur(0.0))
             for pt in goal.trajectory.points:
-                t = pt.time_from_start.sec + pt.time_from_start.nanosec * 1e-9 + 0.15
+                t = pt.time_from_start.sec + pt.time_from_start.nanosec * 1e-9 + t_blend
                 pt.time_from_start = to_dur(t)
             goal.trajectory.points.insert(0, pre)
-            goal.trajectory.header.stamp = to_time(t0 - 0.15)
+            goal.trajectory.header.stamp = to_time(t0 - t_blend)
             if use_ff:
                 pre.effort = [0.0] * 6
         gh.publish_feedback(Throw.Feedback(phase="committed"))
@@ -280,7 +287,7 @@ class ThrowNode(Node):
             gh.abort()
             res.success, res.message = False, "JTC rejected the throw trajectory"
             return res
-        if t_acc > t0 - (0.15 if ex_plan is not nominal else 0.0):
+        if t_acc > t0 - t_blend:
             self.get_logger().error(f"JTC accepted the throw {t_acc - t0:.3f} s after its start stamp (increase start_lead)")
         # grip loosen during the acceleration phase: a time-stamped trajectory for gripper_a_controller (a JTC),
         # executed in sim time; 2F-85 model: the command reaches the fingers one latency later and the gap opens at

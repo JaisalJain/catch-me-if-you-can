@@ -11,7 +11,8 @@ catch: cube centre < 25 mm from B's TCP (between the pads), fingers closed on it
 the table. Failure classes: abort (B found no feasible intercept), missed intercept (the cube never came within
 30 mm of the TCP), late close / slide-off (it came close but was not held: fingers closed after it bounced out of
 the gripper / it slid out after being gripped), fingertip (held, but 25-50 mm out), collision (B's capsule model
-clearance < 0 along the recorded motion — never expected, the planner checks every plan).
+clearance < 0 along the recorded motion — never expected, the planner checks every plan). A throw that A did not
+execute (throw failed) is not a catch attempt and is excluded like setup failures.
 The camera rate, gripper profile / latency and MJCF variant of a cell are properties of the running sim (set by the
 benchmark script, tools/v2_live/bench.sh); the cell json records them from the environment.
 """
@@ -105,12 +106,13 @@ class ReactiveEval(TrackerEval):
         self.recorder.stop()
         arr = self.recorder.arrays()
         res = cr.result if cr else None
-        row.update(throw_ok=bool(tr and tr.result.success),
+        throw_ok = bool(tr and tr.result.success)
+        row.update(throw_ok=throw_ok, throw_msg=tr.result.message if tr else "throw timeout",
                    noise_dv=(np.array([tr.result.release_velocity_commanded.x, tr.result.release_velocity_commanded.y,
                                        tr.result.release_velocity_commanded.z]) -
                              np.array([tr.result.plan.release_velocity.x, tr.result.plan.release_velocity.y,
-                                       tr.result.plan.release_velocity.z])).round(4).tolist() if tr else None,
-                   noise_dt=float(tr.result.release_time_offset) if tr else None,
+                                       tr.result.plan.release_velocity.z])).round(4).tolist() if throw_ok else None,
+                   noise_dt=float(tr.result.release_time_offset) if throw_ok else None,
                    catch_msg=res.message if res else "catch timeout", node_success=bool(res and res.success),
                    trigger=res.trigger if res else "", aborted=bool(res and res.aborted),
                    abort_reason=res.abort_reason if res else "", t_commit=res.t_commit if res else None,
@@ -123,6 +125,8 @@ class ReactiveEval(TrackerEval):
         row.update(self.post(arr, color, row))
         if tr and len(arr["cubes"]):
             row.update(self.release_error(arr, color, tr.result.plan))
+        if not throw_ok:                # A did not throw: not a catch attempt (excluded like setup failures)
+            row.update(stage="throw", why=row["throw_msg"])
         row["outcome"] = self.classify(row)
         if a.rec_dir and (not a.rec_fail_only or not held):
             os.makedirs(a.rec_dir, exist_ok=True)
@@ -187,25 +191,37 @@ class ReactiveEval(TrackerEval):
                     release_time_equiv_ms=round(float(-1000 * (dp @ n) / np.linalg.norm(vp)), 1))
 
     def classify(self, r):
-        if r["held"]:
-            return "held"
-        if r.get("aborted"):
-            return "abort"
-        if r.get("min_clearance_mm") is not None and r["min_clearance_mm"] < 0:
-            return "collision"
-        if r.get("min_cube_tcp_mm") is None or r["min_cube_tcp_mm"] > 30:
-            return "missed intercept"
-        rel = np.linalg.norm(r["rel_mm"]) if r.get("rel_mm") else 1e9
-        if 25 <= rel < 50 and r.get("knuckle") and 0.30 <= r["knuckle"] <= 0.60:
-            return "fingertip"
-        if r.get("knuckle") is not None and 0.30 <= r["knuckle"] <= 0.60:
-            return "slide-off"          # the fingers closed on it, then it went
-        return "late close"             # came close, fingers never closed on it
+        return classify(r)
+
+
+def classify(r):
+    """Outcome class of a trial row (also used to re-classify stored cells: tools/v2_live/reclassify.py)."""
+    if r.get("stage") == "throw":
+        return "throw failed"
+    if r.get("stage") == "setup":
+        return "setup"
+    if r["held"]:
+        return "held"
+    if r.get("aborted"):
+        return "abort"
+    if r.get("min_clearance_mm") is not None and r["min_clearance_mm"] < 0:
+        return "collision"
+    rel = np.linalg.norm(r["rel_mm"]) if r.get("rel_mm") else 1e9
+    gripped = r.get("knuckle") is not None and 0.30 <= r["knuckle"] <= 0.60
+    # gripped 25-50 mm out of the hand (also when the fingers closed before the cube reached the palm: its
+    # closest approach then stays > 30 mm)
+    if 25 <= rel < 50 and gripped:
+        return "fingertip"
+    if r.get("min_cube_tcp_mm") is None or r["min_cube_tcp_mm"] > 30:
+        return "missed intercept"
+    if gripped:
+        return "slide-off"          # the fingers closed on it, then it went
+    return "late close"             # came close, fingers never closed on it
 
 
 def summarize(rows, args):
     n = len(rows)
-    valid = [r for r in rows if r.get("stage") != "setup"]
+    valid = [r for r in rows if r.get("stage") not in ("setup", "throw")]
     k = sum(1 for r in valid if r["held"])
     from collections import Counter
     out = dict(n=n, n_valid=len(valid), held=k, rate=round(k / max(len(valid), 1), 4), ci95=wilson(k, len(valid)),

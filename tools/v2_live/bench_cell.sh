@@ -3,19 +3,20 @@
 #   tools/v2_live/bench_cell.sh DOMAIN LABEL THROWS MODE SOURCE NOISE CAMERA_SETTING PROFILE LATENCY [SEED]
 #   e.g. tools/v2_live/bench_cell.sh 41 vision_medium 60 pinch vision medium 150 realistic default
 # CAMERA_SETTING: plugin rate setting (150 -> 128.7 Hz measured, 70 -> 63.9 Hz). PROFILE: realistic | fast_close |
-# fast_idealized (MJCF variant from tools/v2_live/mjcf_variant.py + gripper command model). LATENCY: true gripper
+# fast_idealized (B only: MJCF variant from tools/v2_live/mjcf_variant.py PROFILE --arms b + gripper command model). LATENCY: true gripper
 # command latency in seconds or "default" (profile: 10 ms); B always assumes 10 ms.
 # Output: docs/v2/phase2/bench/LABEL.json (+ failure recordings in log/p2/bench/LABEL, sim log + RTF samples).
-set -u
+
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 DOM=$1; LABEL=$2; N=$3; MODE=$4; SRC=$5; NOISE=$6; CAM=$7; PROF=$8; LAT=$9; SEED=${10:-1}
 cd "$REPO"
 source /opt/ros/jazzy/setup.bash; source install/setup.bash; source tools/nv_env.sh
 export ROS_DOMAIN_ID=$DOM
 export CATCH_GRIPPER_PROFILE=$PROF
+export CATCH_GRIPPER_ARMS=b          # only B's (catching) gripper varies; A throws with the default one
 [ "$LAT" != "default" ] && export CATCH_GRIPPER_LATENCY=$LAT || unset CATCH_GRIPPER_LATENCY
 export CATCH_CAMERA_RATE=$CAM
-MJ=""; [ "$PROF" = "fast_close" ] || [ "$PROF" = "fast_idealized" ] && MJ="$REPO/log/mjcf/$PROF/scene.xml"
+MJ=""; [ "$PROF" = "fast_close" ] || [ "$PROF" = "fast_idealized" ] && MJ="$REPO/log/mjcf/${PROF}_b/scene.xml"
 export CATCH_MJCF=${MJ:-default}
 PLAN=false; [ "$SRC" = "plan" ] && PLAN=true
 D="$REPO/log/p2/bench"; mkdir -p "$D" docs/v2/phase2/bench

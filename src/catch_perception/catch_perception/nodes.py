@@ -135,8 +135,9 @@ class ColorCheck(Node):
         self.cc = cfg["color_check"]
         self.latest = {}
         cb = ReentrantCallbackGroup()
+        self.n_rx = {}
         for cam in ("b_wrist",):
-            self.create_subscription(Image, f"/cameras/{cam}/image_raw", lambda m, c=cam: self.latest.__setitem__(c, m),
+            self.create_subscription(Image, f"/cameras/{cam}/image_raw", lambda m, c=cam: self._on_image(c, m),
                                      1, callback_group=cb)
         self.create_service(GetColor, "/perception/get_color", self.on_req, callback_group=cb)
         # in-hand pose of the caught cube (wrist camera looks along the closing axis)
@@ -166,17 +167,26 @@ class ColorCheck(Node):
         return res
 
 
-    def fresh_image(self, cam, timeout=1.5):
-        """Latest image of `cam` rendered after this request (v2: the wrist camera is polled; trigger a frame)."""
+    def _on_image(self, cam, msg):
+        self.latest[cam] = msg
+        self.n_rx[cam] = self.n_rx.get(cam, 0) + 1
+
+    def fresh_image(self, cam, timeout=1.5, max_age=0.1):
+        """An image of `cam` captured for this request (v2: the wrist camera is polled; trigger a frame). Freshness =
+        it ARRIVED after the trigger: the plugin stamps a polled frame with the sim time of the physics state it
+        rendered, which can be a few ms before this node's clock at the request (a strict stamp >= request test
+        rejected the triggered frame itself); stamps more than max_age older are still refused."""
         import time
         t_req = self.get_clock().now().nanoseconds * 1e-9
+        n0 = self.n_rx.get(cam, 0)
         trig = self.wrist_trigger.get(cam)
         if trig is not None and trig.wait_for_service(timeout_sec=1.0):
             trig.call_async(Trigger.Request())
         t0 = time.monotonic()
         while time.monotonic() - t0 < timeout:
             msg = self.latest.get(cam)
-            if msg is not None and msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9 >= t_req:
+            if (msg is not None and self.n_rx.get(cam, 0) > n0
+                    and msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9 >= t_req - max_age):
                 return msg
             time.sleep(0.01)
         return None

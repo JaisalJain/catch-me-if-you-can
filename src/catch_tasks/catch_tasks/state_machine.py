@@ -5,6 +5,10 @@
     DETECT -> PICK -> LOAD -> PREPOSITION -> THROW -> CATCH -> COLOR -> IN_HAND -> PLACE -> VERIFY -> DETECT ...
     until A's pallet is empty (all cubes sorted on B's side) -> DONE
 
+v2 (default): A throws a random entry of the throw library (catch_throw, seeded) with release noise (--noise,
+default medium); B catches it vision-only from its ready pose (/reactive_catch: catch_tracker estimates, never A's
+plan; --mode pinch|cup). --v1 runs the v1 loop (configured throw, B pre-positions from A's plan).
+
 * DETECT: overhead camera A (fresh frame); the cube to throw is chosen at random (seeded) among those detected.
 * PICK / LOAD: A picks it (MoveIt), turns palm-up, loosens so the cube drops onto the palm insert, re-grips and
   moves to the stroke start.
@@ -33,7 +37,7 @@ from ament_index_python.packages import get_package_share_directory
 from rclpy.action import ActionClient
 from rclpy.executors import MultiThreadedExecutor
 
-from catch_interfaces.action import Catch, Throw
+from catch_interfaces.action import Catch, ReactiveCatch, Throw
 from catch_interfaces.msg import CubeDetectionArray
 from catch_interfaces.srv import GetColor, GetInHandPose, GetThrowPlan, SpawnCube
 from rcl_interfaces.msg import Parameter, ParameterType, ParameterValue
@@ -70,7 +74,7 @@ def quat_yaw(q):
 
 
 class Demo:
-    def __init__(self, seed, fault_throw=0):
+    def __init__(self, seed, fault_throw=0, v1=False, noise="medium", library="pinch", mode="pinch"):
         self.node = rclpy.create_node("run_demo", parameter_overrides=[rclpy.parameter.Parameter("use_sim_time", value=True)])
         ex = MultiThreadedExecutor()
         ex.add_node(self.node)
@@ -93,6 +97,11 @@ class Demo:
                                           lambda m, c=cam: self.det.__setitem__(c, m), 1)
         self.throw = ActionClient(self.node, Throw, "/throw")
         self.catch = ActionClient(self.node, Catch, "/catch")
+        # v2 (default): random library throws with release noise, vision-only reactive catch (B never sees A's plan)
+        self.v1, self.noise, self.library, self.catch_mode = v1, noise, library, mode
+        self.rcatch = ActionClient(self.node, ReactiveCatch, "/reactive_catch")
+        self.entry_rng = np.random.default_rng(random.Random(f"catch-v2-{self.seed}").getrandbits(32))   # reproducible
+        self.pv = None              # selected library throw (v2)
         self.preview = self.node.create_client(GetThrowPlan, "/throw/preview")
         self.get_color = self.node.create_client(GetColor, "/perception/get_color")
         self.in_hand = self.node.create_client(GetInHandPose, "/perception/in_hand_pose")
@@ -192,11 +201,39 @@ class Demo:
             self.log(S.LOAD, f"cube lost while re-seating (knuckle {k:.3f})")
             return S.RECOVER
         sk.attach_cube("a", c, offset_z=0.0)
-        ok, msg = self.mi.move_joints("a", self.plan.q_start)
+        q_start = self.plan.q_start
+        if not self.v1:
+            from catch_throw.library import Library
+            n = len(Library(self.library))
+            entry = int(self.entry_rng.integers(n))
+            self.pv = _wait(self.preview.call_async(GetThrowPlan.Request(library=self.library, entry=entry)), 10)
+            if self.pv is None or not self.pv.success:
+                self.log(S.LOAD, f"throw library entry {entry} not available")
+                return S.RECOVER
+            q_start = np.array(self.pv.plan.stroke_start_q)
+            tgt = self.pv.plan.catch_point
+            self.log(S.LOAD, f"random throw: {self.library} library entry {entry} (target ({tgt.x:.2f}, {tgt.y:.2f}, {tgt.z:.2f}), "
+                             f"flight {self.pv.plan.flight_time:.3f} s), release noise {self.noise}", entry=entry)
+        ok, msg = self.mi.move_joints("a", q_start)
         self.log(S.LOAD, "cube seated on the palm, A at the stroke start" if ok else f"stroke start failed: {msg}")
         return S.PREPOSITION if ok else S.RECOVER
 
     def s_preposition(self):
+        if not self.v1:
+            self.rcatch.wait_for_server(timeout_sec=10)
+            self.phase = None
+            self.catch_handle = _wait(self.rcatch.send_goal_async(
+                ReactiveCatch.Goal(mode=self.catch_mode, timeout=8.0),
+                feedback_callback=lambda f: setattr(self, "phase", f.feedback.phase)), 10)
+            t0 = time.monotonic()
+            while self.phase != "ready" and time.monotonic() - t0 < 60:
+                time.sleep(0.01)
+            if self.phase != "ready":
+                r = _wait(self.catch_handle.get_result_async(), 5)
+                self.log(S.PREPOSITION, f"B not ready: {r.result.message if r else 'timeout'}")
+                return S.RECOVER
+            self.log(S.PREPOSITION, "B at its ready pose (fingers at the 56 mm pre-gap), watching the cameras only")
+            return S.THROW
         pv = _wait(self.preview.call_async(GetThrowPlan.Request()), 10)
         self.catch.wait_for_server(timeout_sec=10)
         self.phase = None
@@ -225,7 +262,12 @@ class Demo:
             self._t_loosen(self.cfg["fault_t_loosen"])
             self.log(S.THROW, f"FAULT INJECTED (test of the recovery path): throw #{n_throw} loosens the grip at "
                               f"t = {self.cfg['fault_t_loosen']} s instead of {self.release['t_loosen']} s", injected=True)
-        th = _wait(self.throw.send_goal_async(Throw.Goal(cube_id=f"cube_{self.a_color}")), 10)
+        if self.v1:
+            goal = Throw.Goal(cube_id=f"cube_{self.a_color}")
+        else:
+            goal = Throw.Goal(cube_id=f"cube_{self.a_color}", library=self.library, entry=self.pv.plan.library_entry,
+                              noise=self.noise, noise_seed=int(self.entry_rng.integers(2 ** 31)))
+        th = _wait(self.throw.send_goal_async(goal), 10)
         cr = _wait(self.catch_handle.get_result_async(), 20)
         tr = _wait(th.get_result_async(), 20)
         if inject:
@@ -234,7 +276,10 @@ class Demo:
         self.log(S.THROW, f"throw #{self.throws[self.a_color]} of the {self.a_color} cube: "
                           f"{tr.result.message if tr else 'timeout'}")
         caught = bool(cr and cr.result.success)
-        self.log(S.THROW, f"catch: {cr.result.message if cr else 'timeout'}", caught=caught)
+        extra = {}
+        if not self.v1 and cr:
+            extra = dict(trigger=cr.result.trigger, aborted=cr.result.aborted, n_replans=cr.result.n_replans)
+        self.log(S.THROW, f"catch: {cr.result.message if cr else 'timeout'}", caught=caught, **extra)
         self.sk._grip("a", 0.0)
         self.home("a")              # sequential: one move_group goal at a time
         return S.COLOR if caught else S.RECOVER
@@ -319,7 +364,9 @@ class Demo:
             state = handlers[state]()
         sorted_ = [e["sorted"] for e in self.events if "sorted" in e]
         drops = [e["dropped"] for e in self.events if "dropped" in e]
-        summary = dict(seed=self.seed, duration_s=round(self.now() - self.t_start, 1), sorted=sorted_,
+        summary = dict(seed=self.seed, version="v1" if self.v1 else "v2", noise=None if self.v1 else self.noise,
+                       catch_mode="cup (plan)" if self.v1 else self.catch_mode,
+                       duration_s=round(self.now() - self.t_start, 1), sorted=sorted_,
                        throws=sum(self.throws.values()), throws_per_cube=self.throws, attempts=self.attempts,
                        recoveries=drops,
                        complete=sorted(sorted_) == ["blue", "green", "red"])
@@ -331,10 +378,14 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--seed", type=int, default=None)
     ap.add_argument("--fault-throw", type=int, default=0, help="inject a late grip loosen on this throw (0 = off)")
+    ap.add_argument("--v1", action="store_true", help="v1 loop: the configured throw, B pre-positions from A's plan")
+    ap.add_argument("--noise", default="medium", help="v2 release noise: none | low | medium | high")
+    ap.add_argument("--mode", default="pinch", choices=["pinch", "cup"], help="v2 catch mode")
     ap.add_argument("--out", default="")
     args, _ = ap.parse_known_args()
     rclpy.init()
-    d = Demo(args.seed, args.fault_throw)
+    lib = "cup" if args.mode == "cup" else "pinch"
+    d = Demo(args.seed, args.fault_throw, v1=args.v1, noise=args.noise, library=lib, mode=args.mode)
     summary = d.run()
     print("RUN", json.dumps(summary), flush=True)
     if args.out:

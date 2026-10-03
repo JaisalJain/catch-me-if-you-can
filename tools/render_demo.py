@@ -57,7 +57,8 @@ def main():
     t_last = min(float(rec["t_js"][-1]), ev[-1]["t_sim"] + 2.0)
     # throw windows: from "B in its cup pose" (preposition done) to 1.2 s after the catch result
     throws = [e for e in ev if e["state"] == "throw" and "caught" in e]
-    pre = [e for e in ev if e["state"] == "preposition" and "cup pose" in e["msg"]]
+    v2 = run["summary"].get("version") == "v2"
+    pre = [e for e in ev if e["state"] == "preposition" and ("cup pose" in e["msg"] or "ready pose" in e["msg"])]
     windows = []
     for e in throws:
         p = max([x for x in pre if x["t_sim"] <= e["t_sim"]], key=lambda x: x["t_sim"])
@@ -76,7 +77,8 @@ def main():
         for x in ev:
             if x["t_sim"] <= t and "sorted" in x and x["sorted"] not in sorted_:
                 sorted_.append(x["sorted"])
-        head = f"catch demo  seed {seed}  t={t - t_first:6.1f} s  ({'real time' if speed == 1 else f'{speed:g}x'})"
+        tag = "v2 vision-only, random throws, medium noise, realistic 2F-85" if v2 else "v1"
+        head = f"catch demo ({tag})  seed {seed}  t={t - t_first:6.1f} s  ({'real time' if speed == 1 else f'{speed:g}x'})"
         lines = [head + extra, f"sorted on B: {', '.join(sorted_) or '-'}"]
         if note:
             lines.append(note)
@@ -101,12 +103,17 @@ def main():
             w0, w1, e = windows[k]
             tc, contact = contact_time(rec, e["t_sim"] - 3.0, e["t_sim"])
             cr = Replay(rec, w, h)
-            ts = np.arange(tc - 0.45, tc + 0.6, 0.25 / a.fps)
+            # v2: start while B still waits at its ready pose, so the close-up shows it moving to the cube
+            ts = np.arange(tc - (0.6 if v2 else 0.45), tc + 0.6, 0.25 / a.fps)
             tp = ts[0]
             for tt in ts:
                 cr.advance(tp, tt)
                 tp = tt
-                if not contact:
+                if v2:
+                    note = ("[catch] B tracks the cube with two cameras and moves from its ready pose; fingers at 56 mm"
+                            if tt < tc - 0.12 else "[catch] timed close (2F-85 speed) -> fingers on the cube"
+                            if tt < tc + 0.15 else "[catch] held")
+                elif not contact:
                     note = "[catch] no palm contact: the cube misses B's cup (fingers stay open)"
                 else:
                     note = ("[catch] palm contact -> fingers close" if tt >= tc else "[catch] cube in flight, B's cup open")

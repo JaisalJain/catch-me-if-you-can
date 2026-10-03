@@ -157,7 +157,7 @@ class ReactiveCatcher(Node):
         self.planner = ReactivePlanner(self.robot, self.dyn, self.caps, self.cfg, self.q_ready,
                                        self.cfg["ready"]["elev_deg"], self.robot_a)
         self.k_pre = gripper_model.knuckle_for_gap(self.cfg["pre_gap_mm"])
-        self.grip_model = gripper_model.load_profile()
+        self.grip_model = gripper_model.load_profile(robot="b")
         cb = ReentrantCallbackGroup()
         self._joint_state_cache = JointStateCache(self)
         self.js = self._joint_state_cache

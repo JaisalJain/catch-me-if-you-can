@@ -14,7 +14,7 @@ for seed in "$@"; do
     /b_palm_ft_broadcaster/wrench > log/m6/bag_seed$seed.log 2>&1 &
   BPID=$!
   sleep 3
-  timeout 900 ros2 run catch_tasks run_demo --seed $seed $FAULT --out docs/m6/run_seed$seed.json > log/m6/run_seed$seed.log 2>&1
+  timeout 900 ros2 run catch_tasks run_demo --v1 --seed $seed $FAULT --out docs/m6/run_seed$seed.json > log/m6/run_seed$seed.log 2>&1
   echo "seed $seed exit $?"
   sleep 1
   kill -TERM $BPID; wait $BPID       # SIGINT is ignored by background jobs of a non-interactive shell
